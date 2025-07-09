@@ -81,7 +81,9 @@ SESSION_SECRET=<secure_random_secret>
 
 Start servers (in the root of the project):
 
-```bash npm start```
+```bash
+npm start
+```
 
 The app will then be accessible at http://localhost:16261.
 
