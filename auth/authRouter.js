@@ -1,68 +1,111 @@
+// authRouter.js (ESM)
 import express from 'express';
+import passport from 'passport';
+import { Strategy as CustomStrategy } from 'passport-custom';
 import discordRouter from './discordRouter.js';
 import { validateAndRefreshSession } from './passport-discord.js';
-import passport from 'passport';
 
-const DEV_MODE = process.env.DEV_MODE === 'TRUE' || process.env.NODE_ENV === 'development';
-console.info(`🔒 Auth router started – DEV_MODE=${DEV_MODE}`);
+const DEV_LOGIN_MODE = process.env.DEV_LOGIN_MODE === 'TRUE' || process.env.NODE_ENV === 'development';
+
+console.info(`🔒 [init] Auth router initialized – DEV_LOGIN_MODE=${DEV_LOGIN_MODE}`);
 
 const router = express.Router();
 
+// --------- Strategies ---------
+passport.use(new LocalStrategy((username, password, done) => {
+  if (
+    username === (process.env.DEV_USERNAME || 'DevUser') &&
+    password === (process.env.DEV_PASSWORD || 'devpass')
+  ) {
+    return done(null, {
+      id: process.env.DEV_ID || 'dev-id',
+      username,
+      avatar: null,
+      guild: process.env.DISCORD_GUILD_ID,
+      hasRole: true,
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+      expires: Date.now() + 3600 * 1000,
+      devBypass: true,
+    });
+  }
+  return done(null, false, { message: 'Invalid dev credentials' });
+}));
+
+if (DEV_LOGIN_MODE) {
+  passport.use('dev', new CustomStrategy((req, done) => {
+    return done(null, {
+      id: process.env.DEV_ID || 'dev-id',
+      username: process.env.DEV_USERNAME || 'DevUser',
+      avatar: "fdsdf",
+      guild: process.env.DISCORD_GUILD_ID,
+      hasRole: true,
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+      expires: Date.now() + 3600 * 1000,
+      devBypass: true,
+    });
+  }));
+}
+
+// --------- Routers ---------
 router.use('/discord', discordRouter);
 
-// ----- Dev login (for local development) -----
-router.get('/dev-login', (req, res, next) => {
-  if (!DEV_MODE) {
-    console.warn('Attempt to dev-login in non-dev mode');
-    return res.status(403).send('🚫 dev-login not allowed in production.');
-  }
-
-  const redirectTo = req.query.redirect || '/';
-
-  const user = {
-    id: process.env.DEV_ID || 'dev-id',
-    username: process.env.DEV_USERNAME || 'DevUser',
-    avatar: null,
-    guild: process.env.DISCORD_GUILD_ID,
-    hasRole: true,
-    accessToken: 'fake-access-token',
-    refreshToken: 'fake-refresh-token',
-    expires: Date.now() + 3600 * 1000,
-    devBypass: true,
-  };
-
-  req.login(user, (err) => {
-    if (err) {
-      console.error('[dev-login] Passport login error:', err);
-      return next(err);
-    }
+// --------- /dev-login (GET, DEV_LOGIN_MODE only) ---------
+router.get(
+  '/dev-login',
+  (req, res, next) => {
+    if (!DEV_LOGIN_MODE) return res.status(403).send('🚫 dev-login not allowed in production.');
+    next();
+  },
+  passport.authenticate('dev', {
+    failureRedirect: '/login?error=dev-login-failed',
+    failureMessage: true,
+    session: true
+  }),
+  (req, res, next) => {
     req.session.save((err) => {
-      if (err) {
-        console.error('Error saving session after dev-login:', err);
-        return next(err);
+      if (err) return next(err);
+      res.redirect(req.query.redirect || '/');
+    });
+  }
+);
+
+// --------- /status (GET) ---------
+router.get('/status',
+  validateAndRefreshSession,
+  (req, res) => {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user || !req.user.hasRole) {
+      return res.json({ discord: { authenticated: false } });
+    }
+    if (process.env.DISCORD_GUILD_ID && req.user.guild !== process.env.DISCORD_GUILD_ID) {
+      return res.json({ discord: { authenticated: false } });
+    }
+    res.json({
+      discord: {
+        authenticated: true,
+        user: {
+          id: req.user.id,
+          username: req.user.username,
+          avatar: req.user.avatar,
+          guild: req.user.guild,
+          hasRole: req.user.hasRole,
+          devBypass: req.user.devBypass || false,
+        },
       }
-      console.info('[dev-login] User session saved:', user);
-      return res.redirect(redirectTo);
+    });
+  }
+);
+
+// --------- /logout (GET) ---------
+router.get('/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) return next(err);
+    req.session.destroy((err) => {
+      if (err) return next(err);
+      res.redirect('/');
     });
   });
-});
-
-// ----- Auth status (shared by Discord & dev login) -----
-router.get('/status', validateAndRefreshSession, (req, res) => {
-  if (req.isAuthenticated() && req.user) {
-    res.json({
-      authenticated: true,
-      user: {
-        id: req.user.id,
-        username: req.user.username,
-        avatar: req.user.avatar,
-        guild: req.user.guild,
-        hasRole: req.user.hasRole,
-      },
-    });
-  } else {
-    res.json({ authenticated: false });
-  }
 });
 
 export default router;

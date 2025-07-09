@@ -26,8 +26,11 @@
     "http-proxy-middleware": "^3.0.5",
     "knex": "^3.1.0",
     "limits": "^1.0.0",
+    "local": "^0.3.3",
     "passport": "^0.7.0",
+    "passport-custom": "^1.1.1",
     "passport-discord": "^0.1.4",
+    "passport-local": "^1.0.0",
     "rate-limiter-flexible": "^7.1.1",
     "sqlite3": "^5.1.7"
   },

@@ -38,26 +38,37 @@ router.get(
   '/status',
   validateAndRefreshSession,
   (req, res) => {
-    // You can add more debug info here if needed
-    if (
-      req.isAuthenticated() &&
-      req.user &&
-      req.user.hasRole &&
-      req.user.guild === process.env.DISCORD_GUILD_ID
-    ) {
-      return res.json({
-        authenticated: true,
-        user: {
-          id: req.user.id,
-          username: req.user.username,
-          avatar: req.user.avatar,
-          guild: req.user.guild,
-          hasRole: req.user.hasRole,
-        },
-      });
-    } else {
+    console.info('[GET /status] Checking user authentication status.');
+
+    if (!req.user) {
+      console.warn('[GET /status]  req.user!');
       return res.json({ authenticated: false });
     }
+    else{
+      console.info(`[GET /status] User "${req.user.username}" found in session.`);
+    }
+
+    if (!req.isAuthenticated()) {
+      console.info('[GET /status] User is not authenticated (req.isAuthenticated() === false).');
+      return res.json({ authenticated: false });
+    }
+    else{
+      console.info('[GET /status] User is authenticated (req.isAuthenticated() === true).');
+        }
+
+    console.info(`[GET /status] User "${req.user.username}" authenticated and authorized.`);
+
+    return res.json({
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        avatar: req.user.avatar,
+        guild: req.user.guild,
+        hasRole: req.user.hasRole,
+        devBypass: req.user.devBypass || false,
+      },
+    });
   }
 );
 

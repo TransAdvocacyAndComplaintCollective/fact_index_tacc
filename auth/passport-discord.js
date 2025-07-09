@@ -22,7 +22,7 @@ function log(level, ...args) {
   console[level](`[${ts}] [discord passport]`, ...args);
 }
 
-// --- Discord Passport Strategy ---
+// --- Passport Discord Strategy ---
 passport.use(
   new DiscordStrategy(
     {
@@ -32,20 +32,15 @@ passport.use(
       scope: ['identify', 'guilds', 'guilds.members.read'],
     },
     async (accessToken, refreshToken, profile, done) => {
-
-  
-
       log('info', `Discord login attempt for profile:`, profile);
 
       try {
-        // --- Check guild membership ---
         const guild = profile.guilds.find(g => g.id === DISCORD_GUILD_ID);
         if (!guild) {
           log('warn', `User ${profile.username} (${profile.id}) not in required guild ${DISCORD_GUILD_ID}`);
           return done(null, false, { message: 'Not in required guild' });
         }
 
-        // --- Check required roles if configured ---
         let hasRole = true;
         if (REQUIRED_ROLE_IDS.length) {
           log('info', `Checking roles for user ${profile.username} (${profile.id})`);
@@ -58,8 +53,7 @@ passport.use(
             return done(null, false, { message: 'Cannot fetch guild member' });
           }
           const member = await memberRes.json();
-          hasRole =
-            Array.isArray(member.roles) &&
+          hasRole = Array.isArray(member.roles) &&
             REQUIRED_ROLE_IDS.some(role => member.roles.includes(role));
           if (!hasRole) {
             log('warn', `User ${profile.username} (${profile.id}) missing required role(s): [${REQUIRED_ROLE_IDS.join(', ')}]`);
@@ -67,7 +61,6 @@ passport.use(
           }
         }
 
-        // --- Successful authentication, minimal user object for session ---
         log('info', `Successful login: ${profile.username} (${profile.id}) in guild ${DISCORD_GUILD_ID}, hasRole: ${hasRole}`);
         return done(null, {
           id: profile.id,
@@ -77,7 +70,7 @@ passport.use(
           hasRole,
           accessToken,
           refreshToken,
-          expires: Date.now() + 3600 * 1000, // Discord token: 1 hour by default
+          expires: Date.now() + 3600 * 1000, // 1 hour expiry
         });
       } catch (err) {
         log('error', 'Discord strategy error:', err);
@@ -87,7 +80,7 @@ passport.use(
   )
 );
 
-// --- Session handling ---
+// --- Passport session handling ---
 passport.serializeUser((user, done) => {
   log('info', `serializeUser: ${user.username} (${user.id})`);
   done(null, {
@@ -99,29 +92,30 @@ passport.serializeUser((user, done) => {
     accessToken: user.accessToken,
     refreshToken: user.refreshToken,
     expires: user.expires,
+    devBypass: !!user.devBypass,
   });
 });
 
 passport.deserializeUser((obj, done) => {
-  log('info', `deserializeUser: ${obj.username} (${obj.id})`);
+  log('info', `deserializeUser:`, JSON.stringify(obj, null, 2));
+  if (obj?.username && obj?.id) {
+    log('info', `deserializeUser: ${obj.username} (${obj.id})`);
+  }
   done(null, obj);
 });
 
 // --- Token refresh utility ---
 export async function refreshAccessToken(user) {
-  // If dev login, return a fake token response and log it
   if (user.devBypass) {
     log('info', `[DevBypass] Returning fake refreshed token for ${user.username} (${user.id})`);
-    // Optionally update the expiry time
     return {
       accessToken: 'fake-access-token',
       refreshToken: 'fake-refresh-token',
-      expires: Date.now() + 3600 * 1000, // 1 hour from now
+      expires: Date.now() + 3600 * 1000,
       devBypass: true,
     };
   }
 
-  // Normal path: refresh with Discord API
   log('info', `Refreshing access token for ${user.username} (${user.id})`);
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
@@ -151,24 +145,21 @@ export async function refreshAccessToken(user) {
   };
 }
 
-
 // --- Session validation/refresh middleware ---
 export async function validateAndRefreshSession(req, res, next) {
   log('info', '[Session Validation] Begin for session:', req.sessionID);
-
   req.authStatus = { authenticated: false };
 
   try {
     if (!req.isAuthenticated?.() || !req.user) {
       log('warn', '[Session Validation] No authenticated user');
-      req.authStatus = { authenticated: false, reason: "not_logged_in" };
+      req.authStatus = { authenticated: false, reason: 'not_logged_in' };
       return next();
     }
 
     const user = req.user;
-    console.log('info', `[Session Validation] Validating user: ${user.username} (${user.id})`);
-    console.log('info', `[Session Validation] User data:`, user);
-    // === DEV BYPASS SUPPORT ===
+
+    // Dev bypass short-circuit
     if (user.devBypass) {
       log('info', `[Session Validation] Dev bypass active for user: ${user.username} (${user.id})`);
       req.authStatus = {
@@ -186,7 +177,7 @@ export async function validateAndRefreshSession(req, res, next) {
       return next();
     }
 
-    // --- Refresh access token if expired ---
+    // Refresh access token if expired
     if (user.expires && user.expires < Date.now()) {
       log('warn', `[Session Validation] Access token expired for ${user.username} (${user.id})`);
       try {
@@ -199,7 +190,7 @@ export async function validateAndRefreshSession(req, res, next) {
       }
     }
 
-    // --- Re-validate guild membership ---
+    // Check guild membership
     let inGuild = false;
     try {
       const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
@@ -217,14 +208,13 @@ export async function validateAndRefreshSession(req, res, next) {
       req.authStatus = { authenticated: false, reason: 'guild_fetch_failed' };
       return next();
     }
-
     if (!inGuild) {
       log('warn', `[Session Validation] User ${user.username} (${user.id}) not in guild ${DISCORD_GUILD_ID}`);
       req.authStatus = { authenticated: false, reason: 'not_in_guild' };
       return next();
     }
 
-    // --- Re-validate role if needed ---
+    // Check required role
     let hasRole = true;
     if (REQUIRED_ROLE_IDS.length) {
       try {
@@ -238,8 +228,7 @@ export async function validateAndRefreshSession(req, res, next) {
           return next();
         }
         const member = await memberRes.json();
-        hasRole =
-          Array.isArray(member.roles) &&
+        hasRole = Array.isArray(member.roles) &&
           REQUIRED_ROLE_IDS.some(role => member.roles.includes(role));
         if (!hasRole) {
           log('warn', `[Session Validation] User ${user.username} (${user.id}) missing required role(s): [${REQUIRED_ROLE_IDS.join(', ')}]`);
@@ -254,7 +243,6 @@ export async function validateAndRefreshSession(req, res, next) {
       }
     }
 
-    // --- Success ---
     req.authStatus = {
       authenticated: true,
       user: {
@@ -266,10 +254,10 @@ export async function validateAndRefreshSession(req, res, next) {
       },
     };
     log('info', `[Session Validation] User authenticated: ${user.username} (${user.id})`);
-    return next();
+    next();
   } catch (err) {
     log('error', '[Session Validation] Unexpected error:', err);
     req.authStatus = { authenticated: false, reason: 'unexpected_error' };
-    return next();
+    next();
   }
 }
