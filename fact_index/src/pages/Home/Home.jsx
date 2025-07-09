@@ -20,7 +20,7 @@ export default function Home() {
 
   return (
     <main className="app-root" data-testid="home-main">
-      <h1>Welcome to FACT INDEX2</h1>
+      <h1>Welcome to FACT INDEX</h1>
       <div className="home-intro">
         {authenticated ? (
           <>

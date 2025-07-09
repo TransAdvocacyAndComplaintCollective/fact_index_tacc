@@ -118,7 +118,8 @@ Discord authentication is handled via Passport.js:
 ### Dev Mode
 
 If `DEV_LOGIN_MODE` is true, `/auth/dev-login` provides a quick development login bypass.
-
+if `DEBUG_REACT` is true, the backend will proxy React’s development server to allow hot-reloading and development features.
+Make sure the React app (typically via npm run start in fact_index/) is running on its dev port (usually 1234).
 ## API Routes
 
 * **Facts CRUD:** `/api/facts`

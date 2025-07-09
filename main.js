@@ -131,6 +131,5 @@ function startServer(port, label) {
 }
 
 startServer(PORT, 'public');
-// startServer(PORT_SSH_FWD, 'local/SSH-forwarded');
 
 export default app;

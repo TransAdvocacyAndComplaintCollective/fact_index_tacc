@@ -4,7 +4,7 @@ import passport from 'passport';
 import { Strategy as CustomStrategy } from 'passport-custom';
 import discordRouter from './discordRouter.js';
 import { validateAndRefreshSession } from './passport-discord.js';
-
+import { Strategy as LocalStrategy } from 'passport-local';
 const DEV_LOGIN_MODE = process.env.DEV_LOGIN_MODE === 'TRUE' || process.env.NODE_ENV === 'development';
 
 console.info(`🔒 [init] Auth router initialized – DEV_LOGIN_MODE=${DEV_LOGIN_MODE}`);
