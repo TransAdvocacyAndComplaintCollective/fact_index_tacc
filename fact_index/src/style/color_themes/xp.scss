@@ -1,0 +1,120 @@
+@use "global"; // Import global theme variables
+
+// 3. WINDOWS XP THEME MAP  (Emi says this was the peak of UI design, so let's emulate it.)
+$theme_xp: map-merge($theme-global, (
+  // Navbar
+  nav-bg: #e3e9f7, // Silver gradient (top: #e3e9f7, bottom: #b0c4de) if you use gradients
+  nav-link: #205caa,
+  nav-link-hover-bg: #e9f5ff,
+  nav-link-hover: #fff,
+
+  // Brand & Primary
+  color-brand: #2159c7,            // XP blue
+  color-brand-light: #63aaff,      // Lighter blue
+  color-brand-softer: #e8f1fa,
+  color-brand-soft: #e1ecfa,
+  color-brand-bg: #c6d8f9,
+  color-brand-bg2: #e5eef7,
+  color-brand-bg3: #f5fafc,
+  color-brand-highlight: #d1e3ff,  // Highlight light blue
+
+  // Accent Colors
+  color-accent-blue: #2159c7,      // Main XP blue
+  color-accent-blue2: #5593e3,
+  color-accent-blue3: #a7c9f2,
+  color-accent-blue4: #b6d7fa,
+
+  color-accent-green: #4bb74b,     // XP "Start button" green
+  color-accent-green2: #eaffea,
+  color-accent-green3: #d8f8d8,
+  color-accent-green4: #90e090,
+  color-accent-green5: #358735,
+
+  color-accent-red: #ea2b2b,       // XP red X button
+  color-accent-red2: #be2727,
+  color-accent-red3: #f08787,
+  color-accent-red4: #ffeaea,
+
+  color-accent-pink: #ffdbe8,
+  color-accent-pink2: #f1b3d5,
+  color-accent-pink3: #c46b99,
+
+  color-accent-yellow: #fffcd7,
+
+  // Chips
+  chip-bg: #f2f6fc,
+  chip-border: #b6d7fa,
+  chip-label: #333e66,
+  chip-none-bg: #f3e9f5,
+  chip-none-border: #e0bfe6,
+  chip-subject-bg: #eaf7ff,
+  chip-subject-border: #c2e0fa,
+  chip-audience-bg: #e5fae6,
+  chip-audience-border: #b2e5b2,
+  chip-pink3: #c46b99,
+
+  // Text & Neutral
+  color-text: #1b222c,
+  color-text-dark: #124,
+  color-text-muted: #375a7f,
+  color-text-light: #52679c,
+  color-link: #2159c7,
+  color-link-hover: #2a72d2,
+  color-meta-bold: #234f88,
+
+  // Border
+  color-border: #b6d7fa,
+  color-border-light: #d5e8fb,
+  color-border-focus: #5593e3,
+  color-border-input: #a5c7ee,
+
+  // Shadows
+  shadow-1: #2159c711,
+  shadow-2: #2159c722,
+  shadow-3: #b6d7fa44,
+  shadow-4: #c5d5eb33,
+  shadow-5: #0001,
+  shadow-selected: #a7c9f2cc,
+
+  color-chip-text: #2159c7,
+
+  // Misc backgrounds
+  color-bg-white: #fff,
+  color-bg-grey: #e3e9f7,
+  color-bg-offwhite: #f5f8fb,
+  color-bg-neutral: #e9f1fa,
+
+  // States
+  color-selected: #cce4ff,
+  color-focus-outline: #2159c788,
+  color-loader: #5593e3,
+  color-end-message: #375a7f,
+
+  // Warnings
+  color-warning: #f5a623,
+  color-disabled: #bdbdbd,
+
+  // Misc
+  color-link-visited: #2159c7,
+  color-title: #124272,
+  color-loading-message: #2159c7,
+  color-text-darker: #18335c,
+
+  // Extra UI
+  color-heading: #20498e,
+  color-button-border: #b6d7fa,
+  color-bg-neutral-alt: #e5eef7,
+
+  // Fact DB custom
+  color-filter-bg: #cbe1fa,
+  color-context-bg: #f5fafc,
+  color-row-hover: #e5eef7,
+  color-context: #4bb74b,
+  color-context-bold: #358735,
+
+  // Utility aliases
+  success: var(--color-accent-green2),
+  info: var(--color-brand-softer),
+  error: var(--color-accent-red4),
+  warn: var(--color-warning)
+));

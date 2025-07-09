@@ -1,0 +1,66 @@
+@use 'color_themes/light.scss';
+@use 'color_themes/dark.scss';
+@use 'color_themes/accessibility.scss';
+
+// Mixin: Outputs CSS variables for a theme map inside a block
+@mixin theme-vars($theme) {
+  @each $name, $value in $theme {
+    --theme-#{$name}: #{$value};
+  }
+}
+
+// Set base (light) theme
+:root {
+  @include theme-vars(light.$theme_light);
+}
+
+// Dark theme overrides
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include theme-vars(dark.$theme_dark);
+  }
+}
+
+// Low contrast themes
+@media (prefers-contrast: less) {
+  :root { @include theme-vars(accessibility.$theme_light_low_contrast); }
+}
+@media (prefers-color-scheme: dark) and (prefers-contrast: less) {
+  :root { @include theme-vars(accessibility.$theme_dark_low_contrast); }
+}
+
+// High contrast themes
+@media (prefers-contrast: more) {
+  :root { @include theme-vars(accessibility.$theme_light_high_contrast); }
+}
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root { @include theme-vars(accessibility.$theme_dark_high_contrast); }
+}
+
+// Forced colors
+@media (forced-colors: active) {
+  :root { @include theme-vars(accessibility.$theme_forced_colors_light); }
+}
+@media (prefers-color-scheme: dark) and (forced-colors: active) {
+  :root { @include theme-vars(accessibility.$theme_forced_colors_dark); }
+}
+
+// Inverted colors (for accessibility tools)
+@media (prefers-color-scheme: light) and (inverted-colors: inverted) and (prefers-contrast: more) {
+  :root { @include theme-vars(accessibility.$theme_inverted_colours_high_contrast); }
+}
+@media (prefers-color-scheme: dark) and (inverted-colors: inverted) and (prefers-contrast: more) {
+  :root { @include theme-vars(accessibility.$theme_inverted_colours_high_contrast); }
+}
+@media (prefers-color-scheme: light) and (inverted-colors: inverted) and (prefers-contrast: less) {
+  :root { @include theme-vars(accessibility.$theme_inverted_colours_low_contrast); }
+}
+@media (prefers-color-scheme: dark) and (inverted-colors: inverted) and (prefers-contrast: less) {
+  :root { @include theme-vars(accessibility.$theme_inverted_colours_low_contrast); }
+}
+@media (prefers-color-scheme: light) and (inverted-colors: inverted) {
+  :root { @include theme-vars(accessibility.$theme_dark_inverted_colours); }
+}
+@media (prefers-color-scheme: dark) and (inverted-colors: inverted) {
+  :root { @include theme-vars(accessibility.$theme_dark_inverted_colours); }
+}

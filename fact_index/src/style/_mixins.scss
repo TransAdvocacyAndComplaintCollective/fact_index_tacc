@@ -1,0 +1,215 @@
+// _mixins.scss
+@use 'sass:meta';
+@use "sass:string";
+@use "variables.scss";
+
+@mixin  respond-to-width($query) {
+  // Granular queries
+  @if $query == mobile-xs {
+    @media (max-width: variables.$bp-mobile-xs-max-width) { @content; }
+  } @else if $query == mobile-sm {
+    @media (min-width: variables.$bp-mobile-sm-min-width) and (max-width: variables.$bp-mobile-sm-max-width) { @content; }
+  } @else if $query == mobile-md {
+    @media (min-width: variables.$bp-mobile-md-min-width) and (max-width: variables.$bp-mobile-md-max-width) { @content; }
+  } @else if $query == mobile-lg {
+    @media (min-width: variables.$bp-mobile-lg-min-width) and (max-width: variables.$bp-mobile-lg-max-width) { @content; }
+  } @else if $query == mobile-xl {
+    @media (min-width: variables.$bp-mobile-xl-min-width) and (max-width: variables.$bp-mobile-xl-max-width) { @content; }
+  } @else if $query == phablet {
+    @media (min-width: variables.$bp-phablet-min-width) and (max-width: variables.$bp-phablet-max-width) { @content; }
+  } @else if $query == phone-fold {
+    @media (min-width: variables.$bp-phone-fold-min-width) and (max-width: variables.$bp-phone-fold-max-width) { @content; }
+  } @else if $query == tablet-xs {
+    @media (min-width: variables.$bp-tablet-xs-min-width) and (max-width: variables.$bp-tablet-xs-max-width) { @content; }
+  } @else if $query == tablet-sm {
+    @media (min-width: variables.$bp-tablet-sm-min-width) and (max-width: variables.$bp-tablet-sm-max-width) { @content; }
+  } @else if $query == tablet-md {
+    @media (min-width: variables.$bp-tablet-md-min-width) and (max-width: variables.$bp-tablet-md-max-width) { @content; }
+  } @else if $query == tablet-lg {
+    @media (min-width: variables.$bp-tablet-lg-min-width) and (max-width: variables.$bp-tablet-lg-max-width) { @content; }
+  } @else if $query == desktop-sm {
+    @media (min-width: variables.$bp-desktop-sm-min-width) and (max-width: variables.$bp-desktop-sm-max-width) { @content; }
+  } @else if $query == desktop-md {
+    @media (min-width: variables.$bp-desktop-md-min-width) and (max-width: variables.$bp-desktop-md-max-width) { @content; }
+  } @else if $query == desktop-lg {
+    @media (min-width: variables.$bp-desktop-lg-min-width) and (max-width: variables.$bp-desktop-lg-max-width) { @content; }
+  } @else if $query == ultra-wide {
+    @media (min-width: variables.$bp-ultra-wide-min-width) and (max-width: variables.$bp-desktop-4k-max-width) { @content; }
+  } @else if $query == desktop-4k {
+    @media (min-width: variables.$bp-desktop-4k-min-width) and (max-width: variables.$bp-desktop-5k-min-width - 1) { @content; }
+  } @else if $query == desktop-5k {
+    @media (min-width: variables.$bp-desktop-5k-min-width) and (max-width: variables.$bp-desktop-6k-min-width - 1) { @content; }
+  } @else if $query == desktop-6k {
+    @media (min-width: variables.$bp-desktop-6k-min-width) and (max-width: variables.$bp-desktop-8k-min-width - 1) { @content; }
+  } @else if $query == desktop-8k {
+    @media (min-width: variables.$bp-desktop-8k-min-width) and (max-width: variables.$bp-desktop-16k-min-width - 1) { @content; }
+  } @else if $query == desktop-16k {
+    @media (min-width: variables.$bp-desktop-16k-min-width) { @content; }
+  }
+
+  // Combined semantic queries (original/fallbacks)
+  @else if $query == mobile {
+    @media (max-width: variables.$bp-phablet-max-width) { @content; }
+  } @else if $query == tablet {
+    @media (min-width: variables.$bp-phone-fold-min-width) and (max-width: variables.$bp-tablet-lg-max-width) { @content; }
+  } @else if $query == tablet-portrait {
+    @media (min-width: variables.$bp-tablet-md-min-width) and (max-width: variables.$bp-tablet-md-max-width) { @content; }
+  } @else if $query == tablet-landscape {
+    @media (min-width: variables.$bp-tablet-lg-min-width) and (max-width: variables.$bp-tablet-lg-max-width) { @content; }
+  } @else if $query == netbook {
+    @media (min-width: variables.$bp-desktop-sm-min-width) and (max-width: variables.$bp-desktop-sm-max-width) { @content; }
+  } @else if $query == laptop {
+    @media (min-width: variables.$bp-desktop-md-min-width) and (max-width: variables.$bp-desktop-lg-max-width) { @content; }
+  } @else if $query == desktop {
+    @media (min-width: variables.$bp-desktop-sm-min-width) { @content; }
+  } @else if $query == large-desktop {
+    @media (min-width: variables.$bp-desktop-lg-min-width) { @content; }
+  } @else if $query == ultra-wide-only {
+    @media (min-width: variables.$bp-ultra-wide-min-width) { @content; }
+  }
+}
+
+// hight mixinign
+@mixin respond-to-height($query) {
+  // Mobile heights
+  @if $query == mobile-xs {
+    @media (max-height: variables.$bp-mobile-xs-max-height) { @content; }
+  } @else if $query == mobile-sm {
+    @media (min-height: variables.$bp-mobile-sm-min-height) and (max-height: variables.$bp-mobile-sm-max-height) { @content; }
+  } @else if $query == mobile-md {
+    @media (min-height: variables.$bp-mobile-md-min-height) and (max-height: variables.$bp-mobile-md-max-height) { @content; }
+  } @else if $query == mobile-lg {
+    @media (min-height: variables.$bp-mobile-lg-min-height) and (max-height: variables.$bp-mobile-lg-max-height) { @content; }
+  } @else if $query == mobile-xl {
+    @media (min-height: variables.$bp-mobile-xl-min-height) and (max-height: variables.$bp-mobile-xl-max-height) { @content; }
+  } @else if $query == phablet {
+    @media (min-height: variables.$bp-phablet-min-height) and (max-height: variables.$bp-phablet-max-height) { @content; }
+  } @else if $query == phone-fold {
+    @media (min-height: variables.$bp-phone-fold-min-height) and (max-height: variables.$bp-phone-fold-max-height) { @content; }
+  }
+
+  // Tablet heights
+  @else if $query == tablet-xs {
+    @media (min-height: variables.$bp-tablet-xs-min-height) and (max-height: variables.$bp-tablet-xs-max-height) { @content; }
+  } @else if $query == tablet-sm {
+    @media (min-height: variables.$bp-tablet-sm-min-height) and (max-height: variables.$bp-tablet-sm-max-height) { @content; }
+  } @else if $query == tablet-md {
+    @media (min-height: variables.$bp-tablet-md-min-height) and (max-height: variables.$bp-tablet-md-max-height) { @content; }
+  } @else if $query == tablet-lg {
+    @media (min-height: variables.$bp-tablet-lg-min-height) and (max-height: variables.$bp-tablet-lg-max-height) { @content; }
+  } @else if $query == tablet-xl {
+    @media (min-height: variables.$bp-tablet-xl-min-height) and (max-height: variables.$bp-tablet-xl-max-height) { @content; }
+  }
+
+  // Desktop heights
+  @else if $query == desktop-sm {
+    @media (min-height: variables.$bp-desktop-sm-min-height) and (max-height: variables.$bp-desktop-sm-max-height) { @content; }
+  } @else if $query == desktop-md {
+    @media (min-height: variables.$bp-desktop-md-min-height) and (max-height: variables.$bp-desktop-md-max-height) { @content; }
+  } @else if $query == desktop-lg {
+    @media (min-height: variables.$bp-desktop-lg-min-height) and (max-height: variables.$bp-desktop-lg-max-height) { @content; }
+  }
+
+  // Ultra-tall/QHD/4K and beyond
+  @else if $query == ultra-tall {
+    @media (min-height: variables.$bp-ultra-tall-min-height) and (max-height: variables.$bp-ultra-tall-max-height) { @content; }
+  } @else if $query == desktop-4k {
+    @media (min-height: variables.$bp-desktop-4k-min-height) and (max-height: variables.$bp-desktop-5k-min-height - 1) { @content; }
+  } @else if $query == desktop-5k {
+    @media (min-height: variables.$bp-desktop-5k-min-height) and (max-height: variables.$bp-desktop-6k-min-height - 1) { @content; }
+  } @else if $query == desktop-6k {
+    @media (min-height: variables.$bp-desktop-6k-min-height) and (max-height: variables.$bp-desktop-8k-min-height - 1) { @content; }
+  } @else if $query == desktop-8k {
+    @media (min-height: variables.$bp-desktop-8k-min-height) and (max-height: variables.$bp-desktop-16k-min-height - 1) { @content; }
+  } @else if $query == desktop-16k {
+    @media (min-height: variables.$bp-desktop-16k-min-height) { @content; }
+  }
+
+  // Grouped convenience queries
+  // Grouped convenience queries
+  @else if $query == mobile {
+    // Covers all heights up to typical phablet
+    @media (max-height: variables.$bp-phablet-max-height) { @content; }
+  }
+  @else if $query == tablet {
+    // Covers small to extra large tablets
+    @media (min-height: variables.$bp-tablet-xs-min-height) and (max-height: variables.$bp-tablet-xl-max-height) { @content; }
+  }
+  @else if $query == netbook {
+    // Netbooks are typically around 800-899px tall
+    @media (min-height: variables.$bp-desktop-sm-min-height) and (max-height: variables.$bp-desktop-sm-max-height) { @content; }
+  }
+  @else if $query == laptop {
+    // Laptops often range from 900 to 1439px tall (Desktop-md and Desktop-lg)
+    @media (min-height: variables.$bp-desktop-md-min-height) and (max-height: variables.$bp-desktop-lg-max-height) { @content; }
+  }
+  // Optionally, you could add 'desktop' and 'ultra-tall' as before
+  @else if $query == desktop {
+    @media (min-height: variables.$bp-desktop-sm-min-height) { @content; }
+  }
+  @else if $query == ultra-tall {
+    @media (min-height: variables.$bp-ultra-tall-min-height) and (max-height: variables.$bp-ultra-tall-max-height) { @content; }
+  }
+}
+
+// Advanced dimension/flip/orientation mixin using string composition
+@mixin respond-to-dimension($width: null, $height: null, $orientation: null, $flip: false) {
+  // Use the above two builders to get the media conditions as strings
+  $media: '';
+  $media-h: '';
+
+  // Build width string
+  @if $width != null {
+    $width-str: '';
+    @include mixins.respond-to-width($width) {
+      $width-str: meta.inspect(&);
+    }
+    $media: string.slice($width-str, 8, -2); // Remove '@media ' and trailing ' {' (hacky but works)
+  }
+  // Build height string
+  @if $height != null {
+    $height-str: '';
+    @include media-height($height) {
+      $height-str: meta.inspect(&);
+    }
+    $media-h: string.slice($height-str, 8, -2);
+  }
+
+  // Flip support
+  $w: if($flip, $media-h, $media);
+  $h: if($flip, $media, $media-h);
+
+  // Combine width and height conditions
+  $combined: '';
+  @if $w != '' and $h != '' {
+    $combined: '#{$w} and #{$h}';
+  } @else if $w != '' {
+    $combined: $w;
+  } @else if $h != '' {
+    $combined: $h;
+  }
+
+  // Orientation
+  $orientation-cond: '';
+  @if $orientation == portrait {
+    $orientation-cond: '(orientation: portrait)';
+  } @else if $orientation == landscape {
+    $orientation-cond: '(orientation: landscape)';
+  }
+
+  // Final media query
+  $final-query: '';
+  @if $combined != '' and $orientation-cond != '' {
+    $final-query: '#{$combined} and #{$orientation-cond}';
+  } @else if $combined != '' {
+    $final-query: $combined;
+  } @else if $orientation-cond != '' {
+    $final-query: $orientation-cond;
+  }
+
+  @if $final-query != '' {
+    @media #{$final-query} { @content; }
+  } @else {
+    @content;
+  }
+}

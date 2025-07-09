@@ -1,0 +1,102 @@
+
+
+// src/App.scss
+
+@use "./style/color.scss";
+@use "./style/mixins";
+
+// Style the app wrapper
+.app-container {
+  min-height: 100%;
+  padding: 0;
+  margin:0;
+  display: flex;
+  flex-direction: column;
+  background: var(--theme-color-bg-grey);
+  color: var(--theme-color-text);
+
+  // Makes main content fill space below NavBar
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+
+    @include mixins.respond-to-width(mobile) {
+      padding: 1rem 0.5rem;
+    }
+  }
+}
+
+// For global alerts, overlays, modals, etc.
+.global-overlay {
+  position: fixed;
+  z-index: 1100;
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+}
+
+// (Optional) A simple fade-in for all pages
+.app-fadein {
+  animation: app-fadein 0.35s cubic-bezier(.47,.9,.55,1.14);
+}
+
+@keyframes app-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+
+// @use './style/mixins';
+// @use './style/variables';
+// @use './style/color'; // <-- Add this line if not already imported elsewhere
+
+// .app-navbar {
+//   display: flex;
+//   gap: 2rem;
+//   padding: 1.5rem 0 2rem 0;
+//   background: var(--nav-bg); // <<--- NEW variable
+
+//   a {
+//     color: var(--nav-link);
+//     text-decoration: none;
+//     font-weight: 600;
+//     font-size: 1.1em;
+//     padding: 0.4em 0.8em;
+//     border-radius: 4px;
+//     transition: background 0.2s;
+
+//     &:hover, &.active {
+//       background: var(--nav-link-hover-bg);
+//       color: var(--nav-link-hover);
+//     }
+//   }
+
+//   @include mixins.respond-to-width(mobile) {
+//     flex-direction: column;
+//     gap: 0.2rem;
+//     padding: 0.7rem 0 1rem 0;
+//     align-items: stretch;
+
+//     a {
+//       font-size: 1em;
+//       padding: 0.9em 0.6em;
+//       border-radius: 3px;
+//       text-align: center;
+//     }
+//   }
+
+//   @include mixins.respond-to-width(tablet) {
+//     gap: 1rem;
+//     padding: 1rem 0 1.3rem 0;
+
+//     a {
+//       font-size: 1.05em;
+//       padding: 0.6em 0.8em;
+//     }
+//   }
+// }

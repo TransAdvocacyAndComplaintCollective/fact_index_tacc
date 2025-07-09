@@ -1,0 +1,118 @@
+
+@use './style/variables';
+@use './style/mixins';
+@use './style/color'; // This will apply all your theme CSS variables
+
+// 1. CSS Reset & Box Sizing
+/* You can use a simple reset or bring in normalize.css here. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  width: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--theme-color-bg-grey, #f7f8fa);
+  color: var(--theme-color-text, #222);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+// 2. Imports: variables, mixins, colors, theme maps, theme CSS vars
+
+// 3. Root App Layout (usually .app-container is styled in App.scss, so just optional here)
+// .app-container styles are handled in App.scss
+
+// 4. Accessible base focus states
+:focus {
+  outline: 2px solid var(--theme-color-focus-outline, #2277ee);
+  outline-offset: 2px;
+}
+
+// 5. Remove default link underlines, add theme color
+a {
+  color: var(--theme-color-link, #2376ba);
+  text-decoration: none;
+  transition: color 0.15s;
+
+  &:hover, &:focus {
+    color: var(--theme-color-link-hover, #185585);
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--theme-color-link-visited, #aa79db);
+  }
+}
+
+// 6. Remove tap highlight color on mobile for a cleaner look
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+// 7. Code blocks and pre/code
+code, pre {
+  font-family: "JetBrains Mono", "Fira Mono", "Menlo", monospace;
+  font-size: 0.95em;
+  background: var(--theme-color-bg-neutral, #f4f7fa);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+
+// 8. Images: Responsive by default
+img, video, svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// 9. Remove number input spin buttons for all browsers
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+// 10. Buttons: inherit font, add cursor
+button, .btn, input[type="submit"], input[type="button"] {
+  font-family: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+// 11. Selection color (theme-aware)
+::selection {
+  background: var(--theme-color-brand, #cfe5fa);
+  color: var(--theme-color-bg-grey, #222);
+}
+
+// 12. Scrollbar styling (optional, theme-aware)
+::-webkit-scrollbar {
+  width: 10px;
+  background: var(--theme-color-bg-grey, #222);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-color-brand-softer, #aaa);
+  border-radius: 4px;
+}
+
+// 13. Utility classes (optional, e.g. visually-hidden)
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  border: 0;
+}

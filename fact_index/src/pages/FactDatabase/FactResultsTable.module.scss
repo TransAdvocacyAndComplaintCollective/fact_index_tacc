@@ -1,0 +1,125 @@
+/// fact_index/src/pages/FactDatabase/FactResultsTable.module.scss
+
+@use '../../style/mixins';
+@use "../../style/variables";
+@use "../../style/color";
+
+// Main table container
+.factdbResultsTable {
+  width: 100%;
+  margin-top: 0.7em;
+  margin-bottom: 1.2em;
+  box-sizing: border-box;
+}
+
+// Results list
+.factdbResults {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+// Individual result row
+.factdbResultRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.05rem 1.15rem;
+  background: var(--theme-color-bg-light);
+  border-radius: 10px;
+  box-shadow: 0 2px 7px var(--theme-shadow-1);
+  cursor: pointer;
+  transition: background 0.22s, box-shadow 0.2s, transform 0.09s;
+  outline: none;
+  border: 2px solid transparent;
+
+  &:hover,
+  &:focus-visible,
+  &.focused {
+    background: var(--theme-color-bg-hover);
+    box-shadow: 0 5px 14px var(--theme-shadow-2);
+    border-color: var(--theme-color-focus-outline);
+    transform: translateY(-1px) scale(1.015);
+  }
+
+  &.selected {
+    border-color: var(--theme-color-accent-blue2);
+    background: var(--theme-color-bg-accent);
+    box-shadow: 0 5px 18px var(--theme-shadow-3);
+    font-weight: 600;
+  }
+
+  // Responsive: stack on mobile
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.8rem 0.7rem;
+    gap: 0.7rem;
+
+    &:hover,
+    &:focus-visible,
+    &.focused {
+      background: var(--theme-color-bg-light);
+      box-shadow: none;
+      border-color: var(--theme-color-focus-outline);
+      transform: none;
+    }
+  }
+}
+
+// Placeholder for no results
+.noResults {
+  padding: 2.5em 1em;
+  color: var(--theme-color-text-light);
+  font-size: 1.12rem;
+  text-align: center;
+  opacity: 0.7;
+}
+
+// Example: title, info, and link styles—should be reused in FactResultRow as well
+.factdbResultTitle {
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: var(--theme-color-title);
+  word-break: break-word;
+}
+
+.factdbResultInfo {
+  font-size: 1.02rem;
+  color: var(--theme-color-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+}
+
+.factdbResultLink {
+  font-size: 1rem;
+  color: var(--theme-color-link);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--theme-color-link-hover);
+  }
+}
+
+// Responsive tweaks for table
+@media (max-width: 600px) {
+  .factdbResultsTable {
+    padding: 0;
+  }
+  .factdbResultRow {
+    padding: 0.75rem 0.2rem;
+    border-radius: 7px;
+    font-size: 0.99rem;
+  }
+  .factdbResultTitle {
+    font-size: 1rem;
+  }
+  .factdbResultInfo {
+    font-size: 0.93rem;
+  }
+  .factdbResultLink {
+    font-size: 0.92rem;
+  }
+}

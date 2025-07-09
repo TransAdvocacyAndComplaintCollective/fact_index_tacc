@@ -1,0 +1,194 @@
+@use '../../style/mixins';
+@use "../../style/variables";
+@use "../../style/color";
+
+//--theme-- ROW CONTAINER --theme--
+.row {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100%;
+  background: var(--theme-color-bg-white); // Use "white" for main cards, always theme-aware
+  border-radius: 8px;
+  box-shadow: 0 2px 5px var(--theme-shadow-1);
+  transition: background-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+  text-align: left;
+  outline: none;
+  color: var(--theme-color-row-hover);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--theme-color-row-hover); // High-contrast row hover
+    box-shadow: 0 4px 10px var(--theme-shadow-2);
+  }
+
+  &.selected,
+  &[aria-current="true"] {
+    outline: 2px solid var(--theme-color-accent-blue2);
+    background: var(--theme-color-brand-bg);
+    box-shadow: 0 5px 12px var(--theme-shadow-3);
+    font-weight: 600;
+  }
+
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--theme-color-bg-white); // Remove row-hover for mobile for clarity
+      box-shadow: none;
+    }
+  }
+}
+
+//--theme-- GRID --theme--
+.grid {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.6em;
+  padding: 1rem;
+
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.8rem;
+    gap: 0.6em;
+  }
+}
+
+//--theme-- TOP BAR --theme--
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.7em;
+
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    gap: 0.2em;
+  }
+}
+
+//--theme-- TEXT TITLE --theme--
+.text {
+  font-size: 1.19rem;
+  font-weight: 600;
+  color: var(--theme-color-title);
+
+  @include mixins.respond-to-width(mobile) {
+    font-size: 1rem;
+    word-break: break-word;
+  }
+}
+
+//--theme-- DATE --theme--
+.date {
+  font-size: 1rem;
+  color: var(--theme-color-text-muted);
+  min-width: 80px;
+  text-align: right;
+
+  @include mixins.respond-to-width(mobile) {
+    font-size: 0.95rem;
+    margin-top: 0.08em;
+    text-align: left;
+  }
+}
+
+//--theme-- CHIPS CONTAINER --theme--
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.33em;
+  font-size: 0.97rem;
+  align-items: center;
+
+  @include mixins.respond-to-width(mobile) {
+    gap: 0.21em 0.12em;
+    font-size: 0.93rem;
+  }
+}
+
+//--theme-- CHIP LABEL --theme--
+.chipLabel {
+  font-weight: 600;
+  color: var(--theme-color-meta-bold);
+  margin-right: 0.18em;
+}
+
+//--theme-- CHIP --theme--
+.chip {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--theme-chip-bg);
+  color: var(--theme-color-chip-text);
+  padding: 0.12em 1em;
+  margin: 0 0.1em 0.2em 0;
+  font-size: 0.95em;
+  font-weight: 500;
+  border: 1.5px solid var(--theme-chip-border);
+  box-shadow: 0 1px 2px var(--theme-shadow-1);
+
+  &.chipType {
+    background: var(--theme-chip-subject-bg); // subject (blue) chip
+    border-color: var(--theme-chip-subject-border);
+    color: var(--theme-color-accent-blue2);
+  }
+  &.chipSubject {
+    background: var(--theme-chip-audience-bg); // audience (green) chip
+    border-color: var(--theme-chip-audience-border);
+    color: var(--theme-color-accent-green5);
+  }
+  &.chipNone {
+    background: var(--theme-chip-none-bg);
+    color: var(--theme-color-text-light);
+    border-color: var(--theme-chip-none-border);
+    opacity: 0.72;
+  }
+}
+
+//--theme-- SOURCE --theme--
+.source {
+  font-size: 1em;
+  margin: 0.15em 0 0.1em 0;
+  color: var(--theme-color-text);
+
+  a {
+    color: var(--theme-color-link);
+    text-decoration: underline;
+    margin-left: 0.3em;
+    word-break: break-all;
+    &:hover {
+      color: var(--theme-color-link-hover);
+    }
+  }
+}
+
+//--theme-- CONTEXT HIGHLIGHT --theme--
+.context {
+  background: var(--theme-color-context-bg);
+  padding: 1em 1.2em;
+  border-left: 4px solid var(--theme-color-context-bold);
+  border-radius: 0.6em;
+  font-style: italic;
+  color: var(--theme-color-context);
+  font-size: 1rem;
+  margin-top: 0.4em;
+  margin-bottom: 0.7em;
+  display: inline-block;
+  max-width: 100%;
+
+  b {
+    color: var(--theme-color-context-bold);
+  }
+
+  @include mixins.respond-to-width(mobile) {
+    font-size: 0.97rem;
+    padding: 0.7em 0.8em;
+    border-radius: 0.4em;
+  }
+}

@@ -1,0 +1,324 @@
+@use '../../style/mixins' as *;
+@use "../../style/color";
+
+// ===== Main Fact Detail Container =====
+.factDetailMain {
+  background: var(--theme-color-bg-white);
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 12px var(--theme-shadow-2);
+  border: 1px solid var(--theme-color-border);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  color: var(--theme-color-text);
+  max-width: 700px;
+  margin: 2.5rem auto;
+  padding: 2rem 2.5rem 1.6rem 2.5rem;
+  display: block;
+  width: 100%;
+  animation: factDetailFadeIn 0.5s cubic-bezier(.39,.58,.57,1) 1;
+
+  // Responsive widths
+  @include respond-to-width(mobile) {
+    padding: 1rem 0.4rem;
+    border-radius: 0.7rem;
+    max-width: 99vw;
+    font-size: 1rem;
+  }
+  @include respond-to-width(tablet) {
+    padding: 1.2rem 0.7rem;
+    border-radius: 0.85rem;
+    max-width: 98vw;
+  }
+  @include respond-to-width(netbook) {
+    padding: 1.5rem 1.5rem;
+    border-radius: 1rem;
+    max-width: 90vw;
+  }
+  @include respond-to-width(laptop) {
+    padding: 1.7rem 2rem;
+    max-width: 850px;
+  }
+  @include respond-to-width(desktop) {
+    padding: 2.1rem 2.8rem 1.9rem 2.8rem;
+    max-width: 1100px;
+  }
+}
+
+// ===== Navigation Bar =====
+.factDetailNav {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+  min-height: 44px; // For AAA, match target size
+  justify-content: flex-start;
+
+  @include respond-to-width(mobile) {
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: stretch;
+    min-height: unset;
+  }
+  @include respond-to-width(tablet) {
+    gap: 0.9rem;
+  }
+}
+
+// ===== Interactive Target Size + Color Contrast Fixes =====
+.factDetailBackLink,
+.factDetailEditBtn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.5em 1.2em;
+  transition: background 0.16s, color 0.16s;
+  // High contrast focus outline
+  &:focus-visible {
+    outline: 3px solid var(--theme-color-focus-outline);
+    outline-offset: 2px;
+  }
+}
+
+// ===== Back Link Style =====
+.factDetailBackLink {
+  color: var(--theme-color-link);
+  background: transparent;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover,
+  &:focus {
+    background: var(--theme-color-bg-offwhite);
+    color: var(--theme-color-link-hover);
+    outline: 3px solid var(--theme-color-focus-outline);
+    outline-offset: 2px;
+  }
+}
+
+// ===== Edit Button Style =====
+.factDetailEditBtn {
+  background: var(--theme-color-accent-blue4);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 6px var(--theme-shadow-1);
+
+  &:hover,
+  &:focus {
+    background: var(--theme-color-accent-blue3); // Use a high-contrast shade
+    color: #fff;
+    outline: 3px solid var(--theme-color-focus-outline);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    background: var(--theme-color-disabled);
+    color: var(--theme-color-text-light);
+    cursor: not-allowed;
+  }
+}
+
+// Optional: Nav item spacing for touch comfort
+.factDetailNav > * {
+  margin-right: 0.5rem;
+}
+.factDetailNav > *:last-child {
+  margin-right: 0;
+}
+
+// ===== Fact Detail Title =====
+.factDetailTitle {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--theme-color-heading);
+  margin-bottom: 1.35rem;
+  margin-top: 0.2rem;
+  line-height: 1.22;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+  text-shadow: 0 1px 0 var(--theme-color-bg-white), 0 2px 6px var(--theme-color-bg-neutral);
+
+  @include respond-to-width(mobile) {
+    font-size: 1.22rem;
+    margin-bottom: 1.05rem;
+  }
+  @include respond-to-width(tablet) {
+    font-size: 1.42rem;
+  }
+  @include respond-to-width(netbook) {
+    font-size: 1.55rem;
+  }
+}
+
+// ===== Fact Detail List (Definition List) =====
+.factDetailList {
+  margin: 1.2rem 0 0.6rem 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.33em 1.4em;
+  align-items: start;
+  width: 100%;
+
+  dt {
+    font-weight: 600;
+    color: var(--theme-color-label, var(--theme-color-text-light));
+    margin-bottom: 0.08em;
+    padding-right: 0.8em;
+    grid-column: 1;
+    text-align: left;
+    min-width: 110px;
+    letter-spacing: 0.01em;
+    font-size: 1.04rem;
+    line-height: 1.4;
+    align-self: start;
+  }
+  dd {
+    margin: 0 0 0.43em 0;
+    color: var(--theme-color-text);
+    font-weight: 400;
+    font-size: 1.08rem;
+    grid-column: 2;
+    text-align: left;
+    min-width: 0;
+    word-break: break-word;
+    line-height: 1.5;
+    align-self: start;
+    white-space: pre-line;
+    max-width: 48em;
+  }
+
+  // Zebra striping for alternating rows
+  dt:nth-of-type(2n-1),
+  dd:nth-of-type(2n) {
+    background: var(--theme-color-bg-offwhite);
+  }
+  dt:nth-of-type(2n),
+  dd:nth-of-type(2n+1) {
+    background: transparent;
+  }
+
+  // Subtle border between rows
+  dt,
+  dd {
+    border-bottom: 1px dashed var(--theme-color-border);
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
+  }
+  dt:last-of-type,
+  dd:last-of-type {
+    border-bottom: none;
+  }
+
+  // Row hover effect
+  dt:hover,
+  dd:hover {
+    background: var(--theme-color-row-hover, #f2f8fa);
+    transition: background 0.15s;
+  }
+
+  // Emphasize empty values
+  dd:empty::after {
+    content: "—";
+    color: var(--theme-color-text-light);
+    font-style: italic;
+  }
+
+  // Context highlight (optional)
+  .factDetailContext {
+    background: var(--theme-color-bg-offwhite);
+    border-radius: 0.35em;
+    padding: 0.41em 0.7em;
+    font-size: 1.01rem;
+    color: var(--theme-color-text);
+    display: inline-block;
+    line-height: 1.37;
+    margin-top: 0.14em;
+    word-break: break-word;
+    border-left: 3px solid var(--theme-color-accent-blue4);
+    padding-left: 0.6em;
+  }
+
+  // Responsive overrides
+  @include respond-to-width(mobile) {
+    display: block;
+    dt {
+      padding-right: 0;
+      margin-bottom: 0.13em;
+      min-width: 0;
+      font-size: 1.01rem;
+      background: none !important;
+      border-bottom: none;
+    }
+    dd {
+      margin-bottom: 0.68em;
+      font-size: 1.02rem;
+      background: none !important;
+      border-bottom: none;
+    }
+  }
+  @include respond-to-width(tablet) {
+    dt, dd { font-size: 1.01rem; }
+  }
+  @include respond-to-width(netbook) {
+    dt, dd { font-size: 1.03rem; }
+  }
+  @include respond-to-width(laptop) {
+    dt, dd { font-size: 1.07rem; }
+  }
+}
+
+// ===== Source Link Style =====
+.factDetailSourceLink {
+  color: var(--theme-color-link);
+  text-decoration: underline;
+  font-weight: 500;
+  word-break: break-all;
+  display: inline-block; // So we can apply min target size
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  transition: color 0.14s;
+
+  &:hover,
+  &:focus {
+    color: var(--theme-color-link-hover);
+    outline: 3px solid var(--theme-color-focus-outline);
+    outline-offset: 2px;
+  }
+}
+
+// ===== Extra Note/Subtext =====
+.factDetailExtra {
+  margin-top: 1.2em;
+  color: var(--theme-color-text-light);
+  font-size: 0.97rem;
+
+  @include respond-to-width(mobile) {
+    font-size: 0.92rem;
+  }
+  @include respond-to-width(laptop) {
+    font-size: 1.03rem;
+  }
+}
+
+/* --- Small spacing on narrow screens --- */
+@media (max-width: 640px) {
+  .factDetailList dt,
+  .factDetailList dd {
+    padding-top: 0.13em;
+    padding-bottom: 0.13em;
+    font-size: 0.97em;
+  }
+}
+
+/* --- Fade-in animation for detail view --- */
+@keyframes factDetailFadeIn {
+  from { opacity: 0; transform: translateY(12px);}
+  to { opacity: 1; transform: none;}
+}

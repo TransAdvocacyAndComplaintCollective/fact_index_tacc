@@ -1,0 +1,344 @@
+@use '../style/mixins' as *;
+@use "../style/color";
+
+// ===========================
+// Main Navigation Bar Container
+// ===========================
+.app-navbar {
+  width: 100%;
+  background: var(--theme-color-bg-white);
+  border-bottom: 1px solid var(--theme-color-border);
+  box-shadow: 0 1px 7px var(--theme-shadow-1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 2.1rem 0.9rem 1.7rem;
+  min-height: 62px;
+  z-index: 10;
+  position: relative;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+
+  @include respond-to-width(mobile) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.6rem 0.5rem;
+    min-height: 52px;
+    gap: 0.5rem;
+  }
+  @include respond-to-width(tablet) {
+    padding: 0.8rem 1.2rem 0.8rem 1rem;
+    min-height: 56px;
+  }
+  @include respond-to-width(tablet-portrait) {
+    border-bottom-width: 2px;
+  }
+  @include respond-to-width(tablet-landscape) {
+    border-bottom-width: 3px;
+  }
+  @include respond-to-width(netbook) {
+    padding: 0.8rem 1.5rem 0.8rem 1.1rem;
+    min-height: 60px;
+  }
+  @include respond-to-width(laptop) {
+    padding: 0.95rem 2.4rem 0.95rem 2rem;
+    min-height: 62px;
+  }
+  @include respond-to-width(desktop) {
+    padding: 1.05rem 3.5rem 1.05rem 2.3rem;
+    min-height: 68px;
+  }
+  @include respond-to-width(large-desktop) {
+    font-size: 1.18rem;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    font-size: 1.26rem;
+    padding-left: 6vw;
+    padding-right: 6vw;
+  }
+}
+
+// ===========================
+// Navigation Links Section
+// ===========================
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+
+  @include respond-to-width(mobile) {
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: stretch;
+    margin-bottom: 0.2rem;
+  }
+  @include respond-to-width(tablet) {
+    gap: 0.95rem;
+  }
+  @include respond-to-width(tablet-portrait) {
+    gap: 1.1rem;
+  }
+  @include respond-to-width(tablet-landscape) {
+    gap: 1.25rem;
+  }
+  @include respond-to-width(netbook) {
+    gap: 1.15rem;
+  }
+  @include respond-to-width(laptop) {
+    gap: 1.55rem;
+  }
+  @include respond-to-width(desktop) {
+    gap: 2.1rem;
+  }
+  @include respond-to-width(large-desktop) {
+    gap: 2.6rem;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    gap: 3rem;
+  }
+}
+
+// ===========================
+// Individual NavLink
+// ===========================
+.link {
+  font-size: 1.14rem;
+  color: var(--theme-color-link);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.28em 0.7em;
+  border-radius: 4.5px;
+  transition: background 0.14s, color 0.15s, box-shadow 0.13s;
+  letter-spacing: 0.01em;
+  outline: none;
+  position: relative;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--theme-color-bg-offwhite);
+    color: var(--theme-color-link-hover);
+    box-shadow: 0 1px 6px var(--theme-shadow-1);
+    outline: 2px solid var(--theme-color-focus-outline);
+    text-decoration: none;
+    z-index: 2;
+  }
+
+  &.active {
+    font-weight: 700;
+    border: 1.5px solid var(--theme-color-accent-blue4);
+    color: var(--theme-color-accent-blue4);
+    background: var(--theme-color-bg-offwhite);
+  }
+
+  @include respond-to-width(mobile) {
+    font-size: 1.02rem;
+    padding: 0.26em 0.6em;
+  }
+  @include respond-to-width(tablet-portrait) {
+    font-size: 1.08rem;
+  }
+  @include respond-to-width(tablet-landscape) {
+    font-size: 1.11rem;
+  }
+  @include respond-to-width(laptop) {
+    font-size: 1.19rem;
+    padding: 0.30em 0.8em;
+  }
+  @include respond-to-width(desktop) {
+    font-size: 1.22rem;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    font-size: 1.3rem;
+  }
+}
+
+// ===========================
+// User Profile Section
+// ===========================
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+
+  @include respond-to-width(mobile) {
+    flex-direction: row;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 0.1rem;
+  }
+  @include respond-to-width(tablet) {
+    gap: 0.8rem;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    gap: 1.7rem;
+  }
+}
+
+// ===========================
+// Logged-in Profile Display
+// ===========================
+.profile-logged-in {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--theme-color-bg-offwhite);
+  border-radius: 2.3em;
+  padding: 0.19em 0.92em 0.19em 0.4em;
+  box-shadow: 0 1px 4px var(--theme-shadow-1);
+
+  @include respond-to-width(mobile) {
+    padding: 0.14em 0.6em 0.14em 0.27em;
+    gap: 0.5rem;
+  }
+  @include respond-to-width(tablet) {
+    gap: 0.6rem;
+  }
+}
+
+// ===========================
+// Avatar
+// ===========================
+.avatar {
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.38em;
+  background: var(--theme-color-bg-white);
+  box-shadow: 0 0.5px 2px var(--theme-shadow-1);
+
+  @include respond-to-width(mobile) {
+    width: 1.72em;
+    height: 1.72em;
+    margin-right: 0.21em;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    width: 2.4em;
+    height: 2.4em;
+  }
+}
+
+// ===========================
+// Username
+// ===========================
+.username {
+  font-size: 1.11rem;
+  font-weight: 500;
+  color: var(--theme-color-text);
+  margin-right: 0.8em;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @include respond-to-width(mobile) {
+    font-size: 0.97rem;
+    margin-right: 0.44em;
+    max-width: 80px;
+  }
+  @include respond-to-width(large-desktop) {
+    max-width: 180px;
+  }
+}
+
+// ===========================
+// Logout Button
+// ===========================
+.btn-logout {
+  font-size: 0.98rem;
+  background: var(--theme-color-text-muted);
+  color:var(--theme-color-button-text);
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  padding: 0.38em 0.97em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.13s;
+  margin-left: 0.1em;
+  box-shadow: 0 0.5px 1.5px var(--theme-shadow-1);
+  align-self: center; // keep it vertically centered if row-wrapped
+
+  &:hover,
+  &:focus-visible {
+    background: var(--theme-color-accent-blue3);
+    color: var(--theme-color-button-text);
+    outline: 2px solid var(--theme-color-focus-outline);
+  }
+  &:active {
+    background: var(--theme-color-accent-blue2);
+  }
+  &:disabled {
+    background: var(--theme-color-disabled);
+    color: var(--theme-color-button-text);
+    cursor: not-allowed;
+  }
+  @include respond-to-width(mobile) {
+    font-size: 0.92rem;
+    padding: 0.34em 0.77em;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    font-size: 1.06rem;
+    padding: 0.43em 1.14em;
+  }
+}
+
+// ===========================
+// Login Button (when logged out)
+// ===========================
+.btn-login {
+  font-size: 1.02rem;
+  background: var(--theme-color-accent-blue2); // NEW: always readable on white or dark backgrounds
+  color: var(--theme-color-button-text); // NEW: highest contrast against accent blue2
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  padding: 0.38em 1.02em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.13s;
+  box-shadow: 0 0.5px 1.5px var(--theme-shadow-1);
+  align-self: center;
+  display: inline-block;
+  min-width: 96px;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--theme-color-accent-blue3);
+    color:var(--theme-color-button-text);
+    outline: 2px solid var(--theme-color-focus-outline);
+  }
+  &:active {
+    background: var(--theme-color-accent-blue4);
+    color: var(--theme-color-link-hover);
+  }
+  &:disabled {
+    background: var(--theme-color-disabled);
+    color: var(--theme-color-button-text);
+    cursor: not-allowed;
+  }
+  @include respond-to-width(mobile) {
+    font-size: 0.92rem;
+    padding: 0.34em 0.77em;
+    min-width: 82px;
+  }
+  @include respond-to-width(ultra-wide-only) {
+    font-size: 1.06rem;
+    padding: 0.43em 1.14em;
+    min-width: 110px;
+  }
+}
+
+
+// ===========================
+// Font-size shrink for very small screens
+// ===========================
+@media (max-width: 480px) {
+  .app-navbar {
+    font-size: 0.97rem;
+  }
+  .link,
+  .btn-login,
+  .btn-logout {
+    font-size: 0.92rem;
+  }
+}

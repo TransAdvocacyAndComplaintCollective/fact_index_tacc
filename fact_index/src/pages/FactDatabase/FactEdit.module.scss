@@ -1,0 +1,149 @@
+@use '../../style/mixins';
+@use "../../style/variables";
+@use "../../style/color"; // For CSS vars
+
+.factEditForm {
+  background: var(--theme-color-bg-white);
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 12px var(--theme-shadow-2);
+  border: 1px solid var(--theme-color-border);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  color: var(--theme-color-text);
+  max-width: 640px;
+  margin: 2.5rem auto;
+  padding: 2rem;
+  display: block;
+
+  legend {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--theme-color-heading);
+    letter-spacing: 0.01em;
+    margin-bottom: 1.6rem;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 1.3rem;
+    color: var(--theme-color-text);
+
+    .factEditRequired {
+      color: var(--theme-color-accent-red4);
+      margin-left: 0.3em;
+    }
+  }
+
+  .factEditInput {
+    display: block;
+    width: 100%;
+    font-size: 1.09rem;
+    border: 1px solid var(--theme-color-border-input);
+    border-radius: 0.5em;
+    padding: 0.55em 0.9em;
+    margin-top: 0.3em;
+    margin-bottom: 0.2em;
+    background: var(--theme-color-bg-offwhite);
+    color: var(--theme-color-text);
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.18s, background 0.17s;
+
+    &:focus {
+      border-color: var(--theme-color-border-focus);
+      outline: 2px solid var(--theme-color-focus-outline);
+      background: var(--theme-color-bg-white);
+    }
+  }
+
+  .factEditActions {
+    display: flex;
+    gap: 1.2em;
+    margin: 1.3em 0 0.6em;
+    flex-wrap: wrap;
+  }
+
+  .factEditSaveBtn {
+    background: var(--theme-color-accent-green4);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6em 1.3em;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    box-shadow: 0 2px 8px var(--theme-shadow-1);
+    outline: none;
+
+    &:hover,
+    &:focus {
+      background: var(--theme-color-accent-green5);
+      outline: 2px solid var(--theme-color-focus-outline);
+    }
+    &:disabled {
+      background: var(--theme-color-disabled);
+      color: var(--theme-color-text-light);
+      cursor: not-allowed;
+    }
+  }
+  .factEditCancelBtn {
+    background: var(--theme-color-bg-offwhite);
+    color: var(--theme-color-text);
+    font-size: 1.08rem;
+    font-weight: 500;
+    border: 1px solid var(--theme-color-border);
+    border-radius: 6px;
+    padding: 0.6em 1.3em;
+    cursor: pointer;
+    transition: background 0.16s, color 0.18s;
+    box-shadow: 0 2px 6px var(--theme-shadow-1);
+
+    &:hover,
+    &:focus {
+      background: var(--theme-color-bg-neutral);
+      color: var(--theme-color-link-hover);
+      outline: 2px solid var(--theme-color-focus-outline);
+    }
+    &:disabled {
+      background: var(--theme-color-disabled);
+      color: var(--theme-color-text-light);
+      cursor: not-allowed;
+    }
+  }
+
+  .factEditError {
+    margin-top: 1em;
+    color: var(--theme-color-accent-red2);
+    font-weight: 600;
+    font-size: 1.04rem;
+  }
+  .factEditSuccess {
+    margin-top: 1em;
+    color: var(--theme-color-accent-green5);
+    font-weight: 600;
+    font-size: 1.03rem;
+  }
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  // Responsive: Mobile
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.8rem 0.4rem;
+    border-radius: 0.6rem;
+    max-width: 99vw;
+    font-size: 1rem;
+    .factEditActions {
+      flex-direction: column;
+      gap: 0.8em;
+    }
+  }
+  // Tablet
+  @include mixins.respond-to-width(tablet) {
+    padding: 1.2rem 0.7rem;
+    border-radius: 0.85rem;
+    max-width: 96vw;
+  }
+}

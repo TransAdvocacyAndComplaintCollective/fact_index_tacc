@@ -1,0 +1,259 @@
+@use '../../style/mixins';
+@use "../../style/variables";
+
+// Helper: see above for how theme maps are updated!
+
+/* --- Main container --- */
+.factDatabase {
+  min-height: 100vh;
+  padding: 2.5rem 1rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  background: var(--theme-color-bg-offwhite);
+
+  @include mixins.respond-to-width(mobile) {
+    padding: 1.2rem 0.5rem;
+  }
+}
+
+/* --- Header bar --- */
+.factDatabase__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.factDatabase__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--theme-color-title);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 var(--theme-color-bg-white), 0 2px 6px var(--theme-color-bg-neutral);
+
+  @include mixins.respond-to-width(mobile) {
+    font-size: 1.3rem;
+  }
+}
+
+.factDatabase__addBtn {
+  background: var(--theme-color-button-bg);
+  color: var(--theme-color-button-text);
+  font-size: 1.1rem;
+  border: 1px solid var(--theme-color-button-border);
+  border-radius: 6px;
+  padding: 0.55em 1.3em;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--theme-shadow-1);
+  transition: background 0.15s, color 0.15s;
+
+  &:hover, &:focus {
+    background: var(--theme-color-button-bg-hover);
+    color: var(--theme-color-button-text);
+    outline: 2px solid var(--theme-color-loader);
+  }
+
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.45em 0.9em;
+    font-size: 1rem;
+    margin-left: 0.8rem;
+  }
+}
+
+/* --- Searchbar --- */
+.factDatabase__searchbar {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+  margin-bottom: 1.7rem;
+
+  input[type="text"] {
+    width: 320px;
+    padding: 0.45rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid var(--theme-color-border);
+    background: var(--theme-color-bg-white);
+    color: var(--theme-color-text);
+    font-size: 1.04rem;
+
+    &:focus {
+      border-color: var(--theme-color-accent-green);
+      outline: none;
+    }
+
+    @include mixins.respond-to-width(mobile) {
+      width: 100%;
+    }
+  }
+
+  button {
+    padding: 0.44rem 1.2rem;
+    border-radius: 5px;
+    border: 1px solid var(--theme-color-button-border);
+    background: var(--theme-color-button-bg);
+    color: var(--theme-color-button-text);
+    font-size: 1.01rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.13s, color 0.14s;
+
+    &:hover, &:focus {
+      background: var(--theme-color-button-bg-hover);
+      color: var(--theme-color-button-text);
+      outline: 2px solid var(--theme-color-loader);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: stretch;
+  }
+}
+
+/* --- Content area --- */
+.factDatabase__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1300px;
+  margin: auto;
+
+  @include mixins.respond-to-width(netbook) {
+    gap: 1rem;
+    max-width: 95vw;
+  }
+
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+  }
+}
+
+/* Sidebar (filters) */
+.factDatabase__sidebar {
+  background: var(--theme-color-bg-white);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px var(--theme-shadow-1);
+  padding: 1.5rem 1rem;
+  min-width: 210px;
+  max-width: 320px;
+  margin-right: 0.5rem;
+  font-size: 1rem;
+  color: var(--theme-color-text);
+
+  @include mixins.respond-to-width(netbook) {
+    min-width: 160px;
+    padding: 1rem 0.6rem;
+  }
+  @include mixins.respond-to-width(mobile) {
+    width: 100%;
+    max-width: none;
+    margin-right: 0;
+    margin-bottom: 1rem;
+    padding: 1.2rem 0.5rem;
+  }
+}
+
+.factDatabase__results {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Card block (if used for details etc) --- */
+.factDatabase__card {
+  background: var(--theme-color-bg-white);
+  color: var(--theme-color-text);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px var(--theme-shadow-2);
+
+  @include mixins.respond-to-width(mobile) {
+    border-radius: 7px;
+    box-shadow: 0 1px 4px var(--theme-shadow-1);
+  }
+}
+
+/* Loader, end of results, etc */
+.factDatabase__loader {
+  height: 38px;
+  text-align: center;
+  color: var(--theme-color-loader);
+  font-size: 1.08rem;
+  opacity: 1;
+  animation: loader-blink 1.5s infinite;
+  transition: opacity 0.2s;
+
+  &[data-loading="false"] {
+    opacity: 0.5;
+    animation: none;
+  }
+}
+
+@keyframes loader-blink {
+  0%, 100% { opacity: 0.58; }
+  50% { opacity: 1; }
+}
+
+.factDatabase__end {
+  text-align: center;
+  margin: 1.3rem 0 0.7rem 0;
+  color: var(--theme-color-end-message);
+  font-size: 1.01rem;
+  letter-spacing: 0.01em;
+}
+
+.factDatabase__loadingMessage {
+  margin: 2.2rem 0;
+  color: var(--theme-color-loading-message);
+  font-size: 1.11rem;
+  text-align: center;
+
+  @include mixins.respond-to-width(mobile) {
+    font-size: 0.99rem;
+    margin: 1.2rem 0;
+  }
+}
+
+/* Table (if used anywhere) */
+.factDatabase__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+  background: var(--theme-color-bg-white);
+
+  th, td {
+    padding: 0.85em 1.1em;
+    border-bottom: 1px solid var(--theme-color-border);
+    text-align: left;
+  }
+  th {
+    background: var(--theme-color-bg-offwhite);
+    font-weight: 600;
+    font-size: 1.01em;
+    color: var(--theme-color-title);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tr:hover {
+    background: var(--theme-color-row-hover);
+    cursor: pointer;
+  }
+}
+
+/* Custom scrollbars for the main app */
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--theme-color-bg-offwhite);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-color-accent-blue4);
+  border-radius: 4px;
+}
