@@ -1,9 +1,10 @@
-// schema.js
+// schema.js (ESM/Node 22+)
 // This script creates (and upgrades) the database schema for the Fabs Fact Database using Knex.js.
 
+import knexConfig from './knexfile.js';
+import knex from 'knex';
+
 const environment = process.env.NODE_ENV || 'development';
-const knexConfig = require('./knexfile');
-const knex = require('knex');
 const db = knex(knexConfig[environment]);
 
 async function createSchema() {

@@ -61,19 +61,15 @@ router.get(
   }
 );
 
-// Logout route: Ends session safely
+// ----- Logout route (unified logout) -----
 router.get('/logout', (req, res, next) => {
-  // passport 0.6+: logout can be async
-  req.logout(function(err) {
+  req.logout((err) => {
     if (err) {
-      console.error('[discordRouter] Error in req.logout:', err);
+      console.error('[logout] Error in req.logout:', err);
       return next(err);
     }
     req.session.destroy((err) => {
-      if (err) {
-        console.error('[discordRouter] Error destroying session:', err);
-        // Optionally, just redirect anyway
-      }
+      if (err) console.error('[logout] Session destroy error:', err);
       res.redirect('/');
     });
   });

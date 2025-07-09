@@ -1,8 +1,9 @@
-// factRepository.js
+// factRepository.js (ESM/Node 22+)
 
-const knex = require('knex');
-const knexConfig = require('./knexfile');
-const schema = require('./schema');
+import knex from 'knex';
+import knexConfig from './knexfile.js';
+import './schema.js';
+
 const environment = process.env.NODE_ENV || 'development';
 const db = knex(knexConfig[environment]);
 
@@ -30,7 +31,7 @@ async function logQuery(query, label = "QUERY") {
 }
 
 // ---- FACT CRUD ----
-async function createFact({
+export async function createFact({
     fact_text,
     source,
     type,
@@ -61,7 +62,7 @@ async function createFact({
     }
 }
 
-async function getFactById(id) {
+export async function getFactById(id) {
     log('getFactById called', id);
     try {
         const query = db('facts')
@@ -87,7 +88,7 @@ async function getFactById(id) {
     }
 }
 
-async function listFacts({ type, subject, audience, offset = 0, limit = 50, includeSuppressed = false } = {}) {
+export async function listFacts({ type, subject, audience, offset = 0, limit = 50, includeSuppressed = false } = {}) {
     log('listFacts called', { type, subject, audience, offset, limit, includeSuppressed });
     try {
         const q = db('facts')
@@ -113,7 +114,7 @@ async function listFacts({ type, subject, audience, offset = 0, limit = 50, incl
     }
 }
 
-async function updateFact(id, changes = {}, subjects, audiences) {
+export async function updateFact(id, changes = {}, subjects, audiences) {
     log('updateFact called', { id, changes, subjects, audiences });
     try {
         if (Object.keys(changes).length > 0) {
@@ -135,7 +136,7 @@ async function updateFact(id, changes = {}, subjects, audiences) {
     }
 }
 
-async function deleteFact(id) {
+export async function deleteFact(id) {
     log('deleteFact called', id);
     return db.transaction(async trx => {
         await logQuery(trx('fact_subjects').where({ fact_id: id }).del(), 'DELETE fact_subjects (txn)');
@@ -145,7 +146,7 @@ async function deleteFact(id) {
 }
 
 // ---- BULK & DEDUP HELPERS ----
-async function factExists({ fact_text, source }) {
+export async function factExists({ fact_text, source }) {
     log('factExists called', { fact_text, source });
     try {
         const query = db('facts').where({ fact_text, source }).first();
@@ -157,7 +158,7 @@ async function factExists({ fact_text, source }) {
     }
 }
 
-async function bulkInsertFacts(factsArray) {
+export async function bulkInsertFacts(factsArray) {
     log('bulkInsertFacts called', { factsArrayLength: factsArray.length });
     const inserted = [];
     for (const fact of factsArray) {
@@ -171,7 +172,7 @@ async function bulkInsertFacts(factsArray) {
     return inserted;
 }
 
-async function countFacts({ type, subject, audience, year } = {}) {
+export async function countFacts({ type, subject, audience, year } = {}) {
     log('countFacts called', { type, subject, audience, year });
     try {
         const q = db('facts')
@@ -193,7 +194,7 @@ async function countFacts({ type, subject, audience, year } = {}) {
 }
 
 // ---- SUBJECTS HELPERS ----
-async function attachSubjectsToFact(fact_id, subjectNames = []) {
+export async function attachSubjectsToFact(fact_id, subjectNames = []) {
     log('attachSubjectsToFact called', { fact_id, subjectNames });
     const subjectIds = await Promise.all(subjectNames.map(name => upsertSubject(name)));
     const rows = subjectIds.map(subject_id => ({ fact_id, subject_id }));
@@ -203,7 +204,7 @@ async function attachSubjectsToFact(fact_id, subjectNames = []) {
     log('attachSubjectsToFact done', rows.length);
 }
 
-async function upsertSubject(name) {
+export async function upsertSubject(name) {
     log('upsertSubject called', name);
     let row = await logQuery(db('subjects').where({ name }).first(), 'SELECT subject');
     if (row) {
@@ -215,7 +216,7 @@ async function upsertSubject(name) {
     return id;
 }
 
-async function getSubjectsForFact(fact_id) {
+export async function getSubjectsForFact(fact_id) {
     const query = db('subjects')
         .join('fact_subjects', 'subjects.id', 'fact_subjects.subject_id')
         .where('fact_subjects.fact_id', fact_id)
@@ -225,12 +226,12 @@ async function getSubjectsForFact(fact_id) {
     return rows.map(r => r.name);
 }
 
-async function listSubjects() {
+export async function listSubjects() {
     log('listSubjects called');
     return logQuery(db('subjects').select('*').orderBy('name'), 'SELECT subjects');
 }
 
-async function getFactsForSubject(subject_name, opts = {}) {
+export async function getFactsForSubject(subject_name, opts = {}) {
     log('getFactsForSubject called', subject_name, opts);
     const subject = await logQuery(db('subjects').where({ name: subject_name }).first(), 'SELECT subject by name');
     if (!subject) return [];
@@ -238,14 +239,14 @@ async function getFactsForSubject(subject_name, opts = {}) {
     return Promise.all(fact_ids.map(getFactById));
 }
 
-async function deleteSubject(id) {
+export async function deleteSubject(id) {
     log('deleteSubject called', id);
     await logQuery(db('fact_subjects').where({ subject_id: id }).del(), 'DELETE fact_subjects (by subject)');
     return logQuery(db('subjects').where({ id }).del(), 'DELETE subject');
 }
 
 // ---- AUDIENCES HELPERS ----
-async function attachAudiencesToFact(fact_id, audienceNames = []) {
+export async function attachAudiencesToFact(fact_id, audienceNames = []) {
     log('attachAudiencesToFact called', { fact_id, audienceNames });
     const audienceIds = await Promise.all(audienceNames.map(name => upsertAudience(name)));
     const rows = audienceIds.map(target_audience_id => ({ fact_id, target_audience_id }));
@@ -255,7 +256,7 @@ async function attachAudiencesToFact(fact_id, audienceNames = []) {
     log('attachAudiencesToFact done', rows.length);
 }
 
-async function upsertAudience(name) {
+export async function upsertAudience(name) {
     log('upsertAudience called', name);
     let row = await logQuery(db('target_audiences').where({ name }).first(), 'SELECT audience');
     if (row) {
@@ -267,7 +268,7 @@ async function upsertAudience(name) {
     return id;
 }
 
-async function getAudiencesForFact(fact_id) {
+export async function getAudiencesForFact(fact_id) {
     const query = db('target_audiences')
         .join('fact_target_audiences', 'target_audiences.id', 'fact_target_audiences.target_audience_id')
         .where('fact_target_audiences.fact_id', fact_id)
@@ -277,12 +278,12 @@ async function getAudiencesForFact(fact_id) {
     return rows.map(r => r.name);
 }
 
-async function listAudiences() {
+export async function listAudiences() {
     log('listAudiences called');
     return logQuery(db('target_audiences').select('*').orderBy('name'), 'SELECT audiences');
 }
 
-async function getFactsForAudience(audience_name, opts = {}) {
+export async function getFactsForAudience(audience_name, opts = {}) {
     log('getFactsForAudience called', audience_name, opts);
     const audience = await logQuery(db('target_audiences').where({ name: audience_name }).first(), 'SELECT audience by name');
     if (!audience) return [];
@@ -290,19 +291,19 @@ async function getFactsForAudience(audience_name, opts = {}) {
     return Promise.all(fact_ids.map(getFactById));
 }
 
-async function deleteAudience(id) {
+export async function deleteAudience(id) {
     log('deleteAudience called', id);
     await logQuery(db('fact_target_audiences').where({ target_audience_id: id }).del(), 'DELETE fact_target_audiences (by audience)');
     return logQuery(db('target_audiences').where({ id }).del(), 'DELETE audience');
 }
 
 // ---- USER HELPERS ----
-async function listUsers() {
+export async function listUsers() {
     log('listUsers called');
     return logQuery(db('users').select('*').orderBy('discord_name'), 'SELECT users');
 }
 
-async function findOrCreateUser(discord_name, email = null) {
+export async function findOrCreateUser(discord_name, email = null) {
     log('findOrCreateUser called', discord_name, email);
     let user = await logQuery(db('users').where({ discord_name }).first(), 'SELECT user');
     if (user) {
@@ -315,19 +316,19 @@ async function findOrCreateUser(discord_name, email = null) {
 }
 
 // ---- SUPPRESSION HELPERS ----
-async function suppressFact(id, value = true) {
+export async function suppressFact(id, value = true) {
     log('suppressFact called', { id, value });
     await logQuery(db('facts').where({ id }).update({ suppressed: value }), 'UPDATE fact (suppress)');
     return getFactById(id);
 }
 
-async function listSuppressedFacts(opts = {}) {
+export async function listSuppressedFacts(opts = {}) {
     log('listSuppressedFacts called', opts);
     return listFacts({ ...opts, includeSuppressed: true }).then(arr => arr.filter(f => f.suppressed));
 }
 
 // ---- SEARCH ----
-async function findFacts({
+export async function findFacts({
     keyword,
     targets = [],
     subjects = [],
@@ -450,9 +451,10 @@ async function findFacts({
     }
 }
 
-// ---- EXPORT MODULE ----
+export { db };
 
-module.exports = {
+// Optionally, also export a "default" object with all functions if you want both styles:
+export default {
     createFact,
     getFactById,
     listFacts,
@@ -461,32 +463,22 @@ module.exports = {
     factExists,
     bulkInsertFacts,
     countFacts,
-
-    // Subjects
     attachSubjectsToFact,
     upsertSubject,
     getSubjectsForFact,
     listSubjects,
     getFactsForSubject,
     deleteSubject,
-
-    // Audiences
     attachAudiencesToFact,
     upsertAudience,
     getAudiencesForFact,
     listAudiences,
     getFactsForAudience,
     deleteAudience,
-
-    // Users
     listUsers,
     findOrCreateUser,
-
-    // Suppression
     suppressFact,
     listSuppressedFacts,
-
-    // Search
     findFacts,
     db,
 };

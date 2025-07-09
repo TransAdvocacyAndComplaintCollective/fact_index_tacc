@@ -1,26 +1,31 @@
-// knexfile.js
-const path = require('path');
+// knexfile.js (ESM-format for Node v22+)
 
-module.exports = {
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default {
   development: {
     client: 'sqlite3',
     connection: {
-      // Use an absolute path to avoid working-directory mismatches
       filename: path.resolve(__dirname, 'dev.sqlite3'),
     },
-    useNullAsDefault: true,  // Recommended for sqlite3 with Knex :contentReference[oaicite:1]{index=1}
+    useNullAsDefault: true,
     pool: {
       afterCreate: (conn, cb) => {
         conn.run('PRAGMA foreign_keys = ON', cb);
       },
     },
     migrations: {
-      directory: './migrations', // relative to this file—standard practice :contentReference[oaicite:2]{index=2}
+      directory: './migrations',
     },
     seeds: {
-      directory: './seeds',     // relative paths are best practice :contentReference[oaicite:3]{index=3}
+      directory: './seeds',
     },
   },
 
-  // Add production/postgres or other environments here
+  // Add other environments as needed, e.g., production:
+  // production: { ... }
 };

@@ -33,24 +33,8 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
 
-      const isLocalDev = req.socket.localPort === PARCEL_PORT;
-      // proxy to the web internet
-      const isProxied = !req.headers['x-forwarded-for'];
-      const safe = isLocalDev && isProxied;
-      if ((process.env.DEV_MODE === 'TRUE' && safe)) {
-        // --- Development shortcut: always succeed with mock user ---
-        return done(null, {
-          id: process.env.id,
-          username: process.env.username || 'DevUser',
-          avatar: null,
-          guild: DISCORD_GUILD_ID,
-          hasRole: true,
-          accessToken: 'fake-access-token',
-          refreshToken: 'fake-refresh-token',
-          expires: Date.now() + 3600 * 1000,
-          devBypass: true,
-        });
-      }
+  
+
       log('info', `Discord login attempt for profile:`, profile);
 
       try {
@@ -125,6 +109,19 @@ passport.deserializeUser((obj, done) => {
 
 // --- Token refresh utility ---
 export async function refreshAccessToken(user) {
+  // If dev login, return a fake token response and log it
+  if (user.devBypass) {
+    log('info', `[DevBypass] Returning fake refreshed token for ${user.username} (${user.id})`);
+    // Optionally update the expiry time
+    return {
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+      expires: Date.now() + 3600 * 1000, // 1 hour from now
+      devBypass: true,
+    };
+  }
+
+  // Normal path: refresh with Discord API
   log('info', `Refreshing access token for ${user.username} (${user.id})`);
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
@@ -134,11 +131,13 @@ export async function refreshAccessToken(user) {
     redirect_uri: DISCORD_CALLBACK_URL,
     scope: 'identify guilds guilds.members.read',
   });
+
   const res = await fetch('https://discord.com/api/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params,
   });
+
   if (!res.ok) {
     log('error', 'Failed to refresh token:', res.status, await res.text());
     throw new Error('Failed to refresh token');
@@ -151,6 +150,7 @@ export async function refreshAccessToken(user) {
     expires: Date.now() + json.expires_in * 1000,
   };
 }
+
 
 // --- Session validation/refresh middleware ---
 export async function validateAndRefreshSession(req, res, next) {
@@ -166,6 +166,25 @@ export async function validateAndRefreshSession(req, res, next) {
     }
 
     const user = req.user;
+    console.log('info', `[Session Validation] Validating user: ${user.username} (${user.id})`);
+    console.log('info', `[Session Validation] User data:`, user);
+    // === DEV BYPASS SUPPORT ===
+    if (user.devBypass) {
+      log('info', `[Session Validation] Dev bypass active for user: ${user.username} (${user.id})`);
+      req.authStatus = {
+        authenticated: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          guild: user.guild,
+          hasRole: user.hasRole,
+          devBypass: true,
+        },
+        devBypass: true,
+      };
+      return next();
+    }
 
     // --- Refresh access token if expired ---
     if (user.expires && user.expires < Date.now()) {

@@ -1,5 +1,5 @@
 import express from 'express';
-import facts from './router/fact/facts.js';
+import facts from './fact/facts.js';
 
 const router = express.Router();
 
@@ -16,4 +16,4 @@ router.all('/', (req, res, next) => {
 router.use('/facts', facts);
 
 
-return router;
+export default router;
