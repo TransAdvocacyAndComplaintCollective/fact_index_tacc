@@ -41,7 +41,7 @@ This project provides an authenticated web app and API for managing and accessin
 ### Prerequisites
 
 * Node.js v22+
-* Yarn or npm
+* npm
 
 ### Setup
 
@@ -54,10 +54,11 @@ cd fact_index_tacc
 
 2. Install dependencies:
 
+Run the following commands both at the project root and inside the /fact_index/ folder to install backend and frontend dependencies:
 ```bash
 npm install
-# or
-yarn install
+cd fact_index
+npm install
 ```
 
 3. Setup environment variables:
@@ -72,36 +73,17 @@ DISCORD_GUILD_ID=<your_guild_id>
 DISCORD_ROLE_ID=<required_role_ids_comma_separated>
 DISCORD_CALLBACK_URL=http://localhost:16261/auth/discord/callback
 DEV_LOGIN_MODE=TRUE
+DEBUG_REACT=TRUE
 SESSION_SECRET=<secure_random_secret>
 ```
 
-### Run the App
+## Running the App
 
-**Start backend and frontend development servers:**
+Start servers (in the root of the project):
 
-```bash
-npm start
-# or
-yarn start
-```
+```bash npm start```
 
-The app runs at: [http://localhost:16261](http://localhost:16261)
-
-### Database Setup
-
-The project uses SQLite3 by default.
-
-* Initialize or migrate the database:
-
-```bash
-npx knex migrate:latest
-```
-
-* (Optional) Seed database with initial data:
-
-```bash
-npx knex seed:run
-```
+The app will then be accessible at http://localhost:16261.
 
 ## Development Workflow
 
@@ -125,15 +107,6 @@ Make sure the React app (typically via npm run start in fact_index/) is running 
 * **Facts CRUD:** `/api/facts`
 * **Auth status:** `/auth/status`
 
-## Testing
-
-Run Jest tests:
-
-```bash
-npm test
-# or
-yarn test
-```
 
 ## Contributing
 
