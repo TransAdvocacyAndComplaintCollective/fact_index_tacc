@@ -23,63 +23,73 @@ function log(level, ...args) {
 }
 
 // --- Passport Discord Strategy ---
-passport.use(
-  new DiscordStrategy(
-    {
-      clientID: DISCORD_CLIENT_ID,
-      clientSecret: DISCORD_CLIENT_SECRET,
-      callbackURL: DISCORD_CALLBACK_URL,
-      scope: ['identify', 'guilds', 'guilds.members.read'],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      log('info', `Discord login attempt for profile:`, profile);
+try {
+  passport.use(
+    new DiscordStrategy(
+      {
+        clientID: DISCORD_CLIENT_ID,
+        clientSecret: DISCORD_CLIENT_SECRET,
+        callbackURL: DISCORD_CALLBACK_URL,
+        scope: ['identify', 'guilds', 'guilds.members.read'],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        log('info', `Discord login attempt for profile:`, profile);
 
-      try {
-        const guild = profile.guilds.find(g => g.id === DISCORD_GUILD_ID);
-        if (!guild) {
-          log('warn', `User ${profile.username} (${profile.id}) not in required guild ${DISCORD_GUILD_ID}`);
-          return done(null, false, { message: 'Not in required guild' });
-        }
-
-        let hasRole = true;
-        if (REQUIRED_ROLE_IDS.length) {
-          log('info', `Checking roles for user ${profile.username} (${profile.id})`);
-          const memberRes = await fetch(
-            `https://discord.com/api/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
-          if (!memberRes.ok) {
-            log('error', `Cannot fetch member info for ${profile.username} (${profile.id}) [${memberRes.status}]:`, await memberRes.text());
-            return done(null, false, { message: 'Cannot fetch guild member' });
+        try {
+          const guild = profile.guilds.find(g => g.id === DISCORD_GUILD_ID);
+          if (!guild) {
+            log('warn', `User ${profile.username} (${profile.id}) not in required guild ${DISCORD_GUILD_ID}`);
+            return done(null, false, { message: 'Not in required guild' });
           }
-          const member = await memberRes.json();
-          hasRole = Array.isArray(member.roles) &&
-            REQUIRED_ROLE_IDS.some(role => member.roles.includes(role));
-          if (!hasRole) {
-            log('warn', `User ${profile.username} (${profile.id}) missing required role(s): [${REQUIRED_ROLE_IDS.join(', ')}]`);
-            return done(null, false, { message: 'Missing required role' });
-          }
-        }
 
-        log('info', `Successful login: ${profile.username} (${profile.id}) in guild ${DISCORD_GUILD_ID}, hasRole: ${hasRole}`);
-        return done(null, {
-          id: profile.id,
-          username: profile.username,
-          avatar: profile.avatar,
-          guild: DISCORD_GUILD_ID,
-          hasRole,
-          accessToken,
-          refreshToken,
-          expires: Date.now() + 3600 * 1000, // 1 hour expiry
-        });
-      } catch (err) {
-        log('error', 'Discord strategy error:', err);
-        return done(null, false, { message: 'Discord auth error' });
+          let hasRole = true;
+          if (REQUIRED_ROLE_IDS.length) {
+            log('info', `Checking roles for user ${profile.username} (${profile.id})`);
+            const memberRes = await fetch(
+              `https://discord.com/api/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            if (!memberRes.ok) {
+              log('error', `Cannot fetch member info for ${profile.username} (${profile.id}) [${memberRes.status}]:`, await memberRes.text());
+              return done(null, false, { message: 'Cannot fetch guild member' });
+            }
+            const member = await memberRes.json();
+            hasRole = Array.isArray(member.roles) &&
+              REQUIRED_ROLE_IDS.some(role => member.roles.includes(role));
+            if (!hasRole) {
+              log('warn', `User ${profile.username} (${profile.id}) missing required role(s): [${REQUIRED_ROLE_IDS.join(', ')}]`);
+              return done(null, false, { message: 'Missing required role' });
+            }
+          }
+
+          log('info', `Successful login: ${profile.username} (${profile.id}) in guild ${DISCORD_GUILD_ID}, hasRole: ${hasRole}`);
+          return done(null, {
+            id: profile.id,
+            username: profile.username,
+            avatar: profile.avatar,
+            guild: DISCORD_GUILD_ID,
+            hasRole,
+            accessToken,
+            refreshToken,
+            expires: Date.now() + 3600 * 1000, // 1 hour expiry
+          });
+        } catch (err) {
+          log('error', 'Discord strategy error:', err);
+          return done(null, false, { message: 'Discord auth error' });
+        }
       }
-    }
-  )
-);
-
+    )
+  );
+} catch (err) {
+  log('error', 'Failed to initialize Discord strategy:', err);
+  const DEV_LOGIN_MODE = process.env.DEV_LOGIN_MODE === 'TRUE';
+  if (DEV_LOGIN_MODE) {
+    log('info', 'Running in dev mode, using dev bypass strategy');
+  }
+  else {
+    throw new Error('Failed to initialize Discord strategy');
+  }
+}
 // --- Passport session handling ---
 passport.serializeUser((user, done) => {
   log('info', `serializeUser: ${user.username} (${user.id})`);

@@ -1,23 +1,5 @@
-// ----------------- ENVIRONMENT SETUP ----------------- //
-// ESM can't use require('dotenv') or require('fs'), so we must use dynamic imports for early .env loading
-
-import fs from 'fs';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
-let dotenvLoaded = false;
-
-if (fs.existsSync('.env_tacc')) {
-  await import('dotenv').then(dotenv => dotenv.config({ path: '.env_tacc' }));
-  console.log('Loaded .env_tacc');
-  dotenvLoaded = true;
-} else if (fs.existsSync('.env')) {
-  await import('dotenv').then(dotenv => dotenv.config({ path: '.env' }));
-  console.log('Loaded .env');
-  dotenvLoaded = true;
-} else {
-  console.warn('No .env_tacc or .env file found!');
-}
+// ------ LOAD ENV FIRST! ------
+import 'dotenv/config'; // MUST be first line
 
 // ----------------- IMPORTS ----------------- //
 
