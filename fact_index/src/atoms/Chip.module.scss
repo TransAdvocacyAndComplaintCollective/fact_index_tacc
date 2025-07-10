@@ -1,0 +1,58 @@
+// Chip.module.scss
+@use '../style/mixins' as *;
+@use "../style/color" as colors;
+
+// Chips container
+.chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.37em 0.27em;
+  align-items: center;
+  min-height: 1.5em;
+  font-size: 0.96em;
+
+  @include respond-to-width(mobile) {
+    gap: 0.18em 0.11em;
+    font-size: 0.94em;
+  }
+}
+
+// Chip base class (not nested)
+.chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.13em 0.88em;
+  margin: 0 0.09em 0.18em 0;
+  font-size: 0.96em;
+  font-weight: 500;
+  border: 1.5px solid --theme-chip-border;
+  background: --theme-chip-bg;
+  color: --theme-chip-label;
+  box-shadow: 0 1px 2px --theme-shadow-1;
+  line-height: 1.15;
+  white-space: pre;
+  transition: background 0.16s, color 0.16s, border 0.16s;
+}
+
+// Fact type chip (blue-ish)
+.chipType {
+  background: --theme-chip-subject-bg;
+  border-color: --theme-chip-subject-border;
+  color: --theme-accent-blue2;
+}
+
+// Fact subject chip (green-ish)
+.chipSubject {
+  background: --theme-chip-audience-bg;
+  border-color: --theme-chip-audience-border;
+  color: --theme-accent-green5;
+}
+
+// None/neutral chip (e.g. "none")
+.chipNone {
+  background: --theme-chip-none-bg;
+  color: --theme-text-light;
+  border-color: --theme-chip-none-border;
+  opacity: 0.7;
+}

@@ -74,8 +74,6 @@ router.get('/facts', async (req, res) => {
 
     const facts = await factRepository.findFacts({
       keyword,
-      targets: targetsArr,
-      subjects: subjectsArr,
       yearFrom: from,
       yearTo: to,
       offset: offset ? Number(offset) : 0,
@@ -261,6 +259,58 @@ router.get('/facts-count', async (req, res) => {
     res.status(500).json({ error: 'Failed to count facts' });
   }
 });
+
+router.post('/search', async (req, res) => {
+  try {
+    const {
+      keyword,
+      targets = [],
+      subjects = [],
+      yearFrom,
+      yearTo,
+      year,
+      offset = 0,
+      limit = 50,
+      includeSuppressed = false,
+      subjectsInclude = [],
+      subjectsExclude = [],
+      audiencesInclude = [],
+      audiencesExclude = [],
+    } = req.body || {};
+
+    // Normalize arrays (support both array and comma-string forms)
+    const toArr = v =>
+      !v ? [] : Array.isArray(v) ? v : String(v).split(',').map(s => s.trim()).filter(Boolean);
+
+    // Prefer new-style includes/excludes, but support legacy for backcompat
+    const params = {
+      keyword,
+      targets: toArr(targets),
+      subjects: toArr(subjects),
+      yearFrom,
+      yearTo,
+      year,
+      offset: Number(offset) || 0,
+      limit: Number(limit) || 50,
+      includeSuppressed: !!includeSuppressed,
+      subjectsInclude: toArr(subjectsInclude),
+      subjectsExclude: toArr(subjectsExclude),
+      audiencesInclude: toArr(audiencesInclude),
+      audiencesExclude: toArr(audiencesExclude),
+    };
+    console.log('[DEBUG] POST /api/facts/search params:', params);
+
+    // DEBUG logging
+
+    const facts = await factRepository.findFacts(params);
+
+    res.json(facts);
+  } catch (err) {
+    console.error('[ERROR] POST /api/facts/search', err);
+    res.status(500).json({ error: 'Failed to search facts', detail: err.message });
+  }
+});
+
 
 // List suppressed facts
 router.get('/facts-suppressed', async (req, res) => {

@@ -14,10 +14,10 @@
   max-width: 400px;
   min-width: 0;
   min-height: 250px;
-  margin: 0 auto 2rem auto;
+  // margin: 0 auto 2rem auto;
   box-sizing: border-box;
   color: var(--theme-color-text); // highest contrast text
-  box-shadow: 0 2px 18px 0 rgba(0,0,0,0.09);
+  box-shadow: 0 2px 18px 0 rgba(0, 0, 0, 0.09);
   position: relative;
   z-index: 2;
   transition: width 0.2s, padding 0.2s, box-shadow 0.2s;
@@ -29,7 +29,6 @@
   @include respond-to-width(laptop) {
     position: sticky;
     top: 2.2rem;
-    margin-top: 2rem;
     max-width: 350px;
     align-self: flex-start;
   }
@@ -136,12 +135,14 @@
   color: var(--theme-color-text-dark); // was text-light (can be too low-contrast)
   opacity: 0.97; // nearly solid for readability
 }
+
 .chipInclude {
   background: var(--theme-chip-subject-bg);
   border-color: var(--theme-chip-subject-border);
   color: var(--theme-color-accent-blue2); // always WCAG AA/AAA contrast on chip-subject-bg
   opacity: 1;
 }
+
 .chipExclude {
   background: var(--theme-color-accent-red4); // deep red
   border-color: var(--theme-color-accent-red);
@@ -149,6 +150,7 @@
   opacity: 1;
   text-decoration: line-through wavy var(--theme-color-warning);
 }
+
 .chip[aria-pressed="true"] {
   font-weight: 800;
   box-shadow: 0 2px 8px var(--theme-shadow-2);
@@ -217,7 +219,8 @@ input[type="date"] {
   // enforce 44px min height
   min-height: 44px;
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     background: var(--theme-color-accent-blue); // lighter blue for hover, still contrast
     cursor: pointer;
     box-shadow: 0 2px 14px var(--theme-shadow-2);

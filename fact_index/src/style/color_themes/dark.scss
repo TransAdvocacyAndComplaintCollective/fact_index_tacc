@@ -4,124 +4,130 @@
 // ./style/color_themes/dark_high_contrast.scss
 // WCAG-compliant DARK THEME MAP
 
-$theme_dark: map.merge(global.$theme-global, (
-  // Navbar
-  nav-bg: #0d1117,
-  nav-link: #8ecbff,
-  nav-link-hover-bg: #223850,
-  nav-link-hover: #ffffff,
+$theme_dark: map.merge(global.$theme-global, ( // Navbar
+      nav-bg: #0d1117,
+      nav-link: #8ecbff,
+      nav-link-hover-bg: #223850,
+      nav-link-hover: #ffffff,
 
-  // Brand & Primary
-  color-brand: #58a6ff,
-  color-brand-light: #a5d6ff,
-  color-brand-softer: #222c3a,
-  color-brand-soft: #222c3a,
-  color-brand-bg: #121212,
-  color-brand-bg2: #1b2230,
-  color-brand-bg3: #101217,
-  color-brand-highlight: #212c3c,
+      // Brand & Primary
+      color-brand: #58a6ff,
+      color-brand-light: #a5d6ff,
+      color-brand-softer: #222c3a,
+      color-brand-soft: #222c3a,
+      color-brand-bg: #121212,
+      color-brand-bg2: #1b2230,
+      color-brand-bg3: #101217,
+      color-brand-highlight: #212c3c,
 
-  // Accent Colors
-  color-accent-blue: #58a6ff,
-  color-accent-blue2: #316dca,
-  color-accent-blue3: #99caff,
-  color-accent-blue4: #e0f2ff,
+      // Accent Colors
+      color-accent-blue: #58a6ff,
+      color-accent-blue2: #316dca,
+      color-accent-blue3: #99caff,
+      color-accent-blue4: #e0f2ff,
 
-  color-accent-green: #54d87d,
-  color-accent-green2: #223d27,
-  color-accent-green3: #224632,
-  color-accent-green4: #54d87d,
-  color-accent-green5: #36b37e,
+      color-accent-green: #54d87d,
+      color-accent-green2: #223d27,
+      color-accent-green3: #224632,
+      color-accent-green4: #54d87d,
+      color-accent-green5: #36b37e,
 
-  color-accent-red: #f87171,
-  color-accent-red2: #b91c1c,
-  color-accent-red3: #fb9a99,
-  // darken accent-red4 so white text (1.0) → #fff on #8a1a1a = 9.36:1 contrast
-  color-accent-red4: #8a1a1a,
+      color-accent-red: #f87171,
+      color-accent-red2: #b91c1c,
+      color-accent-red3: #fb9a99,
+      // darken accent-red4 so white text (1.0) → #fff on #8a1a1a = 9.36:1 contrast
+      color-accent-red4: #8a1a1a,
 
-  color-accent-pink: #e879f9,
-  color-accent-pink2: #6d3572,
-  color-accent-pink3: #faadf7,
+      color-accent-pink: #e879f9,
+      color-accent-pink2: #6d3572,
+      color-accent-pink3: #faadf7,
 
-  color-accent-yellow: #ffe34d,
+      color-accent-yellow: #ffe34d,
 
-  // Chips
-  chip-bg: #222c3a,
-  chip-border: #5a7290,
-  chip-label: #ffffff,
-  chip-none-bg: #382839,
-  chip-none-border: #9578aa,
-  chip-subject-bg: #1d3557,
-  chip-subject-border: #6290b6,
-  chip-audience-bg: #1e4636,
-  chip-audience-border: #4f8e62,
-  chip-pink3: #faadf7,
+      // Chips
+      chip-bg: #222c3a,
+      chip-border: #5a7290,
+      chip-label: #ffffff,
+      chip-none-bg: #382839,
+      chip-none-border: #9578aa,
+      chip-subject-bg: #1d3557,
+      chip-subject-border: #6290b6,
+      chip-audience-bg: #1e4636,
+      chip-audience-border: #4f8e62,
+      chip-pink3: #faadf7,
 
-  // Text & Neutral
-  color-text: #ffffff,
-  color-text-dark: #e5e8ee,
-  // lighten muted text from #a7adc5 → #bcc3da (contrast 8.06:1 on bg-offwhite)
-  color-text-muted: #bcc3da,
-  color-text-light: #bfc6d4,
-  color-link: #8ecbff,
-  color-link-hover: #b5e6ff,
-  color-meta-bold: #c3d0ea,
+      // Text & Neutral
+      color-text: #ffffff,
+      color-text-dark: #e5e8ee,
+      // lighten muted text from #a7adc5 → #bcc3da (contrast 8.06:1 on bg-offwhite)
+      color-text-muted: #bcc3da,
+      color-text-light: #bfc6d4,
+      color-link: #8ecbff,
+      color-link-hover: #b5e6ff,
+      color-meta-bold: #c3d0ea,
 
-  // Border
-  color-border: #33415c,
-  color-border-light: #253a5e,
-  color-border-focus: #8ecbff,
-  color-border-input: #38578d,
+      // Border
+      color-border: #33415c,
+      color-border-light: #253a5e,
+      color-border-focus: #8ecbff,
+      color-border-input: #38578d,
 
-  // Shadows
-  shadow-1: #000a,
-  shadow-2: #000c,
-  shadow-3: #306bad44,
-  shadow-4: #22344c77,
-  shadow-5: #0006,
-  shadow-selected: #295fbfbb,
+      // Shadows
+      shadow-1: #000a,
+      shadow-2: #000c,
+      shadow-3: #306bad44,
+      shadow-4: #22344c77,
+      shadow-5: #0006,
 
-  color-chip-text: #ffffff,
 
-  // Misc backgrounds
-  color-bg-white: #181b20,
-  color-bg-grey: #23272f,
-  color-bg-offwhite: #252b39,
-  color-bg-neutral: #1a2232,
-  color-button-text: #181818, // highest contrast against accent blue2
-  color-button-text-light: #ffffff, // highest contrast against dark backgrounds
+      color-shadow-1: #000a,
+      color-shadow-2: #000c,
+      color-shadow-3: #306bad44,
 
-  // States
-  color-selected: #1b2638,
-  color-focus-outline: #58a6ff99,
-  color-loader: #8ecbff,
-  color-end-message: #8ecbff,
+      shadow-selected: #295fbfbb,
 
-  // Warnings
-  color-warning: #f9d423,
-  color-disabled: #444444,
+      color-chip-text: #ffffff,
 
-  // Misc
-  color-link-visited: #b3e6ff,
-  color-title: #a7c7ee,
-  color-loading-message: #b3e6ff,
-  color-text-darker: #f5faff,
+      // Misc backgrounds
+      color-bg-white: #181b20,
+      color-bg-grey: #23272f,
+      color-bg-offwhite: #252b39,
+      color-bg-neutral: #1a2232,
+      color-button-text: #181818, // highest contrast against accent blue2
+      color-button-text-light: #ffffff, // highest contrast against dark backgrounds
+      color-button-bg: #8ecbff, // matches nav-link and is high-contrast on dark backgrounds
+      color-button-bg-hover: #b5e6ff, // matches color-link-hover, lighter for hover
 
-  // Extra UI
-  color-heading: #d5e9ff,
-  color-button-border: #333333,
-  color-bg-neutral-alt: #253a5e,
+      // States
+      color-selected: #1b2638,
+      color-focus-outline: #58a6ff99,
+      color-loader: #8ecbff,
+      color-end-message: #8ecbff,
 
-  // Fact DB custom
-  color-filter-bg: #222c3a,
-  color-context-bg: #1b2638,
-  color-row-hover: #2a3550,
-  color-context: #78ffb6,
-  color-context-bold: #38b874,
+      // Warnings
+      color-warning: #f9d423,
+      color-disabled: #444444,
 
-  // Utility aliases
-  success: #54d87d,
-  info: #a5d6ff,
-  error: #f87171,
-  warn: #f9d423
-));
+      // Misc
+      color-link-visited: #b3e6ff,
+      color-title: #a7c7ee,
+      color-loading-message: #b3e6ff,
+      color-text-darker: #f5faff,
+
+      // Extra UI
+      color-heading: #d5e9ff,
+      color-button-border: #333333,
+      color-bg-neutral-alt: #253a5e,
+
+      // Fact DB custom
+      color-filter-bg: #222c3a,
+      color-context-bg: #1b2638,
+      color-row-hover: #2a3550,
+      color-context: #78ffb6,
+      color-context-bold: #38b874,
+
+      // Utility aliases
+      success: #54d87d,
+      info: #a5d6ff,
+      error: #f87171,
+      warn: #f9d423));

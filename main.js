@@ -22,8 +22,6 @@ import { securityMiddleware } from './suspicious/suspicious.js';
 const PORT = Number(process.env.PORT || 16261);
 
 
-const PORT_SSH_FWD = PORT + 1;
-
 const BAD_UA_REGEX = /(sqlmap|nikto|acunetix|dirbuster|masscan|wpscan|nmap|hydra|arachni|python-requests|curl)/i;
 
 // Rate limiter config (10 requests per second per IP)
@@ -42,14 +40,14 @@ app.use((req, res, next) => {
 
 // --------------- MIDDLEWARE SETUP ---------------- //
 // Rate limiting
-app.use(async (req, res, next) => {
-  try {
-    await rateLimiter.consume(req.ip);
-    next();
-  } catch {
-    res.status(429).send('Too Many Requests');
-  }
-});
+// app.use(async (req, res, next) => {
+//   try {
+//     await rateLimiter.consume(req.ip);
+//     next();
+//   } catch {
+//     res.status(429).send('Too Many Requests');
+//   }
+// });
 app.use(botMiddleware());
 // Block bad UAs
 app.use((req, res, next) => {

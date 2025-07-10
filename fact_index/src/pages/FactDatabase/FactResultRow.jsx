@@ -1,97 +1,77 @@
 import React from "react";
 import PropTypes from "prop-types";
+import clsx from "clsx";
+import * as styles from "./FactResultRow.module.scss";
 
-export default function FactResultRow({
-  fact,
-  isSelected = false,
-  classes = {}
-}) {
-  // Create an id for the title, e.g. "fact-title-42"
-  const titleId = `fact-title-${fact.id}`;
+/**
+ * Renders a single fact result row.
+ */
+export default function FactResultRow({ fact, isSelected }) {
+  // Extract key fields for display
+  const {
+    fact_text,
+    summary,
+    datePublished,
+    source,
+    score,
+    subjects,
+    audiences,
+    suppressed,
+  } = fact;
 
   return (
     <div
-      className={
-        `${classes.row || ""}` +
-        (isSelected ? ` ${classes.selected || ""}` : "")
-      }
-      aria-current={isSelected ? "true" : undefined}
-      aria-labelledby={titleId}
+      className={clsx(
+        styles.factRow,
+        isSelected && styles.selected,
+        suppressed && styles.suppressed
+      )}
       tabIndex={-1}
-      // REMOVE role="listitem" -- now done in parent
-      data-testid="fact-result-row-inner"
+      aria-disabled={suppressed ? "true" : undefined}
     >
-      <div className={classes.grid}>
-        <div className={classes.top}>
-          <span id={titleId} className={classes.text}>
-            {fact.title}
-          </span>
-          {fact.date && (
-            <span className={classes.date}>
-              {new Date(fact.date).toLocaleDateString()}
+      <div className={styles.main}>
+        <div className={styles.titleRow}>
+          <span className={styles.title}>{fact_text}</span>
+
+        </div>
+        {summary && (
+          <div className={styles.summary}>{summary}</div>
+        )}
+        <div className={styles.metaRow}>
+          <span className={styles.source} title="Source">{source}</span>
+          {datePublished && (
+            <span className={styles.date} title="Date published">
+              {new Date(datePublished).toLocaleDateString()}
+            </span>
+          )}
+          {typeof score === "number" && (
+            <span className={styles.score} title="Relevance score">
+              ★ {score}
             </span>
           )}
         </div>
-        {fact.context && (
-          <div className={classes.context}>{fact.context}</div>
-        )}
-        <div className={classes.chips}>
-          {fact.type && (
-            <span className={`${classes.chip} ${classes.chipType}`}>
-              {fact.type}
+        <div className={styles.tagsRow}>
+          {subjects && subjects.length > 0 && (
+            <span className={styles.chipGroup} aria-label="Subjects">
+              {subjects.map(s =>
+                <span className={styles.chip} key={s}>{s}</span>
+              )}
             </span>
           )}
-          {fact.subject && (
-            <span className={`${classes.chip} ${classes.chipSubject}`}>
-              {fact.subject}
+          {audiences && audiences.length > 0 && (
+            <span className={styles.chipGroup} aria-label="Audiences">
+              {audiences.map(a =>
+                <span className={clsx(styles.chip, styles.audience)} key={a}>{a}</span>
+              )}
             </span>
           )}
         </div>
-        {fact.source && (
-          <div className={classes.source}>
-            Source:{" "}
-            {fact.sourceUrl ? (
-              <a
-                href={fact.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                tabIndex={-1}
-              >
-                {fact.source}
-              </a>
-            ) : (
-              fact.source
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
 }
+
 FactResultRow.propTypes = {
-  fact: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    date: PropTypes.string,
-    context: PropTypes.string,
-    type: PropTypes.string,
-    subject: PropTypes.string,
-    source: PropTypes.string,
-    sourceUrl: PropTypes.string
-  }).isRequired,
+  fact: PropTypes.object.isRequired,
   isSelected: PropTypes.bool,
-  classes: PropTypes.shape({
-    row: PropTypes.string,
-    selected: PropTypes.string,
-    grid: PropTypes.string,
-    top: PropTypes.string,
-    text: PropTypes.string,
-    date: PropTypes.string,
-    context: PropTypes.string,
-    chips: PropTypes.string,
-    chip: PropTypes.string,
-    chipType: PropTypes.string,
-    chipSubject: PropTypes.string,
-    source: PropTypes.string
-  })
 };

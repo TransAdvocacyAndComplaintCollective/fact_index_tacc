@@ -1,101 +1,106 @@
 import React from "react";
 import PropTypes from "prop-types";
+import Button from "../../atoms/Button";
 import * as styles from "./SidebarFilters.module.scss";
+import TriButton from "../../atoms/TriButton";
 
-// State cycling: neutral → include → exclude → neutral...
-const nextChipState = (current) => {
-  if (current === "include") return "exclude";
-  if (current === "exclude") return "neutral";
-  return "include";
-};
-
-function chipAriaChecked(state) {
-  // For tri-state: neutral = false, include = true, exclude = mixed
-  if (state === "include") return true;
-  if (state === "exclude") return "mixed";
-  return false;
+// Utility: generate a tri-state map for chip display from include/exclude arrays
+function getChipStates(items, include = [], exclude = []) {
+  const states = {};
+  (items || []).forEach(item => {
+    const name = typeof item === "string" ? item : item.name;
+    if (include.includes(name)) states[name] = "include";
+    else if (exclude.includes(name)) states[name] = "exclude";
+    else states[name] = "neutral";
+  });
+  return states;
 }
 
-export default function SidebarFilters({ filters, setFilters, subjects, audiences }) {
-  // Toggle chip state for subjects/audiences filters
-  function handleChipToggle(key, value) {
+export default function SidebarFilters({
+  filters,
+  setFilters,
+  subjects,
+  audiences,
+  subjectsInclude,
+  subjectsExclude,
+  audiencesInclude,
+  audiencesExclude,
+  onFiltersChange,
+  onApplyFilters,
+}) {
+  // CHIP CHANGE HANDLER for Include/Exclude (subjects/audiences)
+  function handleTriChipChange(fieldInclude, fieldExclude, value, nextState) {
     setFilters((f) => {
-      const current = (f[key]?.[value]) || "neutral";
-      const next = nextChipState(current);
-      return {
+      // current values or fallback to defaults
+      const inc = (f[fieldInclude] || []);
+      const exc = (f[fieldExclude] || []);
+      let newInclude = [...inc];
+      let newExclude = [...exc];
+
+      // remove from both arrays
+      newInclude = newInclude.filter(v => v !== value);
+      newExclude = newExclude.filter(v => v !== value);
+
+      if (nextState === "include") newInclude.push(value);
+      if (nextState === "exclude") newExclude.push(value);
+      // Neutral: already removed
+
+      const updatedFilters = {
         ...f,
-        [key]: {
-          ...f[key],
-          [value]: next,
-        },
+        [fieldInclude]: newInclude,
+        [fieldExclude]: newExclude,
       };
+      if (onFiltersChange) onFiltersChange(updatedFilters);
+      return updatedFilters;
     });
   }
 
-  // Render chips (subject or audience)
-  function renderChips(key, items, groupLabelId) {
-    const chipStates = filters[key] || {};
+  // Renders one row of chips with tri-state (for Include/Exclude per group)
+  function renderTriChips(items, chipStates, fieldInclude, fieldExclude) {
     return (
-      <div
-        className={styles.chipRow}
-        role="group"
-        aria-labelledby={groupLabelId}
-        // REMOVE aria-label here. Only aria-labelledby!
-      >
-        {items.map((item) => {
-          const state = chipStates[item.name] || "neutral";
+      <div className={styles.chipRow}>
+        {(items || []).map(item => {
+          const name = typeof item === "string" ? item : item.name;
+          const id = typeof item === "object" && item.id ? item.id : name;
+          const state = chipStates[name] || "neutral";
           return (
-            <button
-              key={item.id || item.name}
-              type="button"
-              className={[
-                styles.chip,
-                state === "neutral" && styles.chipNeutral,
-                state === "include" && styles.chipInclude,
-                state === "exclude" && styles.chipExclude,
-              ].filter(Boolean).join(" ")}
-              // Checkbox pattern for tri-state
-              role="checkbox"
-              aria-checked={chipAriaChecked(state)}
-              aria-label={
-                state === "neutral"
-                  ? `${item.name}: not selected. Tap to include`
-                  : state === "include"
-                  ? `${item.name}: included. Tap to exclude`
-                  : `${item.name}: excluded. Tap to clear`
-              }
-              tabIndex={0}
-              onClick={() => handleChipToggle(key, item.name)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleChipToggle(key, item.name);
-                }
-              }}
-            >
-              {item.name}
-              {state === "include" && (
-                <span className={styles.chipMark} aria-label="Included">
-                  ✔
-                </span>
-              )}
-              {state === "exclude" && (
-                <span className={styles.chipMark} aria-label="Excluded">
-                  ✖
-                </span>
-              )}
-            </button>
+            <TriButton
+              key={id}
+              label={name}
+              state={state}
+              onChange={nextState => handleTriChipChange(fieldInclude, fieldExclude, name, nextState)}
+            />
           );
         })}
       </div>
     );
   }
 
-  // IDs for accessibility
+  // Year change handler
+  function handleYearChange(field, value) {
+    setFilters((f) => {
+      const updatedFilters = { ...f, [field]: value };
+      if (onFiltersChange) onFiltersChange(updatedFilters);
+      return updatedFilters;
+    });
+  }
+
+  // Apply Filters button
+  function handleApplyFilters() {
+    if (onApplyFilters) onApplyFilters(filters);
+    setFilters((f) => ({ ...f }));
+  }
+
+  // Accessibility IDs
   const yearFromId = "sidebar-year-from";
   const yearToId = "sidebar-year-to";
   const subjectsLabelId = "subjects-label";
   const audiencesLabelId = "audiences-label";
+
+  // Prepare chip state maps from props for each group
+  const subjectChipStates = getChipStates(subjects, subjectsInclude, subjectsExclude);
+  // eslint-disable-next-line no-undef
+  const audienceChipStates = getChipStates(audiences, audiencesInclude, audiencesExclude);
 
   return (
     <div className={styles.sidebarFilters} aria-label="Filters">
@@ -106,7 +111,7 @@ export default function SidebarFilters({ filters, setFilters, subjects, audience
         <div id={subjectsLabelId} className={styles.filterLabel}>
           Subject
         </div>
-        {renderChips("subjects", subjects, subjectsLabelId)}
+        {renderTriChips(subjects, subjectChipStates, "subjectsInclude", "subjectsExclude")}
       </div>
 
       {/* Audiences */}
@@ -114,10 +119,10 @@ export default function SidebarFilters({ filters, setFilters, subjects, audience
         <div id={audiencesLabelId} className={styles.filterLabel}>
           Audience
         </div>
-        {renderChips("audiences", audiences, audiencesLabelId)}
+        {renderTriChips(audiences, audienceChipStates, "audiencesInclude", "audiencesExclude")}
       </div>
 
-      {/* Years */}
+      {/* Year */}
       <div className={`${styles.filterSection} ${styles.filterYears}`}>
         <div className={styles.filterLabel}>Year</div>
         <label htmlFor={yearFromId}>
@@ -129,9 +134,7 @@ export default function SidebarFilters({ filters, setFilters, subjects, audience
             max={new Date().getFullYear()}
             value={filters.yearFrom || ""}
             placeholder="YYYY"
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, yearFrom: e.target.value }))
-            }
+            onChange={e => handleYearChange("yearFrom", e.target.value)}
             inputMode="numeric"
             aria-label="Year from"
           />
@@ -145,9 +148,7 @@ export default function SidebarFilters({ filters, setFilters, subjects, audience
             max={new Date().getFullYear()}
             value={filters.yearTo || ""}
             placeholder="YYYY"
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, yearTo: e.target.value }))
-            }
+            onChange={e => handleYearChange("yearTo", e.target.value)}
             inputMode="numeric"
             aria-label="Year to"
           />
@@ -155,20 +156,25 @@ export default function SidebarFilters({ filters, setFilters, subjects, audience
       </div>
 
       {/* Apply Filters Button */}
-      <button
+      <Button
         type="button"
         className={styles.applyButton}
-        onClick={() => setFilters((f) => ({ ...f }))}
+        onClick={handleApplyFilters}
       >
         Apply Filters
-      </button>
+      </Button>
     </div>
   );
 }
-
-SidebarFilters.propTypes = {
-  filters: PropTypes.object.isRequired,
-  setFilters: PropTypes.func.isRequired,
-  subjects: PropTypes.array.isRequired,
-  audiences: PropTypes.array.isRequired,
+SidebarFilters.defaultProps = {
+  subjectsInclude: [],
+  subjectsExclude: [],
+  audiencesInclude: [],
+  audiencesExclude: [],
+  onFiltersChange: undefined,
+  onApplyFilters: undefined,
+  audiencesExclude: PropTypes.array,
+  onFiltersChange: PropTypes.func,
+  onApplyFilters: PropTypes.func,
 };
+// Ensure all props are typed correctly

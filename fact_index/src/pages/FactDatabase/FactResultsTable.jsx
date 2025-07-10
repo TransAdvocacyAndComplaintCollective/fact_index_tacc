@@ -10,17 +10,12 @@ export default function FactResultsTable({ facts, onRowClick, selectedFact }) {
         {facts.length === 0 ? (
           <div className={styles.noResults}>No facts found.</div>
         ) : (
-          facts.map((fact, idx) => {
+          facts.map((fact) => {
             const isSelected = selectedFact?.id === fact.id;
             return (
-              // THIS DIV is the "listitem" (for keyboard events, styling, and a11y)
               <div
-                key={fact.id || idx}
-                className={
-                  isSelected
-                    ? `${styles.factdbResultRow} ${styles.selected}`
-                    : styles.factdbResultRow
-                }
+                key={fact.id}
+                className={styles.factdbResultRow}
                 role="listitem"
                 tabIndex={0}
                 aria-current={isSelected ? "true" : undefined}
@@ -39,7 +34,6 @@ export default function FactResultsTable({ facts, onRowClick, selectedFact }) {
                 <FactResultRow
                   fact={fact}
                   isSelected={isSelected}
-                  classes={styles}
                 />
               </div>
             );

@@ -17,10 +17,8 @@ export function AuthProvider({ children }) {
   // Unified function to fetch and update auth state
   const fetchStatus = useCallback(() => {
     setLoading(true);
-    console.log("[Auth] Fetching auth status...");
     return fetch("/auth/status", { credentials: "include" })
       .then(res => {
-        console.log(`[Auth] /auth/status response status: ${res.status}`);
         return res.json();
       })
       .then(data => {
@@ -28,31 +26,22 @@ export function AuthProvider({ children }) {
         setAuthenticated(!!discord.authenticated);
         setUser(discord.user || null);
         setReason(discord.reason || null);
-        console.log("[Auth] Auth status updated:", {
-          authenticated: !!discord.authenticated,
-          user: discord.user,
-          reason: discord.reason,
-        });
       })
       .catch((err) => {
         setAuthenticated(false);
         setUser(null);
         setReason("network_error");
-        console.error("[Auth] Error fetching auth status:", err);
       })
       .finally(() => {
         setLoading(false);
-        console.log("[Auth] Done fetching auth status.");
       });
   }, []);
 
   // On mount, fetch status
   useEffect(() => {
-    console.log("[Auth] Mount: fetching initial auth status.");
     fetchStatus();
     // Optionally, return a cleanup to log unmount
     return () => {
-      console.log("[Auth] Unmount: AuthProvider cleanup.");
     };
   }, [fetchStatus]);
 
@@ -61,7 +50,6 @@ export function AuthProvider({ children }) {
 
   // Optional: after a login flow, call refresh() to sync state
   const login = () => {
-    console.log("[Auth] login() called.");
     // Most login flows redirect and reload, but for SPA you may want to manually refresh.
     return fetchStatus();
   };
@@ -69,23 +57,19 @@ export function AuthProvider({ children }) {
   // Logs the user out and clears state
   const logout = () => {
     setLoading(true);
-    console.log("[Auth] logout() called.");
     return fetch("/auth/logout", { credentials: "include" })
       .then(() => {
         setAuthenticated(false);
         setUser(null);
         setReason(null);
-        console.log("[Auth] Logout successful, user state cleared.");
       })
       .catch((err) => {
         setAuthenticated(false);
         setUser(null);
         setReason("network_error");
-        console.error("[Auth] Error during logout:", err);
       })
       .finally(() => {
         setLoading(false);
-        console.log("[Auth] Done with logout.");
       });
   };
 

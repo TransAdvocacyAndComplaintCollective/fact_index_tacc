@@ -23,7 +23,33 @@
   margin-bottom: 2rem;
 }
 
+.factDatabase__header {
+  width: 100%;          // Always fill container width
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem; // Optional, for clear separation
+
+  // Ensures header is always block-level and not inline with content
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: auto;
+
+  // If your parent is a flex container, this will keep header full width above .factDatabase__content
+  // and not allow side-by-side with main content.
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.2rem;
+  }
+}
 .factDatabase__title {
+  width: 100%;             // Ensures it takes a whole line
+  display: block;          // Forces new line in flex container
+  text-align: center;      // Centers the text
   font-size: 2rem;
   font-weight: 700;
   color: var(--theme-color-title);
@@ -46,8 +72,10 @@
   cursor: pointer;
   box-shadow: 0 2px 8px var(--theme-shadow-1);
   transition: background 0.15s, color 0.15s;
+  margin-top: 1.1rem;        // <---- ADDED
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     background: var(--theme-color-button-bg-hover);
     color: var(--theme-color-button-text);
     outline: 2px solid var(--theme-color-loader);
@@ -56,7 +84,10 @@
   @include mixins.respond-to-width(mobile) {
     padding: 0.45em 0.9em;
     font-size: 1rem;
-    margin-left: 0.8rem;
+    margin-left: 0;         // REMOVE margin-left for mobile
+    margin-top: 0.7rem;     // Smaller top margin on mobile
+    width: 100%;            // Optional: make button fill width on mobile
+    display: block;         // Ensures own line
   }
 }
 
@@ -140,7 +171,6 @@
   background: var(--theme-color-bg-white);
   border-radius: 8px;
   box-shadow: 0 2px 10px var(--theme-shadow-1);
-  padding: 1.5rem 1rem;
   min-width: 210px;
   max-width: 320px;
   margin-right: 0.5rem;

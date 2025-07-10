@@ -85,7 +85,7 @@ Start servers (in the root of the project):
 npm start
 ```
 
-The app will then be accessible at http://localhost:16261.
+The app will then be accessible at http://localhost:16261
 
 ## Development Workflow
 

@@ -24,14 +24,14 @@
   }
   .fact-db-find-btn {
     padding: 0.5rem 1.2rem;
-    background: var(--color-brand);           // #2574a9 / replaced #457ecb, you can make var(--color-brand-dark if needed
-    color: var(--color-bg-white);             // #fff
+    background: var(--color-brand);         
+        color: var(--color-bg-white);             
     border: none;
     border-radius: 0 5px 5px 0;
     font-size: 1rem;
     cursor: pointer;
     &:hover {
-      background: var(--color-link-hover);    // #255ca3
+      background: var(--color-link-hover);   
     }
   }
 }

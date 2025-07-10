@@ -39,7 +39,6 @@ function logSuspiciousActivity(type, req, ip, extra = {}) {
     },
     ...extra,
   };
-  console.warn(`[${info.time}] Blocked ${type}: ${info.method} ${info.url} from ${info.ip} - UA: "${info.userAgent}" Ref: "${info.referrer}"`);
 }
 
 // Express middleware

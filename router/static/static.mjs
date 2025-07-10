@@ -24,6 +24,7 @@ function log(...args) {
   console.info(`[${new Date().toISOString()}]`, ...args);
 }
 
+const PORT = Number(process.env.PORT || 16261);
 async function ensureParcelDevServer() {
   if (parcelProcess || parcelStarting) return;
   parcelStarting = true;
@@ -43,7 +44,13 @@ async function ensureParcelDevServer() {
       cwd: factIndexDir,
       shell: true,
       stdio: 'inherit',
-      env: { ...process.env, PORT: PARCEL_PORT },
+
+      env: {
+        ...process.env,
+        PORT: PARCEL_PORT,
+        PROXY_MODE: 'TRUE',
+        PROXY_PORT: PORT, // or whatever port you want
+      }
     });
     parcelProcess.on('exit', code => {
       log(`[dev] Parcel exited (${code})`);
@@ -55,6 +62,19 @@ async function ensureParcelDevServer() {
 }
 
 if (process.env.DEBUG_REACT === 'TRUE') {
+
+    router.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy',
+      [
+        `default-src 'self' http://localhost:${PARCEL_PORT};`,
+        `script-src 'self' http://localhost:${PARCEL_PORT};`,
+        `connect-src 'self' ws://localhost:${PARCEL_PORT} http://localhost:${PARCEL_PORT};`,
+        `style-src 'self' 'unsafe-inline' http://localhost:${PARCEL_PORT};`,
+      ].join(' ')
+    );
+    next();
+  });
+
   const parcelProxy = createProxyMiddleware({
     target: `http://localhost:${PARCEL_PORT}`,
     changeOrigin: true,
@@ -88,5 +108,6 @@ if (process.env.DEBUG_REACT === 'TRUE') {
     }
   });
 }
+
 
 export default router;

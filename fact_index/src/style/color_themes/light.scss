@@ -1,122 +1,134 @@
 @use "sass:map";
 @use "global"; // Import global theme variables
 
-$theme_light: map.merge(global.$theme-global, ( // Navbar
-      nav-bg: #181818,
-      nav-link: #2363a6, // darker, AA on #181818
-      nav-link-hover-bg: #e0ecfa, // high contrast hover
-      nav-link-hover: #181818,
+$theme_light: map.merge(global.$theme-global, (
+                 // Navbar
+                  nav-bg: #181818,
+                  nav-link: #2363a6, // darker, AA on #181818
+                  nav-link-hover-bg: #e0ecfa, // high contrast hover
+                  nav-link-hover: #181818,
 
-      // Brand & Primary
-      color-brand: #1554bf, // bolder for link
-      color-brand-light: #2363a6,
-      color-brand-softer: #f7fafd, // slightly bluer, still a subtle bg
-      color-brand-soft: #e7f0fa,
-      color-brand-bg: #d6e6f3,
-      color-brand-bg2: #e0ecfa,
-      color-brand-bg3: #f8fbff,
-      color-brand-highlight: #f0f8ff,
+                  // Brand & Primary
+                  color-brand: #1554bf, // bolder for link
+                  color-brand-light: #2363a6,
+                  color-brand-softer: #f7fafd, // slightly bluer, still a subtle bg
+                  color-brand-soft: #e7f0fa,
+                  color-brand-bg: #d6e6f3,
+                  color-brand-bg2: #e0ecfa,
+                  color-brand-bg3: #f8fbff,
+                  color-brand-highlight: #f0f8ff,
 
-      // Accent Colors
-      color-accent-blue: #2363a6,
-      color-accent-blue2: #1554bf,
-      color-accent-blue3: #5faaff,
-      color-accent-blue4: #7db1df,
+                  // Accent Colors
+                  color-accent-blue: #2363a6,
+                  color-accent-blue2: #1554bf,
+                  color-accent-blue3: #5faaff,
+                  color-accent-blue4: #7db1df,
 
-      color-accent-green: #228b60,
-      color-accent-green2: #eefbe6,
-      color-accent-green3: #e7faee,
-      color-accent-green4: #217846,
-      color-accent-green5: #156636,
+                  color-accent-green: #228b60,
+                  color-accent-green2: #eefbe6,
+                  color-accent-green3: #e7faee,
+                  color-accent-green4: #217846,
+                  color-accent-green5: #156636,
 
-      color-accent-red: #d43d3d,
-      color-accent-red2: #b91c1c,
-      color-accent-red3: #e34646,
-      color-accent-red4: #ffcccc, // was #ffe7e7, now AA on red2 text
-      // chips will use red2 or d43d3d as text
+                  color-accent-red: #d43d3d,
+                  color-accent-red2: #b91c1c,
+                  color-accent-red3: #e34646,
+                  color-accent-red4: #ffcccc, // was #ffe7e7, now AA on red2 text
+                  // chips will use red2 or d43d3d as text
 
-      color-accent-pink: #c5b0c4,
-      color-accent-pink2: #8d2b40,
-      color-accent-pink3: #8d2b40,
+                  color-accent-pink: #c5b0c4,
+                  color-accent-pink2: #8d2b40,
+                  color-accent-pink3: #8d2b40,
 
-      color-accent-yellow: #eeb700, // darker for accessibility
+                  color-accent-yellow: #eeb700, // darker for accessibility
 
-      // Chips
-      chip-bg: #e7f0fa, // slightly darker, AA for #246 or #234
-      chip-border: #2363a6,
-      chip-label: #234,
-      chip-none-bg: #f0e8ef, // was #f4e8ee, slightly darker
-      chip-none-border: #8d2b40,
-      chip-subject-bg: #e7f5ff,
-      chip-subject-border: #2363a6,
-      chip-audience-bg: #e7faee,
-      chip-audience-border: #228b60,
-      chip-pink3: #8d2b40,
+                  // Chips
+                  chip-bg: #e7f0fa, // slightly darker, AA for #246 or #234
+                  chip-border: #2363a6,
+                  chip-label: #234,
+                  chip-none-bg: #f0e8ef, // was #f4e8ee, slightly darker
+                  chip-none-border: #8d2b40,
+                  chip-subject-bg: #e7f5ff,
+                  chip-subject-border: #2363a6,
+                  chip-audience-bg: #e7faee,
+                  chip-audience-border: #228b60,
+                  chip-pink3: #8d2b40,
 
-      // Text & Neutral
-      color-text: #181818, // nearly black
-      color-text-dark: #234,
-      color-text-muted: #38424e,
-      color-text-light: #555, // slightly darker
-      color-link: #1554bf, // link blue AA
-      color-link-hover: #181818,
-      color-meta-bold: #22304d,
+                  // Text & Neutral
+                  color-text: #181818, // nearly black
+                  color-text-dark: #234,
+                  color-text-muted: #38424e,
+                  color-text-light: #555, // slightly darker
+                  color-link: #1554bf, // link blue AA
+                  color-link-hover: #181818,
+                  color-meta-bold: #22304d,
 
-      // Border
-      color-border: #2363a6,
-      color-border-light: #d6e6f3,
-      color-border-focus: #1554bf,
-      color-border-input: #2363a6,
+                  // Border
+                  color-border: #2363a6,
+                  color-border-light: #d6e6f3,
+                  color-border-focus: #1554bf,
+                  color-border-input: #2363a6,
 
-      // Shadows
-      shadow-1: #b3cbe133,
-      shadow-2: #b3cbe144,
-      shadow-3: #6da8cf55,
-      shadow-4: #cad3e644,
-      shadow-5: #0001,
-      shadow-selected: #bdd6f7bb,
+                  // Shadows
+                  shadow-1: #b3cbe133,
+                  shadow-2: #b3cbe144,
+                  shadow-3: #6da8cf55,
+                  shadow-4: #cad3e644,
+                  shadow-5: #0001,
+                  shadow-selected: #bdd6f7bb,
 
-      color-chip-text: #234, // was #246, now more accessible
+                  color-shadow-1: #b3cbe133,
+                  color-shadow-2: #b3cbe144,
+                  color-shadow-3: #6da8cf55,
+                  color-shadow-4: #cad3e644,
+                  color-shadow-5: #0001,
+                  color-shadow-selected: #bdd6f7bb,
 
-      // Misc backgrounds
-      color-bg-white: #fff, // Pure white, for full contrast
-      color-bg-grey: #f5f7f8, // Modern blue-grey, highly distinct from white
-      color-bg-offwhite: #f7f4ec, // Sand/warm offwhite, stands out from white and passes AAA
-      color-bg-neutral: #dde7f9, // Gentle blue-neutral, also passes AAA
+                  color-chip-text: #234, // was #246, now more accessible
 
-      // States
-      color-selected: #f0f8ff,
-      color-focus-outline: #1554bf,
-      color-loader: #2363a6,
-      color-end-message: #2363a6,
+                  // Misc backgrounds
+                  color-bg-white: #fff, // Pure white, for full contrast
+                  color-bg-grey: #f5f7f8, // Modern blue-grey, highly distinct from white
+                  color-bg-offwhite: #f7f4ec, // Sand/warm offwhite, stands out from white and passes AAA
+                  color-bg-neutral: #dde7f9, // Gentle blue-neutral, also passes AAA
 
-      // Warnings
-      color-warning: #eeb700,
-      color-disabled: #b3cbe1,
+                  // States
+                  color-selected: #f0f8ff,
+                  color-focus-outline: #1554bf,
+                  color-loader: #2363a6,
+                  color-end-message: #2363a6,
 
-      // Misc
-      color-link-visited: #2363a6,
-      color-title: #1d293a,
-      color-loading-message: #2363a6,
-      color-text-darker: #18335c,
-      color-button-text: #fff, // highest contrast against accent blue2
+                  // Warnings
+                  color-warning: #eeb700,
+                  color-disabled: #b3cbe1,
 
-      // Extra UI
-      color-heading: #22304d,
-      color-button-border: #2363a6,
-      color-bg-neutral-alt: #e0ecfa,
+                  // Misc
+                  color-link-visited: #2363a6,
+                  color-title: #1d293a,
+                  color-loading-message: #2363a6,
+                  color-text-darker: #18335c,
+                  color-button-text: #fff, // highest contrast against accent blue2
+
+                  // Extra UI
+                  color-heading: #22304d,
+
+                  color-button-border: #2363a6,
+                  color-bg-neutral-alt: #e0ecfa,
+                  color-button-bg: #1554bf, // matches color-brand, very readable with white text (ratio ~11:1)
+                  color-button-bg-hover: #2363a6, // matches color-brand-light/accent-blue, a little lighter for hover
 
 
 
-      // Fact DB custom
-      color-filter-bg: #e7f0fa,
-      color-context-bg: #f0f8ff,
-      color-row-hover: #e7f0fa,
-      color-context: #217846,
-      color-context-bold: #156636,
 
-      // Utility aliases
-      success: var(--color-accent-green4),
-      info: var(--color-accent-blue2),
-      error: var(--color-accent-red2),
-      warn: var(--color-warning)));
+                  // Fact DB custom
+                  color-filter-bg: #e7f0fa,
+                  color-context-bg: #f0f8ff,
+                  color-row-hover: #e7f0fa,
+                  color-context: #217846,
+                  color-context-bold: #156636,
+
+                  // Utility aliases
+                  success: var(--color-accent-green4),
+                  info: var(--color-accent-blue2),
+                  error: var(--color-accent-red2),
+                  warn: var(--color-warning)));

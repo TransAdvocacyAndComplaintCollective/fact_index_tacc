@@ -16,13 +16,13 @@ function log(...args) {
 // Helper to log query and result
 async function logQuery(query, label = "QUERY") {
     try {
-        log(`[${label}] SQL:`, query.toString ? query.toString() : '[no toString available]');
+        // log(`[${label}] SQL:`, query.toString ? query.toString() : '[no toString available]');
         const res = await query;
-        if (Array.isArray(res)) {
-            log(`[${label}] RESULT:`, `count=${res.length}`);
-        } else {
-            log(`[${label}] RESULT:`, res);
-        }
+        // if (Array.isArray(res)) {
+        //     log(`[${label}] RESULT:`, `count=${res.length}`);
+        // } else {
+        //     log(`[${label}] RESULT:`, res);
+        // }
         return res;
     } catch (err) {
         log(`[${label}] ERROR:`, err);
@@ -54,16 +54,13 @@ export async function createFact({
         const [id] = await logQuery(query, 'INSERT fact');
         if (subjects.length) await attachSubjectsToFact(id, subjects);
         if (audiences.length) await attachAudiencesToFact(id, audiences);
-        log('createFact inserted id', id);
         return getFactById(id);
     } catch (err) {
-        log('createFact error', err);
         throw err;
     }
 }
 
 export async function getFactById(id) {
-    log('getFactById called', id);
     try {
         const query = db('facts')
             .select(
@@ -80,10 +77,8 @@ export async function getFactById(id) {
         }
         const subjects = await getSubjectsForFact(id);
         const audiences = await getAudiencesForFact(id);
-        log('getFactById: found', { ...fact, subjects, audiences });
         return { ...fact, subjects, audiences };
     } catch (err) {
-        log('getFactById error', err);
         throw err;
     }
 }
@@ -173,7 +168,6 @@ export async function bulkInsertFacts(factsArray) {
 }
 
 export async function countFacts({ type, subject, audience, year } = {}) {
-    log('countFacts called', { type, subject, audience, year });
     try {
         const q = db('facts')
             .leftJoin('fact_subjects', 'facts.id', 'fact_subjects.fact_id')
@@ -185,7 +179,6 @@ export async function countFacts({ type, subject, audience, year } = {}) {
         if (audience) q.where('target_audiences.name', audience);
         if (year) q.where('facts.year', year);
         const result = await logQuery(q.countDistinct('facts.id as count'), 'COUNT facts');
-        log('countFacts result', result[0].count);
         return result[0].count;
     } catch (err) {
         log('countFacts error', err);
@@ -201,7 +194,6 @@ export async function attachSubjectsToFact(fact_id, subjectNames = []) {
     if (rows.length) {
         await logQuery(db('fact_subjects').insert(rows), 'INSERT fact_subjects');
     }
-    log('attachSubjectsToFact done', rows.length);
 }
 
 export async function upsertSubject(name) {
@@ -222,7 +214,6 @@ export async function getSubjectsForFact(fact_id) {
         .where('fact_subjects.fact_id', fact_id)
         .select('subjects.name');
     const rows = await logQuery(query, 'SELECT subjects for fact');
-    log('getSubjectsForFact', { fact_id, subjects: rows.map(r => r.name) });
     return rows.map(r => r.name);
 }
 
@@ -274,7 +265,6 @@ export async function getAudiencesForFact(fact_id) {
         .where('fact_target_audiences.fact_id', fact_id)
         .select('target_audiences.name');
     const rows = await logQuery(query, 'SELECT audiences for fact');
-    log('getAudiencesForFact', { fact_id, audiences: rows.map(r => r.name) });
     return rows.map(r => r.name);
 }
 
@@ -328,128 +318,128 @@ export async function listSuppressedFacts(opts = {}) {
 }
 
 // ---- SEARCH ----
+// ---- SEARCH ----
 export async function findFacts({
-    keyword,
-    targets = [],
-    subjects = [],
-    yearFrom,
-    yearTo,
-    year,
-    offset = 0,
-    limit = 50,
-    includeSuppressed = false,
-    subjectsInclude = [],
-    subjectsExclude = [],
-    audiencesInclude = [],
-    audiencesExclude = [],
+  keyword = '',
+  targets = [],
+  subjects = [],
+  yearFrom,
+  yearTo,
+  year,
+  offset = 0,
+  limit = 50,
+  includeSuppressed = false,
+  subjectsInclude = [],
+  subjectsExclude = [],
+  audiencesInclude = [],
+  audiencesExclude = [],
 } = {}) {
-    log('findFacts called', {
-        keyword, targets, subjects, yearFrom, yearTo, year, offset, limit, includeSuppressed,
-        subjectsInclude, subjectsExclude, audiencesInclude, audiencesExclude,
-    });
+  log('findFacts called', {
+    keyword, targets, subjects, yearFrom, yearTo, year, offset, limit, includeSuppressed,
+    subjectsInclude, subjectsExclude, audiencesInclude, audiencesExclude,
+  });
 
-    let q = db('facts')
-        .distinct('facts.id')
-        .select('facts.*', 'users.discord_name AS user')
-        .leftJoin('users', 'facts.user_id', 'users.id')
-        .leftJoin('fact_subjects', 'facts.id', 'fact_subjects.fact_id')
+  let q = db('facts')
+    .distinct('facts.id')
+    .select('facts.*', 'users.discord_name AS user')
+    .leftJoin('users', 'facts.user_id', 'users.id')
+    .leftJoin('fact_subjects', 'facts.id', 'fact_subjects.fact_id')
+    .leftJoin('subjects', 'fact_subjects.subject_id', 'subjects.id')
+    .leftJoin('fact_target_audiences', 'facts.id', 'fact_target_audiences.fact_id')
+    .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id');
+
+  // Only unsuppressed, unless requested otherwise
+  if (!includeSuppressed) {
+    q.where('facts.suppressed', false);
+  }
+
+  // Keyword filter (fact_text, source, context)
+  if (keyword && keyword.trim() !== '') {
+    q.where(function () {
+      this.where('facts.fact_text', 'like', `%${keyword}%`)
+        .orWhere('facts.source', 'like', `%${keyword}%`)
+        .orWhere('facts.context', 'like', `%${keyword}%`);
+    });
+  }
+
+  // Year filters (exact, or range)
+  if (typeof year === 'number' && !isNaN(year)) {
+    q.where('facts.year', year);
+  } else {
+    if (typeof yearFrom === 'number' && !isNaN(yearFrom)) {
+      q.where('facts.year', '>=', yearFrom);
+    }
+    if (typeof yearTo === 'number' && !isNaN(yearTo)) {
+      q.where('facts.year', '<=', yearTo);
+    }
+  }
+
+  // Subjects INCLUDE (at least one of)
+  if (subjectsInclude && subjectsInclude.length > 0) {
+    q.whereIn('facts.id', function () {
+      this.select('fact_subjects.fact_id')
+        .from('fact_subjects')
         .leftJoin('subjects', 'fact_subjects.subject_id', 'subjects.id')
-        .leftJoin('fact_target_audiences', 'facts.id', 'fact_target_audiences.fact_id')
-        .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id');
-
-    if (!includeSuppressed) {
-        log('Filtering suppressed facts (suppressed = false)');
-        q.where('facts.suppressed', false);
-    }
-
-    if (keyword) {
-        log('Applying keyword filter', { keyword });
-        q.where(function () {
-            this.where('facts.fact_text', 'like', `%${keyword}%`)
-                .orWhere('facts.source', 'like', `%${keyword}%`)
-                .orWhere('facts.context', 'like', `%${keyword}%`);
-        });
-    }
-
-    // Year filters
-    if (year !== undefined && year !== null) {
-        log('Filtering facts by year', { year });
-        q.where('facts.year', year);
-    }
-    if (yearFrom) {
-        log('Filtering facts from yearFrom', { yearFrom });
-        q.where('facts.year', '>=', yearFrom);
-    }
-    if (yearTo) {
-        log('Filtering facts to yearTo', { yearTo });
-        q.where('facts.year', '<=', yearTo);
-    }
-
-    // --- Include/Exclude logic for Subjects ---
-    if (subjectsInclude && subjectsInclude.length) {
-        log('Including facts with subjects', { subjectsInclude });
-        q.whereIn('facts.id', function () {
-            this.select('fact_subjects.fact_id')
-                .from('fact_subjects')
-                .leftJoin('subjects', 'fact_subjects.subject_id', 'subjects.id')
-                .whereIn('subjects.name', subjectsInclude);
-        });
-    }
-    if (subjectsExclude && subjectsExclude.length) {
-        log('Excluding facts with subjects', { subjectsExclude });
-        q.whereNotIn('facts.id', function () {
-            this.select('fact_subjects.fact_id')
-                .from('fact_subjects')
-                .leftJoin('subjects', 'fact_subjects.subject_id', 'subjects.id')
-                .whereIn('subjects.name', subjectsExclude);
-        });
-    }
-
-    // --- Include/Exclude logic for Audiences ---
-    if (audiencesInclude && audiencesInclude.length) {
-        log('Including facts with audiences', { audiencesInclude });
-        q.whereIn('facts.id', function () {
-            this.select('fact_target_audiences.fact_id')
-                .from('fact_target_audiences')
-                .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id')
-                .whereIn('target_audiences.name', audiencesInclude);
-        });
-    }
-    if (audiencesExclude && audiencesExclude.length) {
-        log('Excluding facts with audiences', { audiencesExclude });
-        q.whereNotIn('facts.id', function () {
-            this.select('fact_target_audiences.fact_id')
-                .from('fact_target_audiences')
-                .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id')
-                .whereIn('target_audiences.name', audiencesExclude);
-        });
-    }
-
-    // --- Legacy support (should be deprecated soon) ---
-    if (targets.length) {
-        log('Legacy: filtering by targets', { targets });
-        q.whereIn('target_audiences.name', targets);
-    }
-    if (subjects.length) {
-        log('Legacy: filtering by subjects', { subjects });
-        q.whereIn('subjects.name', subjects);
-    }
-
-    log('About to execute query', {
-        offset, limit,
-        toString: q.toString ? q.toString() : '[no toString available]',
+        .whereIn('subjects.name', subjectsInclude);
     });
+  }
 
-    try {
-        const rows = await logQuery(q.orderBy('facts.timestamp', 'desc').offset(offset).limit(limit), 'FIND facts');
-        log('findFacts: rows found', rows.length);
-        log('Fetching facts by ID', rows.map(r => r.id));
-        return Promise.all(rows.map(r => getFactById(r.id)));
-    } catch (err) {
-        log('findFacts error', err);
-        throw err;
-    }
+  // Subjects EXCLUDE (none of)
+  if (subjectsExclude && subjectsExclude.length > 0) {
+    q.whereNotIn('facts.id', function () {
+      this.select('fact_subjects.fact_id')
+        .from('fact_subjects')
+        .leftJoin('subjects', 'fact_subjects.subject_id', 'subjects.id')
+        .whereIn('subjects.name', subjectsExclude);
+    });
+  }
+
+  // Audiences INCLUDE (at least one of)
+  if (audiencesInclude && audiencesInclude.length > 0) {
+    q.whereIn('facts.id', function () {
+      this.select('fact_target_audiences.fact_id')
+        .from('fact_target_audiences')
+        .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id')
+        .whereIn('target_audiences.name', audiencesInclude);
+    });
+  }
+
+  // Audiences EXCLUDE (none of)
+  if (audiencesExclude && audiencesExclude.length > 0) {
+    q.whereNotIn('facts.id', function () {
+      this.select('fact_target_audiences.fact_id')
+        .from('fact_target_audiences')
+        .leftJoin('target_audiences', 'fact_target_audiences.target_audience_id', 'target_audiences.id')
+        .whereIn('target_audiences.name', audiencesExclude);
+    });
+  }
+
+  // LEGACY: filter by single subject/audience (deprecated in favor of include/exclude lists)
+  if (subjects && subjects.length > 0) {
+    q.whereIn('subjects.name', subjects);
+  }
+  if (targets && targets.length > 0) {
+    q.whereIn('target_audiences.name', targets);
+  }
+
+  // Ordering, Pagination
+  q.orderBy('facts.timestamp', 'desc').offset(offset).limit(limit);
+
+  log('About to execute query', {
+    offset, limit, sql: q.toString(),
+  });
+
+  try {
+    const rows = await logQuery(q, 'FIND facts');
+    log('findFacts: rows found', rows.length);
+    // Optionally, you can hydrate related data here or just return rows.
+    return Promise.all(rows.map(r => getFactById(r.id)));
+  } catch (err) {
+    log('findFacts error', err);
+    throw err;
+  }
 }
+
 
 export { db };
 

@@ -150,3 +150,5 @@ vite.config.ts.timestamp-*
 # nohup output file
 nohup.out
 Fabs Fact Database - Facts_Input-1.csv
+# React Component Preview
+previewConfig.json
