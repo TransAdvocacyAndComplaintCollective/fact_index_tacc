@@ -3,8 +3,9 @@
 @use "../../style/color"; // For CSS vars
 
 .factEditForm {
-  background: var(--theme-color-bg-white);
-  border-radius: 1.2rem;
+    background: var(--theme-color-bg);
+
+  border-radius: 8px;
   box-shadow: 0 2px 12px var(--theme-shadow-2);
   border: 1px solid var(--theme-color-border);
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
@@ -28,7 +29,7 @@
     color: var(--theme-color-text);
 
     .factEditRequired {
-      color: var(--theme-color-accent-red4);
+      color: var(--theme-color-accent-red2);
       margin-left: 0.3em;
     }
   }
@@ -38,7 +39,7 @@
     width: 100%;
     font-size: 1.09rem;
     border: 1px solid var(--theme-color-border-input);
-    border-radius: 0.5em;
+    border-radius: 8px;
     padding: 0.55em 0.9em;
     margin-top: 0.3em;
     margin-bottom: 0.2em;
@@ -68,7 +69,7 @@
     font-size: 1.1rem;
     font-weight: 600;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.6em 1.3em;
     cursor: pointer;
     transition: background 0.18s, color 0.18s;
@@ -92,7 +93,7 @@
     font-size: 1.08rem;
     font-weight: 500;
     border: 1px solid var(--theme-color-border);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0.6em 1.3em;
     cursor: pointer;
     transition: background 0.16s, color 0.18s;
@@ -132,7 +133,7 @@
   // Responsive: Mobile
   @include mixins.respond-to-width(mobile) {
     padding: 0.8rem 0.4rem;
-    border-radius: 0.6rem;
+    border-radius: 8px;
     max-width: 99vw;
     font-size: 1rem;
     .factEditActions {
@@ -143,7 +144,7 @@
   // Tablet
   @include mixins.respond-to-width(tablet) {
     padding: 1.2rem 0.7rem;
-    border-radius: 0.85rem;
+    border-radius: 8px;
     max-width: 96vw;
   }
 }

@@ -24,7 +24,7 @@
   justify-content: space-between;
   // padding: 1.05rem 1.15rem;
   background: var(--theme-bg-white);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 2px 7px var(--theme-shadow-1);
   cursor: pointer;
   transition: background 0.22s, box-shadow 0.2s, transform 0.09s;
@@ -83,7 +83,7 @@
   }
   .factdbResultRow {
     // padding: 0.75rem 0.2rem;
-    border-radius: 7px;
+    border-radius: 8px;
     font-size: 0.99rem;
   }
 }

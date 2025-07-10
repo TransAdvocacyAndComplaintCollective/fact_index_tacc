@@ -1,11 +1,11 @@
 // FactDetail.module.scss
 
 .factDetailMain {
-  max-width: 42rem;
+  max-width: 80%;
   margin: 2rem auto;
   padding: 2.5rem 1.5rem 2.5rem 1.5rem;
   background: var(--theme-color-bg-white, #fff);
-  border-radius: 1.25rem;
+  border-radius: 8px;
   box-shadow: 0 4px 24px 0 var(--theme-shadow-3, #6da8cf55);
   color: var(--theme-color-text, #181818);
   font-size: 1.12rem;
@@ -14,7 +14,7 @@
 
   @media (max-width: 650px) {
     padding: 1.2rem 0.5rem;
-    border-radius: 0.7rem;
+    border-radius: 8px;
     min-height: 40vh;
   }
 }
@@ -77,7 +77,7 @@
     color: var(--theme-color-link-hover, #181818);
     background: var(--theme-nav-link-hover-bg, #e0ecfa);
     outline: none;
-    border-radius: 0.2rem;
+    border-radius: 8px;
     text-decoration: none;
     box-shadow: 0 0 0 2px var(--theme-color-border-focus, #1554bf);
     transition: background 0.15s, color 0.15s;
@@ -89,7 +89,7 @@
   padding: 0.45em 0.7em;
   background: var(--theme-color-context-bg, #f0f8ff);
   color: var(--theme-color-context, #217846);
-  border-radius: 0.45em;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
   margin-top: 0.1em;
@@ -108,7 +108,7 @@
   background: var(--theme-chip-bg, #e7f0fa);
   color: var(--theme-chip-label, #234);
   border: 1px solid var(--theme-chip-border, #2363a6);
-  border-radius: 2em;
+  border-radius: 8px;
   padding: 0.22em 0.95em;
   font-size: 0.97em;
   line-height: 1.2;

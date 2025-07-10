@@ -1,29 +1,29 @@
-// importFactsFromCSV.js
+// importFactsFromCSV.mjs
 
-const fs = require('fs');
-const path = require('path');
-const { parse } = require('csv-parse/sync');
-const factRepo = require('./factRepository');
+import fs from 'fs';
+import path from 'path';
+import { parse } from 'csv-parse/sync';
+import factRepo from './factRepository.js';
 
 // Parse year from string/date or return undefined
 function extractYear(row, timestamp) {
-    // Try to find year field or infer from timestamp
     let y = row['Year'] || row['year'] || row['Publishing year'] || '';
-    if (y && String(y).trim()) {
-        const intY = parseInt(String(y).replace(/[^\d]/g, ''), 10);
-        if (!isNaN(intY) && intY > 1900 && intY < 2100) return intY;
-    }
-    // Try to extract from timestamp
+    y = String(y).replace(/[^\d]/g, '').trim();
+    let intY = parseInt(y, 10);
+
+    if (!isNaN(intY) && intY >= 1900 && intY <= 2100) return intY;
+
     if (timestamp) {
-        try {
-            const d = new Date(timestamp);
-            if (!isNaN(d.getTime())) return d.getFullYear();
-        } catch {}
+        let d = new Date(timestamp);
+        if (!isNaN(d.getTime())) {
+            intY = d.getFullYear();
+            if (intY >= 1900 && intY <= 2100) return intY;
+        }
     }
-    return undefined;
+    return null;
 }
 
-async function importFactsFromCSV(csvFilePath) {
+export async function importFactsFromCSV(csvFilePath) {
     const content = fs.readFileSync(csvFilePath, 'utf8');
     // Parse CSV
     const rows = parse(content, {
@@ -104,10 +104,11 @@ async function importFactsFromCSV(csvFilePath) {
     await factRepo.db.destroy();
 }
 
-if (require.main === module) {
+// For running from CLI
+if (import.meta.url === `file://${process.argv[1]}`) {
     const file = process.argv[2];
     if (!file) {
-        console.error('Usage: node importFactsFromCSV.js <csv-file>');
+        console.error('Usage: node importFactsFromCSV.mjs <csv-file>');
         process.exit(1);
     }
     importFactsFromCSV(path.resolve(file)).catch(e => {
@@ -116,4 +117,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = importFactsFromCSV;
+export default importFactsFromCSV;

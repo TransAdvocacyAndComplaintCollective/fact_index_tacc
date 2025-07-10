@@ -21,38 +21,39 @@
 // Chip base class (not nested)
 .chip {
   display: inline-block;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 0.13em 0.88em;
   margin: 0 0.09em 0.18em 0;
   font-size: 0.96em;
   font-weight: 500;
-  border: 1.5px solid --theme-chip-border;
-  background: --theme-chip-bg;
-  color: --theme-chip-label;
-  box-shadow: 0 1px 2px --theme-shadow-1;
+  border: 1.5px solid var(--theme-chip-border);
+  background: var(--theme-chip-bg);
+  color: var(--theme-chip-label);
+  box-shadow: 0 1px 2px var(--theme-shadow-1);
   line-height: 1.15;
   white-space: pre;
   transition: background 0.16s, color 0.16s, border 0.16s;
+  vertical-align: middle;
 }
 
 // Fact type chip (blue-ish)
 .chipType {
-  background: --theme-chip-subject-bg;
-  border-color: --theme-chip-subject-border;
-  color: --theme-accent-blue2;
+  background: var(--theme-chip-subject-bg);
+  border-color: var(--theme-chip-subject-border);
+  color: var(--theme-accent-blue2);
 }
 
 // Fact subject chip (green-ish)
 .chipSubject {
-  background: --theme-chip-audience-bg;
-  border-color: --theme-chip-audience-border;
-  color: --theme-accent-green5;
+  background: var(--theme-chip-audience-bg);
+  border-color: var(--theme-chip-audience-border);
+  color: var(--theme-accent-green5);
 }
 
 // None/neutral chip (e.g. "none")
 .chipNone {
-  background: --theme-chip-none-bg;
-  color: --theme-text-light;
-  border-color: --theme-chip-none-border;
+  background: var(--theme-chip-none-bg);
+  color: var(--theme-text-light);
+  border-color: var(--theme-chip-none-border);
   opacity: 0.7;
 }

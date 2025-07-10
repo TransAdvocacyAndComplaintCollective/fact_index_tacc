@@ -27,8 +27,6 @@ router.get('/facts', async (req, res) => {
 
     const {
       keyword,
-      targets,
-      subjects,
       yearFrom,
       yearTo,
       dateFrom,
@@ -42,8 +40,6 @@ router.get('/facts', async (req, res) => {
       audiencesExclude,
     } = req.query;
 
-    const targetsArr = arrayParam(targets);
-    const subjectsArr = arrayParam(subjects);
     const subjectsIncludeArr = arrayParam(subjectsInclude);
     const subjectsExcludeArr = arrayParam(subjectsExclude);
     const audiencesIncludeArr = arrayParam(audiencesInclude);
@@ -69,6 +65,7 @@ router.get('/facts', async (req, res) => {
       audiencesInclude: audiencesIncludeArr,
       audiencesExclude: audiencesExcludeArr,
     });
+ 
 
     console.log('[DEBUG] /api/facts found:', facts.length, 'facts');
     res.json(facts);

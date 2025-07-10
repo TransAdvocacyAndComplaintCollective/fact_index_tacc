@@ -87,8 +87,8 @@ $theme_light: map.merge(global.$theme-global, (
                   color-chip-text: #234, // was #246, now more accessible
 
                   // Misc backgrounds
-                  color-bg-white: #fff, // Pure white, for full contrast
-                  color-bg-grey: #ffffff, // Modern blue-grey, highly distinct from white
+                  color-bg: #a1ccef, // Modern blue-grey, highly distinct from white
+                  color-bg-white: #dde7f9, // Pure white, for full contrast
                   color-bg-offwhite: #f7f4ec, // Sand/warm offwhite, stands out from white and passes AAA
                   color-bg-neutral: #dde7f9, // Gentle blue-neutral, also passes AAA
 
@@ -96,7 +96,7 @@ $theme_light: map.merge(global.$theme-global, (
                   color-selected: #f0f8ff,
                   color-focus-outline: #1554bf,
                   color-loader: #2363a6,
-                  color-end-message: #2363a6,
+                  color-end-message: #052b53,
 
                   // Warnings
                   color-warning: #eeb700,

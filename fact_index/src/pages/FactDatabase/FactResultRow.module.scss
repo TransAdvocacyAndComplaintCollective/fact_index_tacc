@@ -9,7 +9,7 @@
   // gap: 0.25rem;
   background: var(--theme-color-bg-white); // Fixed: Use card/surface bg, not chip bg!
   border: 1.5px solid var(--theme-color-border-light);
-  border-radius: 1rem;
+  border-radius: 8px;
   padding: 1rem;
   // box-shadow: 0 2px 6px var(--theme-shadow-1);
   cursor: pointer;
@@ -125,7 +125,7 @@
 .chip {
   display: inline-block;
   padding: 0.19em 0.68em;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 0.93em;
   background: var(--theme-chip-bg);
   border: 1.5px solid var(--theme-chip-border);

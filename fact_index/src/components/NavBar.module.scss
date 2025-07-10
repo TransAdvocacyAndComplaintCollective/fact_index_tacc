@@ -107,7 +107,7 @@
   text-decoration: none;
   font-weight: 500;
   padding: 0.28em 0.7em;
-  border-radius: 4.5px;
+  border-radius: 8px;
   transition: background 0.14s, color 0.15s, box-shadow 0.13s;
   letter-spacing: 0.01em;
   outline: none;
@@ -183,7 +183,7 @@
   align-items: center;
   gap: 0.65rem;
   background: var(--theme-color-bg-offwhite);
-  border-radius: 2.3em;
+  border-radius: 8px;
   padding: 0.19em 0.92em 0.19em 0.4em;
   box-shadow: 0 1px 4px var(--theme-shadow-1);
 
@@ -202,7 +202,7 @@
 .avatar {
   width: 2.1em;
   height: 2.1em;
-  border-radius: 50%;
+  border-radius: 8px;
   object-fit: cover;
   margin-right: 0.38em;
   background: var(--theme-color-bg-white);
@@ -251,7 +251,7 @@
   color:var(--theme-color-button-text);
   font-weight: 600;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.38em 0.97em;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.13s;
@@ -292,7 +292,7 @@
   color: var(--theme-color-button-text); // NEW: highest contrast against accent blue2
   font-weight: 600;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0.38em 1.02em;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.13s;

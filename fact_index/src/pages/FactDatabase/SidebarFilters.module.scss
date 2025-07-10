@@ -8,7 +8,7 @@
 .sidebarFilters {
   background: var(--theme-color-bg-white); // was color-brand-softer (low contrast)
   border: 1px solid var(--theme-color-border);
-  border-radius: 1em;
+  border-radius: 8px;
   padding: 2rem 1.6rem 1.6rem 1.6rem;
   width: 100%;
   max-width: 400px;
@@ -21,26 +21,6 @@
   position: relative;
   z-index: 2;
   transition: width 0.2s, padding 0.2s, box-shadow 0.2s;
-
-  @include respond-to-width(tablet) {
-    max-width: 340px;
-    padding: 2rem 1.2rem 1.2rem 1.2rem;
-  }
-  @include respond-to-width(laptop) {
-    position: sticky;
-    top: 2.2rem;
-    max-width: 350px;
-    align-self: flex-start;
-  }
-  @include respond-to-width(desktop) {
-    max-width: 360px;
-    border-radius: 1.3em;
-    padding: 2.2rem 1.4rem 1.5rem 1.4rem;
-  }
-  @include respond-to-height(ultra-tall) {
-    min-height: 400px;
-    padding-bottom: 3em;
-  }
 }
 
 // ===================
@@ -68,18 +48,12 @@
 // ===================
 .chipRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
-  gap: 0.5em 0.38em;
-  margin: 0.3em 0 0.5em 0;
+  grid-template-columns: 1fr;
+  // gap: 0.5em 0.38em;
+  // margin: 0.3em 0 0.5em 0;
   width: 100%;
 
-  @include respond-to-width(mobile) {
-    gap: 0.21em 0.13em;
-    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
-  }
-  @include respond-to-width(tablet) {
-    gap: 0.28em 0.19em;
-  }
+  
 }
 
 // ===================
@@ -105,7 +79,7 @@ input[type="number"],
 input[type="date"] {
   background: var(--theme-color-bg-white);
   border: 1.5px solid var(--theme-color-border-input);
-  border-radius: 5px;
+  border-radius: 8px;
   color: var(--theme-color-text);
   padding: 0.4em 0.8em;
   font-size: 1.1em;
@@ -129,11 +103,11 @@ input[type="date"] {
 // ===================
 .applyButton,
 .sidebarFilters button:not(.chip) {
-  margin-top: 1.9rem;
+  margin-top: 4px;
   width: 100%;
   background: var(--theme-color-accent-blue2); // Deep blue, always AA/AAA
   border: 1.5px solid var(--theme-color-button-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 13px;
   font-size: 1.11rem;
   color: #fff; // white text on deep blue

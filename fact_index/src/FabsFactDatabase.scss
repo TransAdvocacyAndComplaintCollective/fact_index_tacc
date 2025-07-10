@@ -19,7 +19,7 @@
     padding: 0.5rem;
     font-size: 1.1rem;
     border: 1px solid var(--color-border-input);  // #aac6ea
-    border-radius: 5px 0 0 5px;
+    border-radius: 8px;
     outline: none;
   }
   .fact-db-find-btn {
@@ -27,7 +27,7 @@
     background: var(--color-brand);         
         color: var(--color-bg-white);             
     border: none;
-    border-radius: 0 5px 5px 0;
+    border-radius: 8px;
     font-size: 1rem;
     cursor: pointer;
     &:hover {
@@ -43,7 +43,7 @@
 
 .fact-db-filters {
   background:var(--color-filter-bg); // <--- create a variable if used often, e.g. var(--color-filter-bg
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 1.3rem;
   min-width: 200px;
   max-width: 230px;
@@ -63,7 +63,7 @@
     margin-bottom: 0.5rem;
     padding: 0.4rem;
     border: 1px solid var(--color-border-input);  // #aac6ea
-    border-radius: 5px;
+    border-radius: 8px;
     font-size: 1rem;
     background: var(--color-bg-white);
   }
@@ -116,7 +116,7 @@
   .fact-db-context-popup {
     margin-top: 1.2rem;
     background: var(--color-context-bg); // <--- create a variable if reused, e.g. var(--color-context-bg
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 1rem;
     font-size: 1.05rem;
     box-shadow: 0 1px 6px var(--shadow-5);

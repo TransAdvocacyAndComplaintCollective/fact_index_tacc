@@ -50,12 +50,8 @@ export default function Home() {
           <li>
             <Link to="/">Home</Link>
           </li>
-          <li>
-            {/* This button doesn't really "do" anything, just as a demo */}
-            <Button variant="primary" onClick={() => alert("About clicked!")}>
-              About
-            </Button>
-          </li>
+          
+
           {authenticated && (
             <>
               <li>

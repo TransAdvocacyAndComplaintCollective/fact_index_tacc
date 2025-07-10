@@ -2,7 +2,7 @@
 
 .login-wrapper {
   min-height: 100vh;
-  background: var(--theme-color-bg-grey);
+  background: var(--theme-color-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,7 +16,7 @@
   width: 100%;
   max-width: 360px;
   background: var(--theme-color-bg-white);
-  border-radius: 1.5rem;
+  border-radius: 8px;
   box-shadow: 0 8px 32px var(--theme-shadow-2), 0 1.5px 3px var(--theme-shadow-1);
   padding: 3rem 2.2rem 2.2rem 2.2rem;
   margin: 2.5rem auto;
@@ -41,7 +41,7 @@
     background: var(--theme-color-brand);
     color: var(--theme-color-bg-white);
     border: 2px solid var(--theme-color-brand-light);
-    border-radius: 0.8rem;
+    border-radius: 8px;
     font-size: 1.08rem;
     font-weight: 600;
     letter-spacing: 0.01em;

@@ -10,14 +10,13 @@ export default function FactResultRow({ fact, isSelected }) {
   const {
     fact_text,
     summary,
-    datePublished,
+    year,
     source,
-    score,
     subjects,
     audiences,
     suppressed,
   } = fact;
-
+  console.log("FactResultRow", fact);
   // Accessibility: Status message for suppressed
   const statusId = suppressed ? `fact-row-status-${fact.id || fact_text.replace(/\s+/g, '-').toLowerCase()}` : undefined;
 
@@ -66,14 +65,9 @@ export default function FactResultRow({ fact, isSelected }) {
               {source}
             </span>
           )}
-          {datePublished && (
-            <span className={styles.date} title="Date published" aria-label={`Date published: ${new Date(datePublished).toLocaleDateString()}`}>
-              {new Date(datePublished).toLocaleDateString()}
-            </span>
-          )}
-          {typeof score === "number" && (
-            <span className={styles.score} title="Relevance score" aria-label={`Relevance score: ${score}`}>
-              ★ {score}
+          {year && (
+            <span className={styles.date} title="Date published" aria-label={`Date published: ${year}`}>
+              {year ? `(${year})` : ""}
             </span>
           )}
         </div>

@@ -226,7 +226,6 @@ export default function FactDatabase() {
               {!hasMore && facts.length > 0 && (
                 <div
                   className={styles.factDatabase__end}
-                  aria-label="End of results"
                   tabIndex={0}
                 >
                   End of results.

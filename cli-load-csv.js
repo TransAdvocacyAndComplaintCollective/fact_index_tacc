@@ -1,15 +1,16 @@
-// cli-load-csv.js
+// cli-load-csv.mjs
 
-const path = require('path');
-const importFactsFromCSV = require('./db/importFactsFromCsv.js');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import importFactsFromCSV from './db/importFactsFromCsv.js';
 
-// USAGE: node cli-load-csv.js <path-to-csv>
+// USAGE: node cli-load-csv.mjs <path-to-csv>
 
 async function main() {
     const csvFile = process.argv[2];
 
     if (!csvFile) {
-        console.error('Usage: node cli-load-csv.js <csv-file>');
+        console.error('Usage: node cli-load-csv.mjs <csv-file>');
         process.exit(1);
     }
 
@@ -25,6 +26,10 @@ async function main() {
     }
 }
 
-if (require.main === module) {
+// Emulate "if (require.main === module)" for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
     main();
 }
+
+export default main;
