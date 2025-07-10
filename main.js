@@ -15,7 +15,6 @@ import { middleware as botMiddleware } from 'es6-crawler-detect';
 import auth from './auth/authRouter.js';
 import api from './router/api.js';
 import staticRouter from './router/static/static.mjs';
-import health from './router/sys_health/health.js';
 import { securityMiddleware } from './suspicious/suspicious.js';
 
 // ----------------- CONFIGURATION ----------------- //
@@ -97,7 +96,6 @@ console.log(`[${new Date().toISOString()}] [main.js] Loading routes...`);
 app.use('/auth', auth);
 app.use('/api/', api);
 app.use(staticRouter);
-app.use(health);
 
 // ------------------ SERVER ---------------------- //
 function startServer(port, label) {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SidebarFilters from "./SidebarFilters";
 import FactResultsTable from "./FactResultsTable";
 import Button from "../../atoms/Button";
-import * as styles from "./FactDatabase.module.scss";
+import styles from "./FactDatabase.module.scss";
 import { useFactDatabase } from "../../hocks/useFactDatabase";
 
 export default function FactDatabase() {
@@ -86,9 +86,13 @@ export default function FactDatabase() {
   return (
     <div className={styles.factDatabase}>
       {/* ---- HEADER ---- */}
-      <header className={styles.factDatabase__header}>
+      <div
+        className={styles.factDatabase__header}
+        role="banner"
+        aria-label="Site Banner"
+      >
         <h1 className={styles.factDatabase__title}>★ TACC Fab‑Fact Database ★</h1>
-      </header>
+      </div>
 
       {/* ---- SEARCH BAR ---- */}
       <section
@@ -146,6 +150,7 @@ export default function FactDatabase() {
         {/* ---- SIDEBAR FILTERS ---- */}
         <aside
           className={styles.factDatabase__sidebar}
+          role="complementary"
           aria-label="Filter options"
         >
           <SidebarFilters

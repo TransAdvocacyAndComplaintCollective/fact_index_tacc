@@ -32,8 +32,8 @@ export default function SidebarFilters({
   function handleTriChipChange(fieldInclude, fieldExclude, value, nextState) {
     setFilters((f) => {
       // current values or fallback to defaults
-      const inc = (f[fieldInclude] || []);
-      const exc = (f[fieldExclude] || []);
+      const inc = f[fieldInclude] || [];
+      const exc = f[fieldExclude] || [];
       let newInclude = [...inc];
       let newExclude = [...exc];
 
@@ -43,7 +43,6 @@ export default function SidebarFilters({
 
       if (nextState === "include") newInclude.push(value);
       if (nextState === "exclude") newExclude.push(value);
-      // Neutral: already removed
 
       const updatedFilters = {
         ...f,
@@ -56,9 +55,13 @@ export default function SidebarFilters({
   }
 
   // Renders one row of chips with tri-state (for Include/Exclude per group)
-  function renderTriChips(items, chipStates, fieldInclude, fieldExclude) {
+  function renderTriChips(items, chipStates, fieldInclude, fieldExclude, groupLabelId) {
     return (
-      <div className={styles.chipRow}>
+      <div
+        className={styles.chipRow}
+        role="group"
+        aria-labelledby={groupLabelId}
+      >
         {(items || []).map(item => {
           const name = typeof item === "string" ? item : item.name;
           const id = typeof item === "object" && item.id ? item.id : name;
@@ -68,7 +71,9 @@ export default function SidebarFilters({
               key={id}
               label={name}
               state={state}
-              onChange={nextState => handleTriChipChange(fieldInclude, fieldExclude, name, nextState)}
+              onChange={nextState =>
+                handleTriChipChange(fieldInclude, fieldExclude, name, nextState)
+              }
             />
           );
         })}
@@ -94,24 +99,30 @@ export default function SidebarFilters({
   // Accessibility IDs
   const yearFromId = "sidebar-year-from";
   const yearToId = "sidebar-year-to";
-  const subjectsLabelId = "subjects-label";
-  const audiencesLabelId = "audiences-label";
+  const subjectsLabelId = "sidebar-label-subjects";
+  const audiencesLabelId = "sidebar-label-audiences";
+  const yearsGroupId = "sidebar-label-years";
 
   // Prepare chip state maps from props for each group
   const subjectChipStates = getChipStates(subjects, subjectsInclude, subjectsExclude);
-  // eslint-disable-next-line no-undef
   const audienceChipStates = getChipStates(audiences, audiencesInclude, audiencesExclude);
 
   return (
-    <div className={styles.sidebarFilters} aria-label="Filters">
-      <h4>Filters</h4>
+    <aside className={styles.sidebarFilters} aria-label="Filters">
+      <h2 id="sidebar-filters-heading">Filters</h2>
 
       {/* Subjects */}
       <div className={styles.filterSection}>
         <div id={subjectsLabelId} className={styles.filterLabel}>
           Subject
         </div>
-        {renderTriChips(subjects, subjectChipStates, "subjectsInclude", "subjectsExclude")}
+        {renderTriChips(
+          subjects,
+          subjectChipStates,
+          "subjectsInclude",
+          "subjectsExclude",
+          subjectsLabelId
+        )}
       </div>
 
       {/* Audiences */}
@@ -119,12 +130,20 @@ export default function SidebarFilters({
         <div id={audiencesLabelId} className={styles.filterLabel}>
           Audience
         </div>
-        {renderTriChips(audiences, audienceChipStates, "audiencesInclude", "audiencesExclude")}
+        {renderTriChips(
+          audiences,
+          audienceChipStates,
+          "audiencesInclude",
+          "audiencesExclude",
+          audiencesLabelId
+        )}
       </div>
 
-      {/* Year */}
-      <div className={`${styles.filterSection} ${styles.filterYears}`}>
-        <div className={styles.filterLabel}>Year</div>
+      {/* Year Range */}
+      <fieldset className={`${styles.filterSection} ${styles.filterYears}`} aria-labelledby={yearsGroupId}>
+        <legend id={yearsGroupId} className={styles.filterLabel}>
+          Year
+        </legend>
         <label htmlFor={yearFromId}>
           From:{" "}
           <input
@@ -136,8 +155,11 @@ export default function SidebarFilters({
             placeholder="YYYY"
             onChange={e => handleYearChange("yearFrom", e.target.value)}
             inputMode="numeric"
-            aria-label="Year from"
+            aria-labelledby={`${yearsGroupId} ${yearFromId}-label`}
           />
+          <span id={`${yearFromId}-label`} className="sr-only">
+            Year from
+          </span>
         </label>
         <label htmlFor={yearToId}>
           To:{" "}
@@ -150,22 +172,40 @@ export default function SidebarFilters({
             placeholder="YYYY"
             onChange={e => handleYearChange("yearTo", e.target.value)}
             inputMode="numeric"
-            aria-label="Year to"
+            aria-labelledby={`${yearsGroupId} ${yearToId}-label`}
           />
+          <span id={`${yearToId}-label`} className="sr-only">
+            Year to
+          </span>
         </label>
-      </div>
+      </fieldset>
 
       {/* Apply Filters Button */}
       <Button
         type="button"
         className={styles.applyButton}
         onClick={handleApplyFilters}
+        aria-label="Apply filters"
       >
         Apply Filters
       </Button>
-    </div>
+    </aside>
   );
 }
+
+SidebarFilters.propTypes = {
+  filters: PropTypes.object.isRequired,
+  setFilters: PropTypes.func.isRequired,
+  subjects: PropTypes.array.isRequired,
+  audiences: PropTypes.array.isRequired,
+  subjectsInclude: PropTypes.array,
+  subjectsExclude: PropTypes.array,
+  audiencesInclude: PropTypes.array,
+  audiencesExclude: PropTypes.array,
+  onFiltersChange: PropTypes.func,
+  onApplyFilters: PropTypes.func,
+};
+
 SidebarFilters.defaultProps = {
   subjectsInclude: [],
   subjectsExclude: [],
@@ -173,8 +213,4 @@ SidebarFilters.defaultProps = {
   audiencesExclude: [],
   onFiltersChange: undefined,
   onApplyFilters: undefined,
-  audiencesExclude: PropTypes.array,
-  onFiltersChange: PropTypes.func,
-  onApplyFilters: PropTypes.func,
 };
-// Ensure all props are typed correctly

@@ -269,12 +269,10 @@ export async function getAudiencesForFact(fact_id) {
 }
 
 export async function listAudiences() {
-    log('listAudiences called');
     return logQuery(db('target_audiences').select('*').orderBy('name'), 'SELECT audiences');
 }
 
 export async function getFactsForAudience(audience_name, opts = {}) {
-    log('getFactsForAudience called', audience_name, opts);
     const audience = await logQuery(db('target_audiences').where({ name: audience_name }).first(), 'SELECT audience by name');
     if (!audience) return [];
     const fact_ids = await logQuery(db('fact_target_audiences').where({ target_audience_id: audience.id }).pluck('fact_id'), 'PLUCK fact_ids for audience');
@@ -282,19 +280,16 @@ export async function getFactsForAudience(audience_name, opts = {}) {
 }
 
 export async function deleteAudience(id) {
-    log('deleteAudience called', id);
     await logQuery(db('fact_target_audiences').where({ target_audience_id: id }).del(), 'DELETE fact_target_audiences (by audience)');
     return logQuery(db('target_audiences').where({ id }).del(), 'DELETE audience');
 }
 
 // ---- USER HELPERS ----
 export async function listUsers() {
-    log('listUsers called');
     return logQuery(db('users').select('*').orderBy('discord_name'), 'SELECT users');
 }
 
 export async function findOrCreateUser(discord_name, email = null) {
-    log('findOrCreateUser called', discord_name, email);
     let user = await logQuery(db('users').where({ discord_name }).first(), 'SELECT user');
     if (user) {
         log('findOrCreateUser exists', user.id);
@@ -317,7 +312,6 @@ export async function listSuppressedFacts(opts = {}) {
     return listFacts({ ...opts, includeSuppressed: true }).then(arr => arr.filter(f => f.suppressed));
 }
 
-// ---- SEARCH ----
 // ---- SEARCH ----
 export async function findFacts({
   keyword = '',
@@ -424,11 +418,6 @@ export async function findFacts({
 
   // Ordering, Pagination
   q.orderBy('facts.timestamp', 'desc').offset(offset).limit(limit);
-
-  log('About to execute query', {
-    offset, limit, sql: q.toString(),
-  });
-
   try {
     const rows = await logQuery(q, 'FIND facts');
     log('findFacts: rows found', rows.length);

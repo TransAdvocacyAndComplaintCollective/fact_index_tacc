@@ -164,22 +164,21 @@ export default function Button(props: ButtonProps) {
     toggleable && isActive && styles.active
   );
 
-  const sharedProps = {
+  // Only the props that are safe for <a> or <Link>
+  const anchorSafeProps = {
     className: computedClass,
-    "aria-busy": loading ? true : undefined,
-    tabIndex: isDisabled ? -1 : 0,
-    "aria-disabled": isDisabled ? true : undefined,
     style,
-    ...toggleable && { "aria-pressed": !!isActive },
-    ...rest,
+    tabIndex: isDisabled ? -1 : 0,
+    "aria-busy": loading ? true : undefined,
+    "aria-disabled": isDisabled ? true : undefined,
+    ...(toggleable ? { "aria-pressed": !!isActive } : {}),
   };
 
+  // NavLink (react-router)
   if (nav && to && !isDisabled) {
-    const { onCopy, ...navSharedProps } = sharedProps;
     return (
       <RouterNavLink
         to={to}
-        {...navSharedProps}
         className={({ isActive: navActive }) =>
           clsx(
             styles.button,
@@ -191,34 +190,45 @@ export default function Button(props: ButtonProps) {
               (activeClassName || styles.active)
           )
         }
+        style={style}
         tabIndex={0}
+        aria-disabled={isDisabled ? true : undefined}
+        aria-busy={loading ? true : undefined}
+        {...(toggleable ? { "aria-pressed": !!isActive } : {})}
+        // onClick/onKeyDown go here only if needed for toggle, but usually not with NavLink
       >
         {content}
       </RouterNavLink>
     );
   }
 
+  // RouterLink (react-router)
   if (to && !isDisabled) {
     return (
       <RouterLink
         to={to}
-        {...sharedProps}
-        tabIndex={0}
-        aria-pressed={toggleable ? !!isActive : undefined}
+        {...anchorSafeProps}
+        target={target}
+        rel={target === "_blank" ? rel || "noopener noreferrer" : rel}
+        onClick={e => {
+          if (toggleable) handleToggle(e);
+          if (onClick) onClick(e);
+        }}
+        onKeyDown={handleKeyDown}
       >
         {content}
       </RouterLink>
     );
   }
 
+  // Anchor link
   if (href && !isDisabled) {
     return (
       <a
         href={href}
+        {...anchorSafeProps}
         target={target}
         rel={target === "_blank" ? rel || "noopener noreferrer" : rel}
-        {...sharedProps}
-        aria-pressed={toggleable ? !!isActive : undefined}
         onClick={e => {
           if (toggleable) handleToggle(e);
           if (onClick) onClick(e);
@@ -230,16 +240,23 @@ export default function Button(props: ButtonProps) {
     );
   }
 
+  // Native button (default)
   return (
     <button
       type={type}
+      className={computedClass}
+      style={style}
+      disabled={isDisabled}
+      aria-busy={loading ? true : undefined}
+      aria-disabled={isDisabled ? true : undefined}
+      tabIndex={isDisabled ? -1 : 0}
+      {...(toggleable ? { "aria-pressed": !!isActive } : {})}
       onClick={e => {
         if (toggleable) handleToggle(e);
         if (onClick) onClick(e);
       }}
       onKeyDown={handleKeyDown}
-      disabled={isDisabled}
-      {...sharedProps}
+      {...rest}
     >
       {content}
     </button>

@@ -57,21 +57,6 @@ router.get('/facts', async (req, res) => {
     const from = yearFrom || dateFrom;
     const to = yearTo || dateTo;
 
-    console.log('[DEBUG] /api/facts query params:', {
-      keyword,
-      targetsArr,
-      subjectsArr,
-      from,
-      to,
-      offset,
-      limit,
-      includeSuppressedBool,
-      subjectsIncludeArr,
-      subjectsExcludeArr,
-      audiencesIncludeArr,
-      audiencesExcludeArr
-    });
-
     const facts = await factRepository.findFacts({
       keyword,
       yearFrom: from,
@@ -298,7 +283,6 @@ router.post('/search', async (req, res) => {
       audiencesInclude: toArr(audiencesInclude),
       audiencesExclude: toArr(audiencesExclude),
     };
-    console.log('[DEBUG] POST /api/facts/search params:', params);
 
     // DEBUG logging
 

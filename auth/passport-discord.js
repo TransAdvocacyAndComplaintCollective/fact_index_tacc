@@ -107,10 +107,6 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((obj, done) => {
-  log('info', `deserializeUser:`, JSON.stringify(obj, null, 2));
-  if (obj?.username && obj?.id) {
-    log('info', `deserializeUser: ${obj.username} (${obj.id})`);
-  }
   done(null, obj);
 });
 

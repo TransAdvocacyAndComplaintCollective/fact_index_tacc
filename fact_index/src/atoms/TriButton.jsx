@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import PropTypes from "prop-types";
 import * as styles from "./TriButton.module.scss";
 
@@ -26,6 +26,17 @@ const triAriaChecked = (state) => {
  * @param {string} className - Optional additional CSS classes
  */
 export default function TriButton({ label, state, onChange, onStateChange, className = "", ...props }) {
+  // For status messages
+  const [status, setStatus] = useState("");
+  const statusRef = useRef();
+
+  // Map state to a user-friendly string for announcement
+  const stateLabel = {
+    neutral: "Not selected",
+    include: "Included",
+    exclude: "Excluded"
+  }[state];
+
   // Wrapper to handle toggle and callback
   const handleToggle = () => {
     const nextState = nextTriState(state);
@@ -33,56 +44,67 @@ export default function TriButton({ label, state, onChange, onStateChange, class
     if (onStateChange) {
       onStateChange(nextState);
     }
+    setStatus(`${label}: ${{
+      neutral: "cleared",
+      include: "included",
+      exclude: "excluded"
+    }[nextState]}.`);
+    // Clear status after a short delay to prevent repeated announcements
+    setTimeout(() => setStatus(""), 2000);
   };
 
   return (
-    <button
-      type="button"
-      className={[
-        styles.chip,
-        state === "neutral" && styles.chipNeutral,
-        state === "include" && styles.chipInclude,
-        state === "exclude" && styles.chipExclude,
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      role="checkbox"
-      aria-checked={triAriaChecked(state)}
-      aria-label={
-        state === "neutral"
-          ? `${label}: not selected. Tap to include`
-          : state === "include"
-          ? `${label}: included. Tap to exclude`
-          : `${label}: excluded. Tap to clear`
-      }
-      tabIndex={0}
-      onClick={handleToggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleToggle();
-        }
-      }}
-      {...props}
-    >
-      {label}
-      {state === "include" && (
-        <span className={styles.chipMark} aria-label="Included">
-          ✔
+    <>
+      <button
+        type="button"
+        className={[
+          styles.chip,
+          state === "neutral" && styles.chipNeutral,
+          state === "include" && styles.chipInclude,
+          state === "exclude" && styles.chipExclude,
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        role="checkbox"
+        aria-checked={triAriaChecked(state)}
+        tabIndex={0}
+        onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+        {...props}
+      >
+        {label}
+        {state === "include" && (
+          <span className={styles.chipMark} >
+            ✔
+          </span>
+        )}
+        {state === "exclude" && (
+          <span className={styles.chipMark} >
+            ✖
+          </span>
+        )}
+        {state === "neutral" && (
+          <span className={styles.chipMark}>
+            ⏺
+          </span>
+        )}
+        {/* Status as visually hidden for screen readers */}
+        <span
+          ref={statusRef}
+          className="visually-hidden"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {status}
         </span>
-      )}
-      {state === "exclude" && (
-        <span className={styles.chipMark} aria-label="Excluded">
-          ✖
-        </span>
-      )}
-      {state === "neutral" && (
-        <span className={styles.chipMark} aria-label="Neutral">
-          ⏺
-        </span>
-      )}
-    </button>
+      </button>
+    </>
   );
 }
 

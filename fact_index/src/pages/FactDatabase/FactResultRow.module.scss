@@ -50,7 +50,7 @@
   gap: 0.5rem;
   font-weight: 600;
   font-size: 1.13rem;
-  color: var(--theme-title, var(--theme-color-title));
+  color: var(--theme-title);
 }
 .title {
   flex: 1;
@@ -140,13 +140,13 @@
   &.audience {
     background: var(--theme-chip-audience-bg);
     border-color: var(--theme-chip-audience-border);
-    color: var(--theme-color-accent-green5, var(--theme-color-chip-text));
+    color: var(--theme-color-chip-text);
   }
   // Type modifier: Subject (e.g. blue)
   &.subject {
     background: var(--theme-chip-subject-bg);
     border-color: var(--theme-chip-subject-border);
-    color: var(--theme-color-accent-blue2, var(--theme-color-chip-text));
+    color: var(--theme-color-chip-text);
   }
   // Type modifier: "none" or inactive
   &.none {
