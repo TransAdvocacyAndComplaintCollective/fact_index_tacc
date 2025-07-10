@@ -8,8 +8,8 @@
   font-weight: 600; // clarity
   letter-spacing: 0.01em;
   border: 2px solid var(--theme-chip-border);
-  background: var(--theme-chip-bg);
-  color: var(--theme-color-chip-text);
+  background: var(--theme-color-bg-white)!important;
+  color: var(--theme-color-chip-text)!important; // highest contrast on all backgrounds!
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,7 +41,8 @@
 
   &:active {
     transform: scale(0.97);
-    filter: brightness(0.96);
+ 
+    // filter: brightness(0.96);
   }
 }
 
@@ -53,7 +54,7 @@
 
 // === Neutral State ===
 .chipNeutral {
-  background-color: var(--theme-chip-none-bg)!important;
+  background-color: var(--theme-color-bg-white)!important;
   border-color: var(--theme-chip-none-border);
   color: var(--theme-color-text-dark);
   opacity: 0.97;
@@ -70,25 +71,26 @@
 
 // === Include State ===
 .chipInclude {
-  background-color: var(--theme-chip-subject-bg)!important;
+  background-color: var(--theme-color-accent-green)!important;
   border-color: var(--theme-chip-subject-border);
+  color:var(--theme-color-accent-green2)!important;
   // color: var(--theme-color-accent-blue2);
   opacity: 1;
 
   &:hover,
   &:focus {
-    background-color: var(--theme-chip-subject-bg)!important;
+    background-color: var(--theme-color-accent-green)!important;
     border-color: var(--theme-chip-subject-border);
-    // color: var(--theme-color-accent-blue2);
+    color:var(--theme-color-accent-green2)!important;
     box-shadow: 0 2px 8px var(--theme-shadow-2);
   }
 }
 
 // === Exclude State ===
 .chipExclude {
-  background-color: var(--theme-color-accent-red4);
+  background-color: var(--theme-color-accent-red2)!important;
   border-color: var(--theme-color-accent-red);
-  color: #fff;
+  color: #fff !important; // white text for contrast
   opacity: 1;
   text-decoration: line-through wavy var(--theme-color-warning);
 
@@ -96,7 +98,7 @@
   &:focus {
     background-color: var(--theme-color-accent-red4);
     border-color: var(--theme-color-accent-red);
-    color: #fff;
+    color: #fff !important; // white text for contrast
     box-shadow: 0 2px 10px var(--theme-shadow-3);
     text-decoration: line-through wavy var(--theme-color-warning);
   }

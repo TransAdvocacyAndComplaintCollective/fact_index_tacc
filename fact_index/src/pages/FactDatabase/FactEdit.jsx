@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import * as styles from  "./FactEdit.module.scss"; 
+import Button from "../../atoms/Button";
 
 export function FactEdit({ fact, mode, onSave, onCancel }) {
   const isEdit = mode === "edit";
@@ -162,9 +163,9 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
           </label>
         )}
         <div className={styles.factEditActions}>
-          <button
+          <Button
             type="submit"
-            className={styles.factEditSaveBtn}
+            variant="primary"
             disabled={
               saving ||
               !form.fact_text.trim() ||
@@ -172,15 +173,15 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
             }
           >
             {saving ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save" : "Create"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={styles.factEditCancelBtn}
+            variant="secondary"
             onClick={handleCancel}
             disabled={saving}
           >
             Cancel
-          </button>
+          </Button>
         </div>
         {error && <div role="alert" className={styles.factEditError}>{error}</div>}
         {success && <div role="status" className={styles.factEditSuccess}>{success}</div>}

@@ -36,7 +36,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
       color-accent-red2: #b91c1c,
       color-accent-red3: #fb9a99,
       // darken accent-red4 so white text (1.0) → #fff on #8a1a1a = 9.36:1 contrast
-      color-accent-red4: #8a1a1a,
+      color-accent-red4: #ff9494,
 
       color-accent-pink: #e879f9,
       color-accent-pink2: #6d3572,
@@ -116,7 +116,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
 
       // Extra UI
       color-heading: #d5e9ff,
-      color-button-border: #333333,
+      color-button-border: #000000,
       color-bg-neutral-alt: #253a5e,
 
       // Fact DB custom

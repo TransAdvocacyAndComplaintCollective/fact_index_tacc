@@ -30,7 +30,7 @@ const NavBar: React.FC = () => {
             activeClassName={styles.active}
             variant="outlined"
             size="sm"
-            className={styles.link}
+            // className={styles.link}
             style={{ marginRight: 8 }}
           >
             Home
@@ -41,7 +41,7 @@ const NavBar: React.FC = () => {
             activeClassName={styles.active}
             variant="outlined"
             size="sm"
-            className={styles.link}
+            // className={styles.link}
           >
             Fact Database
           </Button>

@@ -50,19 +50,19 @@
 
 // ---- Variants ----
 .primary {
-  background: var(--theme-color-button-bg, #1554bf);
-  color: var(--theme-color-button-text, #fff);
+  background: var(--theme-color-button-bg, #005eff);
+  color: var(--theme-color-button-text, #fff)!important;
   border: 1.5px solid var(--theme-color-button-border, #2363a6);
 
   &:hover:not(:disabled),
   &:focus-visible:not(:disabled) {
     background: var(--theme-color-button-bg-hover, #2363a6);
-    color: var(--theme-color-button-text, #fff);
+    color: var(--theme-color-chip-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-focus-outline, #1554bf40);
   }
   &.active,
   &:active {
-    background: var(--theme-color-brand, #1554bf);
+    background: var(--theme-color-brand, #031b44);
     color: var(--theme-color-button-text, #fff);
     border-color: var(--theme-color-button-border, #2363a6);
     box-shadow: 0 0 0 3px var(--theme-color-brand-highlight, #f0f8ff);
@@ -84,7 +84,7 @@
   }
   &.active,
   &:active {
-    background: var(--theme-color-brand-bg, #d6e6f3);
+    background: var(--theme-color-brand-bg, #1888e4);
     color: var(--theme-color-brand, #1554bf);
     border-color: var(--theme-color-brand, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-brand-highlight, #f0f8ff);
@@ -96,6 +96,7 @@
 .outlined {
   background: transparent;
   color: var(--theme-color-brand, #1554bf);
+  background: var(--theme-color-brand-bg, #e7f0fa)  ;
   border: 1.5px solid var(--theme-color-brand, #1554bf);
 
   &:hover:not(:disabled),
@@ -175,7 +176,7 @@
     background: var(--theme-color-accent-blue3, #5faaff);
     color: var(--theme-color-accent-blue2, #1554bf);
     border-color: var(--theme-color-accent-blue2, #1554bf);
-    box-shadow: 0 0 0 3px var(--theme-color-accent-blue4, #7db1df);
+    box-shadow: 0 0 0 3px var(--theme-color-accent-blue, #7db1df);
     outline: 2px solid var(--theme-color-accent-blue4, #7db1df);
     outline-offset: 0px;
   }
