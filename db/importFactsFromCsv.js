@@ -2,24 +2,62 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { parse } from 'csv-parse/sync';
 import factRepo from './factRepository.js';
 
 // Parse year from string/date or return undefined
+// Parse year from string/date or return undefined
 function extractYear(row, timestamp) {
-    let y = row['Year'] || row['year'] || row['Publishing year'] || '';
-    y = String(y).replace(/[^\d]/g, '').trim();
-    let intY = parseInt(y, 10);
+    // Try to find year in the year-related fields, in order
+    const yearFields = [
+        'Year', 'year', 'Publishing year'
+    ];
+    for (const field of yearFields) {
+        let y = row[field];
+        if (y && typeof y === 'string' && y.trim()) {
+            y = y.trim();
 
-    if (!isNaN(intY) && intY >= 1900 && intY <= 2100) return intY;
+            // Find all possible 4-digit years
+            const matches = [...y.matchAll(/\b(19|20)\d{2}\b/g)];
+            for (const match of matches) {
+                const candidate = parseInt(match[0], 10);
+                if (candidate >= 1900 && candidate <= 2100) {
+                    return candidate;
+                }
+            }
 
-    if (timestamp) {
-        let d = new Date(timestamp);
-        if (!isNaN(d.getTime())) {
-            intY = d.getFullYear();
-            if (intY >= 1900 && intY <= 2100) return intY;
+            // Try to parse as a date (covers "09/02/2025 23:31:33" etc.)
+            const d = new Date(y);
+            if (!isNaN(d.getTime())) {
+                const candidate = d.getFullYear();
+                if (candidate >= 1900 && candidate <= 2100) {
+                    return candidate;
+                }
+            }
         }
     }
+
+    // If not found, try the timestamp field
+    if (timestamp && typeof timestamp === 'string' && timestamp.trim()) {
+        // Try to find 4-digit years in timestamp string
+        const matches = [...timestamp.matchAll(/\b(19|20)\d{2}\b/g)];
+        for (const match of matches) {
+            const candidate = parseInt(match[0], 10);
+            if (candidate >= 1900 && candidate <= 2100) {
+                return candidate;
+            }
+        }
+        // Try to parse timestamp as date
+        const d = new Date(timestamp);
+        if (!isNaN(d.getTime())) {
+            const candidate = d.getFullYear();
+            if (candidate >= 1900 && candidate <= 2100) {
+                return candidate;
+            }
+        }
+    }
+
     return null;
 }
 
@@ -104,8 +142,9 @@ export async function importFactsFromCSV(csvFilePath) {
     await factRepo.db.destroy();
 }
 
-// For running from CLI
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI runner check for ES modules
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
     const file = process.argv[2];
     if (!file) {
         console.error('Usage: node importFactsFromCSV.mjs <csv-file>');

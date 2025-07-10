@@ -65,7 +65,7 @@ router.get('/facts', async (req, res) => {
       audiencesInclude: audiencesIncludeArr,
       audiencesExclude: audiencesExcludeArr,
     });
- 
+    console.log("[DEBUG] ",facts, 'facts found');
 
     console.log('[DEBUG] /api/facts found:', facts.length, 'facts');
     res.json(facts);
@@ -284,6 +284,7 @@ router.post('/search', async (req, res) => {
     // DEBUG logging
 
     const facts = await factRepository.findFacts(params);
+    console.log(facts)
 
     res.json(facts);
   } catch (err) {

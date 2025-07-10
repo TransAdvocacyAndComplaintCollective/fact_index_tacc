@@ -43,19 +43,6 @@ export default function FactResultRow({ fact, isSelected }) {
             {fact_text}
           </span>
         </div>
-        {suppressed && (
-          // Status message for suppressed facts (polite region for AT)
-          <div
-            className={styles.suppressedMessage}
-            id={statusId}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            style={{ color: "var(--theme-color-accent-red2)", fontWeight: 700, marginBottom: "0.3em" }}
-          >
-            This fact is marked as suppressed and may not be visible to all users.
-          </div>
-        )}
         {summary && (
           <div className={styles.summary}>{summary}</div>
         )}
