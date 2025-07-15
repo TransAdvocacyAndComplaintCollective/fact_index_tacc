@@ -33,7 +33,9 @@ console.log(`[${new Date().toISOString()}] [main.js] Express app initialized`);
 // --------------- HEADER SETUP -------------------- //
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'");
+  res.setHeader('Content-Security-Policy',
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://cdn.discordapp.com;");
+
   next();
 });
 
