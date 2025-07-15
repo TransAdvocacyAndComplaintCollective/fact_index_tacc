@@ -38,6 +38,8 @@ router.get('/facts', async (req, res) => {
       subjectsExclude,
       audiencesInclude,
       audiencesExclude,
+      sortBy,       // New: sortBy param
+      sortOrder,    // New: sortOrder param
     } = req.query;
 
     const subjectsIncludeArr = arrayParam(subjectsInclude);
@@ -47,12 +49,17 @@ router.get('/facts', async (req, res) => {
 
     let includeSuppressedBool = false;
     if (typeof includeSuppressed !== "undefined") {
-      includeSuppressedBool = (includeSuppressed === "1" || includeSuppressed === "true" || includeSuppressed === true);
+      includeSuppressedBool = (
+        includeSuppressed === "1" ||
+        includeSuppressed === "true" ||
+        includeSuppressed === true
+      );
     }
 
     const from = yearFrom || dateFrom;
     const to = yearTo || dateTo;
 
+    // New: support sortBy and sortOrder
     const facts = await factRepository.findFacts({
       keyword,
       yearFrom: from,
@@ -64,9 +71,11 @@ router.get('/facts', async (req, res) => {
       subjectsExclude: subjectsExcludeArr,
       audiencesInclude: audiencesIncludeArr,
       audiencesExclude: audiencesExcludeArr,
+      sortBy: sortBy || 'date',           // default to 'date' if not provided
+      sortOrder: sortOrder || 'desc',     // default to 'desc' if not provided
     });
-    console.log("[DEBUG] ",facts, 'facts found');
 
+    console.log("[DEBUG] ", facts, 'facts found');
     console.log('[DEBUG] /api/facts found:', facts.length, 'facts');
     res.json(facts);
 
@@ -75,6 +84,8 @@ router.get('/facts', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch facts' });
   }
 });
+
+
 
 // Get a fact by id
 router.get('/facts/:id', async (req, res) => {
@@ -258,6 +269,8 @@ router.post('/search', async (req, res) => {
       subjectsExclude = [],
       audiencesInclude = [],
       audiencesExclude = [],
+      sortBy,       // NEW: sortBy param in POST body
+      sortOrder,    // NEW: sortOrder param in POST body
     } = req.body || {};
 
     // Normalize arrays (support both array and comma-string forms)
@@ -279,12 +292,15 @@ router.post('/search', async (req, res) => {
       subjectsExclude: toArr(subjectsExclude),
       audiencesInclude: toArr(audiencesInclude),
       audiencesExclude: toArr(audiencesExclude),
+      sortBy: sortBy || 'date',           // Default to 'date' if not provided
+      sortOrder: sortOrder || 'desc',     // Default to 'desc' if not provided
     };
 
     // DEBUG logging
+    console.log('[DEBUG] POST /api/facts/search params:', params);
 
     const facts = await factRepository.findFacts(params);
-    console.log(facts)
+    console.log('[DEBUG] POST /api/facts/search facts found:', facts.length);
 
     res.json(facts);
   } catch (err) {
@@ -292,6 +308,8 @@ router.post('/search', async (req, res) => {
     res.status(500).json({ error: 'Failed to search facts', detail: err.message });
   }
 });
+
+
 
 
 // List suppressed facts

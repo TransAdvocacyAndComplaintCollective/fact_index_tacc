@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SidebarFilters from "./SidebarFilters";
 import FactResultsTable from "./FactResultsTable";
 import Button from "../../atoms/Button";
-import styles from "./FactDatabase.module.scss";
+import * as styles from "./FactDatabase.module.scss";
 import { useFactDatabase } from "../../hocks/useFactDatabase";
 
 export default function FactDatabase() {
@@ -68,7 +68,6 @@ export default function FactDatabase() {
   // Keyword searchbar: clear field handler
   const handleClearKeyword = useCallback(() => {
     setFilters((f) => ({ ...f, keyword: "" }));
-    // Optionally, trigger a search here: setFilters((f) => ({ ...f, keyword: "" }));
   }, [setFilters]);
 
   // Keyboard accessibility: add handler for clearing keyword on Esc key
@@ -82,6 +81,13 @@ export default function FactDatabase() {
     },
     [handleClearKeyword, handleKeywordSearch]
   );
+
+  // Optionally memoize loadMore if passing to children
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loading && !loadingMore) {
+      loadMore();
+    }
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   return (
     <div className={styles.factDatabase}>
@@ -217,6 +223,9 @@ export default function FactDatabase() {
                       : "Scroll for more facts"
                   }
                   role="status"
+                  tabIndex={0}
+                  onClick={handleLoadMore}
+                  style={{ cursor: "pointer" }}
                 >
                   {loadingMore ? "Loading more facts…" : "Scroll for more…"}
                 </div>

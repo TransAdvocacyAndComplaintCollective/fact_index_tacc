@@ -312,7 +312,6 @@ export async function listSuppressedFacts(opts = {}) {
     return listFacts({ ...opts, includeSuppressed: true }).then(arr => arr.filter(f => f.suppressed));
 }
 
-// ---- SEARCH ----
 export async function findFacts({
   keyword = '',
   targets = [],
@@ -327,10 +326,13 @@ export async function findFacts({
   subjectsExclude = [],
   audiencesInclude = [],
   audiencesExclude = [],
+  sortBy = 'date',      // 'date', 'year', 'name', 'relevance'
+  sortOrder = 'desc',   // 'asc', 'desc'
 } = {}) {
   log('findFacts called', {
     keyword, targets, subjects, yearFrom, yearTo, year, offset, limit, includeSuppressed,
     subjectsInclude, subjectsExclude, audiencesInclude, audiencesExclude,
+    sortBy, sortOrder,
   });
 
   let q = db('facts')
@@ -416,8 +418,33 @@ export async function findFacts({
     q.whereIn('target_audiences.name', targets);
   }
 
-  // Ordering, Pagination
-  q.orderBy('facts.timestamp', 'desc').offset(offset).limit(limit);
+  // -------- ORDERING ---------
+  // Remove any previous q.orderBy() before this point!
+  // Apply user-requested ordering
+  const order = (sortOrder && sortOrder.toLowerCase() === 'asc') ? 'asc' : 'desc';
+
+  if (sortBy === 'year') {
+    q.orderBy('facts.year', order).orderBy('facts.timestamp', 'desc');
+  } else if (sortBy === 'name') {
+    // sort by fact_text alphabetically
+    q.orderBy('facts.fact_text', order).orderBy('facts.timestamp', 'desc');
+  } else if (sortBy === 'relevance' && keyword && keyword.trim() !== '') {
+    // crude relevance: sum matches in the 3 text columns
+    q.orderByRaw(
+      `(CASE WHEN facts.fact_text LIKE ? THEN 1 ELSE 0 END + 
+        CASE WHEN facts.source LIKE ? THEN 1 ELSE 0 END + 
+        CASE WHEN facts.context LIKE ? THEN 1 ELSE 0 END) ${order.toUpperCase()}`,
+      [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`]
+    );
+    q.orderBy('facts.timestamp', 'desc');
+  } else {
+    // default: date (timestamp)
+    q.orderBy('facts.timestamp', order);
+  }
+
+  // -------- PAGINATION ---------
+  q.offset(offset).limit(limit);
+
   try {
     const rows = await logQuery(q, 'FIND facts');
     log('findFacts: rows found', rows.length);

@@ -39,14 +39,14 @@ app.use((req, res, next) => {
 
 // --------------- MIDDLEWARE SETUP ---------------- //
 // Rate limiting
-// app.use(async (req, res, next) => {
-//   try {
-//     await rateLimiter.consume(req.ip);
-//     next();
-//   } catch {
-//     res.status(429).send('Too Many Requests');
-//   }
-// });
+app.use(async (req, res, next) => {
+  try {
+    await rateLimiter.consume(req.ip);
+    next();
+  } catch {
+    res.status(429).send('Too Many Requests');
+  }
+});
 app.use(botMiddleware());
 // Block bad UAs
 app.use((req, res, next) => {

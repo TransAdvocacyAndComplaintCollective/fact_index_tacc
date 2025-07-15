@@ -85,7 +85,6 @@ export default function FactDetail() {
               href={fact.source}
               target="_blank"
               rel="noopener noreferrer"
-              title={`Source: ${fact.source}`}
               className={styles.factDetailSourceLink}
             >
               {fact.source}
@@ -116,7 +115,7 @@ export default function FactDetail() {
           <>
             <dt>Context</dt>
             <dd>
-              <span className={styles.factDetailContext}>{fact.context}</span>
+              <span className={styles.context}>{fact.context}</span>
             </dd>
           </>
         )}

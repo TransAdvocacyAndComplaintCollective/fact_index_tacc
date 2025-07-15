@@ -15,6 +15,7 @@ export default function FactResultRow({ fact, isSelected }) {
     subjects,
     audiences,
     suppressed,
+    context,
   } = fact;
   console.log("FactResultRow", fact);
   // Accessibility: Status message for suppressed
@@ -93,6 +94,14 @@ export default function FactResultRow({ fact, isSelected }) {
                   {a}
                 </span>
               )}
+            </span>
+          )}
+          {context && (
+            <span
+              className={styles.context}
+              aria-label={`Context: ${context}`}
+            >
+              {context}
             </span>
           )}
         </div>

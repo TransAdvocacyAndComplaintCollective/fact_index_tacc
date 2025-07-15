@@ -157,3 +157,27 @@
   }
   // Add more modifiers here as needed (e.g., .danger, .success, .highlight)
 }
+// After .chip { ... }
+
+.context {
+  display: block;
+  width: 100%;
+  margin-top: 0.7em;
+  padding: 0.7em 1.2em 0.7em 1.2em;
+  background: var(--theme-color-context-bg, #f0f8ff);
+  color: var(--theme-color-context, #217846);
+  border-left: 4.5px solid var(--theme-color-context-bold, #156636);
+  border-radius: 11px;
+  font-style: italic;
+  font-size: 1.05em;
+  box-shadow: 0 1px 4px var(--theme-shadow-1);
+  line-height: 1.55;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+
+  // Remove default border
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
+}

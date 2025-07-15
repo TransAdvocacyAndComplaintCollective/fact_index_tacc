@@ -16,6 +16,17 @@ function getChipStates(items, include = [], exclude = []) {
   return states;
 }
 
+const SORT_OPTIONS = [
+  { value: "date", label: "Date Added" },
+  { value: "year", label: "Year (Fact)" },
+  { value: "name", label: "Fact Text (A-Z)" },
+  { value: "relevance", label: "Relevance (Keyword)" }
+];
+const SORT_DIRECTIONS = [
+  { value: "desc", label: "Descending" },
+  { value: "asc", label: "Ascending" }
+];
+
 export default function SidebarFilters({
   filters,
   setFilters,
@@ -90,6 +101,17 @@ export default function SidebarFilters({
     });
   }
 
+  // SORT BY change
+  function handleSortByChange(e) {
+    const value = e.target.value;
+    setFilters(f => ({ ...f, sortBy: value }));
+  }
+  // SORT ORDER change
+  function handleSortOrderChange(e) {
+    const value = e.target.value;
+    setFilters(f => ({ ...f, sortOrder: value }));
+  }
+
   // Apply Filters button
   function handleApplyFilters() {
     if (onApplyFilters) onApplyFilters(filters);
@@ -102,6 +124,8 @@ export default function SidebarFilters({
   const subjectsLabelId = "sidebar-label-subjects";
   const audiencesLabelId = "sidebar-label-audiences";
   const yearsGroupId = "sidebar-label-years";
+  const sortById = "sidebar-sortby";
+  const sortOrderId = "sidebar-sortorder";
 
   // Prepare chip state maps from props for each group
   const subjectChipStates = getChipStates(subjects, subjectsInclude, subjectsExclude);
@@ -110,6 +134,36 @@ export default function SidebarFilters({
   return (
     <aside className={styles.sidebarFilters} aria-label="Filters">
       <h2 id="sidebar-filters-heading">Filters</h2>
+
+      {/* --- SORT BY --- */}
+      <div className={styles.filterSection}>
+        <label htmlFor={sortById} className={styles.filterLabel}>
+          Sort By
+        </label>
+        <select
+          id={sortById}
+          className={styles.selectInput}
+          value={filters.sortBy || "date"}
+          onChange={handleSortByChange}
+        >
+          {SORT_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <label htmlFor={sortOrderId} className={styles.filterLabel} style={{ marginTop: 8 }}>
+          Direction
+        </label>
+        <select
+          id={sortOrderId}
+          className={styles.selectInput}
+          value={filters.sortOrder || "desc"}
+          onChange={handleSortOrderChange}
+        >
+          {SORT_DIRECTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Subjects */}
       <div className={styles.filterSection}>

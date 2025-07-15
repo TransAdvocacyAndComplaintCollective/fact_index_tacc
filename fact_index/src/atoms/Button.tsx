@@ -10,7 +10,7 @@ import {
   Link as RouterLink,
   NavLink as RouterNavLink,
 } from "react-router-dom";
-import styles from "./Button.module.scss";
+import * as styles from "./Button.module.scss";
 
 type ButtonVariant =
   | "primary"
