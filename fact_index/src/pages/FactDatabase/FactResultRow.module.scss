@@ -181,3 +181,10 @@
   border-bottom: none;
   border-right: none;
 }
+.suppressedMessage {
+  color: var(--theme-color-accent-red);
+  font-weight: 500;
+  font-size: 0.95em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
