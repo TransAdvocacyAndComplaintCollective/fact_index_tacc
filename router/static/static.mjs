@@ -64,14 +64,7 @@ async function ensureParcelDevServer() {
 if (process.env.DEBUG_REACT === 'TRUE') {
 
     router.use((req, res, next) => {
-    res.setHeader('Content-Security-Policy',
-      [
-        `default-src 'self' http://localhost:${PARCEL_PORT};`,
-        `script-src 'self' http://localhost:${PARCEL_PORT};`,
-        `connect-src 'self' ws://localhost:${PARCEL_PORT} http://localhost:${PARCEL_PORT};`,
-        `style-src 'self' 'unsafe-inline' http://localhost:${PARCEL_PORT};`,
-      ].join(' ')
-    );
+
     next();
   });
 

@@ -10,11 +10,12 @@ import Login from "./pages/login/login";
 import FactDatabase from "./pages/FactDatabase/FactDatabase";
 import FactDetail from "./pages/FactDatabase/FactDetail";
 import FactEdit from "./pages/FactDatabase/FactEdit";
-
+import TestPage from "./pages/TestPage/TestPage";
 import "./App.scss";
 
 // Create a QueryClient instance once, outside the component
 const queryClient = new QueryClient();
+
 
 // Helper component for login redirect logic
 function LoginRedirect() {
@@ -39,6 +40,8 @@ function App() {
               path="/login"
               element={<LoginRedirect />}
             />
+           <Route path="/test" element={<TestPage />}>
+          </Route>
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>

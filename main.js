@@ -13,39 +13,49 @@ import staticRouter from './router/static/static.mjs';
 import { securityMiddleware } from './suspicious/suspicious.js';
 
 const PORT = Number(process.env.PORT || 16261);
+
+// --- Security & CSP ---
 const BAD_UA_REGEX = /(sqlmap|nikto|acunetix|dirbuster|masscan|wpscan|nmap|hydra|arachni|python-requests|curl)/i;
 const rateLimiter = new RateLimiterMemory({ points: 10, duration: 1 });
 
-const app = express();
-console.log(`[${new Date().toISOString()}] Express initialized`);
-
-// Disable fingerprinting
-app.disable('x-powered-by');
-
-// Security middleware (CSP, headers, etc.)
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "'unsafe-inline'"],
+  scriptSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    process.env.NODE_ENV !== 'production' ? "http://localhost:1234" : null
+  ].filter(Boolean),
   styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", 'https://cdn.discordapp.com', 'data:'],
-  fontSrc: ["'self'", 'https:', 'data:'],
+  imgSrc: [
+    "'self'",
+    "https://cdn.discordapp.com",
+    "data:"
+  ],
+  fontSrc: ["'self'", "https:", "data:"],
   connectSrc: ["'self'"],
   objectSrc: ["'none'"],
   upgradeInsecureRequests: [],
 };
+
+const app = express();
+console.log(`[${new Date().toISOString()}] Express initialized`);
+
+// --- Helmet: Security Headers ---
+app.disable('x-powered-by');
 app.use(
   helmet({
-    crossOriginEmbedderPolicy: false, // avoid blocked external images :contentReference[oaicite:11]{index=11}
+    crossOriginEmbedderPolicy: false, // allow images from external domains
     crossOriginResourcePolicy: false,
+    contentSecurityPolicy: { directives: cspDirectives },
   })
 );
-app.use(helmet.contentSecurityPolicy({ directives: cspDirectives }));
 app.use(helmet.referrerPolicy({ policy: 'no-referrer' }));
 app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 app.use(helmet.noSniff());
 app.use(helmet.frameguard({ action: 'deny' }));
 
-// Rate Limiting + Bot Detection
+// --- Rate Limiting & Bot Detection ---
 app.use(async (req, res, next) => {
   try {
     await rateLimiter.consume(req.ip);
@@ -65,12 +75,12 @@ app.use((req, res, next) => {
 });
 app.use(securityMiddleware);
 
-// CORS and parsing
+// --- CORS & Body Parsing ---
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Session + Passport
+// --- Session & Passport ---
 app.use(
   session({
     name: 'session_id',
@@ -87,29 +97,29 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Request Logging
+// --- Request Logging ---
 app.use((req, res, next) => {
   console.info(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// Routes
+// --- Routing ---
 app.use('/auth', auth);
 app.use('/api', api);
 app.use(staticRouter);
 
-// 404 Handler
+// --- 404 Handler ---
 app.use((req, res) => {
   res.status(404).send("Sorry, can't find that!");
 });
 
-// Error Handler
+// --- Error Handler ---
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Internal Server Error');
 });
 
-// Start Server
+// --- Start Server ---
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
