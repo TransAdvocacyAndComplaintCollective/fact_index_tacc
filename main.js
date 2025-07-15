@@ -23,12 +23,12 @@ const cspDirectives = {
   scriptSrc: [
     "'self'",
     "'unsafe-inline'",
-    "'unsafe-eval'"
+    "'unsafe-eval'",
   ].filter(Boolean),
   styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: [
     "'self'",
-    "https://cdn.discordapp.com",
+    "https://cdn.discordapp.com/avatars/",
     "data:"
   ],
   fontSrc: ["'self'", "https:", "data:"],
