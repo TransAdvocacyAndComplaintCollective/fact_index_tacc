@@ -23,8 +23,7 @@ const cspDirectives = {
   scriptSrc: [
     "'self'",
     "'unsafe-inline'",
-    "'unsafe-eval'",
-    process.env.NODE_ENV !== 'production' ? "http://localhost:1234" : null
+    "'unsafe-eval'"
   ].filter(Boolean),
   styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: [
