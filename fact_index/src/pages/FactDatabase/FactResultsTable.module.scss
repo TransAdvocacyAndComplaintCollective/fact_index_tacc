@@ -1,7 +1,9 @@
-@use '../../style/mixins';
+@use "../../style/mixins";
 @use "../../style/variables";
 @use "../../style/color";
 
+.factDatabaseSidebar {
+}
 // Main table container
 .factdbResultsTable {
   width: 100%;
@@ -22,12 +24,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  // padding: 1.05rem 1.15rem;
+  // padding: 1.05rem 1.15rem;paddingpadding
   background: var(--theme-bg-white);
   border-radius: 8px;
   box-shadow: 0 2px 7px var(--theme-shadow-1);
   cursor: pointer;
-  transition: background 0.22s, box-shadow 0.2s, transform 0.09s;
+  transition:
+    background 0.22s,
+    box-shadow 0.2s,
+    transform 0.09s;
   outline: none;
   border: 2px solid transparent;
 
@@ -81,8 +86,9 @@
   .factdbResultsTable {
     padding: 0;
   }
+
   .factdbResultRow {
-    // padding: 0.75rem 0.2rem;
+    // padding: 0.75rem 0.2rem;paddingpadding
     border-radius: 8px;
     font-size: 0.99rem;
   }

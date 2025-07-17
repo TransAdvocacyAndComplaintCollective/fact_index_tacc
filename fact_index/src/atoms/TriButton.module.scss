@@ -5,14 +5,9 @@
   display: inline-block;
   border-radius: 8px;
   font-size: 0.93em;
-  background: var(--theme-chip-bg);
-  border: 1.5px solid var(--theme-chip-border);
-  color: var(--theme-chip-label, var(--theme-color-chip-text));
   font-weight: 500;
-  white-space: pre-wrap; // change from pre to pre-wrap for wrapping!
-  box-shadow: 0 1px 2px var(--theme-shadow-1);
-  word-break: break-word;      // enable word break
-  overflow-wrap: anywhere;     // optional, even better for unbreakable words
+  white-space: pre-wrap;
+  word-break: break-word;     // optional, even better for unbreakable words
   max-width: 100%;
   border: 2px solid var(--theme-chip-border);
   background: var(--theme-color-bg-white)!important;
@@ -59,7 +54,7 @@
   border-color: var(--theme-color-accent-red);
   color: #fff !important;
   opacity: 1;
-  // text-decoration: line-through wavy var(--theme-color-warning);
+  // text-decoration: line-through wavy var(--theme-color-warning);text-decoration
 
   &:hover,
   &:focus {
@@ -73,12 +68,14 @@
   outline: 2.5px solid var(--theme-color-focus-outline);
   z-index: 1;
 }
+
 .chip:hover,
 .chip:focus {
   outline: 2px solid var(--theme-color-focus-outline);
   z-index: 2;
   transform: scale(1.08);
 }
+
 .chip:active {
   transform: scale(0.97);
 }

@@ -1,14 +1,36 @@
+// SidebarFilters.tsx
+
 import React from "react";
-import PropTypes from "prop-types";
 import Button from "../../atoms/Button";
 import * as styles from "./SidebarFilters.module.scss";
-import TriButton from "../../atoms/TriButton";
+import TriButton, { State as TriState } from "../../atoms/TriButton";
+import { UseFactDatabaseFilters } from "../../hooks/useFactDatabase";
 
-// Utility: generate a tri-state map for chip display from include/exclude arrays
-function getChipStates(items, include = [], exclude = []) {
-  const states = {};
-  (items || []).forEach(item => {
-    const name = typeof item === "string" ? item : item.name;
+interface SubjectOrAudience {
+  id: number | string;
+  name: string;
+}
+
+interface SidebarFiltersProps {
+  filters: UseFactDatabaseFilters;
+  setFilters: React.Dispatch<React.SetStateAction<UseFactDatabaseFilters>>;
+  subjects: SubjectOrAudience[];
+  audiences: SubjectOrAudience[];
+  onFiltersChange?: (filters: UseFactDatabaseFilters) => void;
+  onApplyFilters?: (filters: UseFactDatabaseFilters) => void;
+}
+
+type FieldName = keyof UseFactDatabaseFilters;
+
+// Utility to generate chip tri-state from filters
+function getChipStates(
+  items: SubjectOrAudience[] = [],
+  include: string[] = [],
+  exclude: string[] = []
+): Record<string, TriState> {
+  const states: Record<string, TriState> = {};
+  items.forEach((item) => {
+    const name = item.name;
     if (include.includes(name)) states[name] = "include";
     else if (exclude.includes(name)) states[name] = "exclude";
     else states[name] = "neutral";
@@ -20,69 +42,68 @@ const SORT_OPTIONS = [
   { value: "date", label: "Date Added" },
   { value: "year", label: "Year (Fact)" },
   { value: "name", label: "Fact Text (A-Z)" },
-  { value: "relevance", label: "Relevance (Keyword)" }
-];
+  { value: "relevance", label: "Relevance (Keyword)" },
+] as const;
+
 const SORT_DIRECTIONS = [
   { value: "desc", label: "Descending" },
-  { value: "asc", label: "Ascending" }
-];
+  { value: "asc", label: "Ascending" },
+] as const;
 
 export default function SidebarFilters({
   filters,
   setFilters,
   subjects,
   audiences,
-  subjectsInclude,
-  subjectsExclude,
-  audiencesInclude,
-  audiencesExclude,
   onFiltersChange,
   onApplyFilters,
-}) {
-  // CHIP CHANGE HANDLER for Include/Exclude (subjects/audiences)
-  function handleTriChipChange(fieldInclude, fieldExclude, value, nextState) {
-    setFilters((f) => {
-      // current values or fallback to defaults
-      const inc = f[fieldInclude] || [];
-      const exc = f[fieldExclude] || [];
-      let newInclude = [...inc];
-      let newExclude = [...exc];
-
-      // remove from both arrays
-      newInclude = newInclude.filter(v => v !== value);
-      newExclude = newExclude.filter(v => v !== value);
+}: SidebarFiltersProps) {
+  // --- Handlers ---
+  // For tri-state subject/audience chips
+  function handleTriChipChange(
+    fieldInclude: FieldName,
+    fieldExclude: FieldName,
+    value: string,
+    nextState: TriState
+  ) {
+    setFilters((prev) => {
+      const inc = (prev[fieldInclude] as string[] | undefined) ?? [];
+      const exc = (prev[fieldExclude] as string[] | undefined) ?? [];
+      const newInclude = inc.filter((v) => v !== value);
+      const newExclude = exc.filter((v) => v !== value);
 
       if (nextState === "include") newInclude.push(value);
       if (nextState === "exclude") newExclude.push(value);
 
-      const updatedFilters = {
-        ...f,
+      const updated: UseFactDatabaseFilters = {
+        ...prev,
         [fieldInclude]: newInclude,
         [fieldExclude]: newExclude,
       };
-      if (onFiltersChange) onFiltersChange(updatedFilters);
-      return updatedFilters;
+      if (onFiltersChange) onFiltersChange(updated);
+      return updated;
     });
   }
 
-  // Renders one row of chips with tri-state (for Include/Exclude per group)
-  function renderTriChips(items, chipStates, fieldInclude, fieldExclude, groupLabelId) {
+  function renderTriChips(
+    items: SubjectOrAudience[],
+    chipStates: Record<string, TriState>,
+    fieldInclude: FieldName,
+    fieldExclude: FieldName,
+    groupLabelId: string
+  ) {
     return (
-      <div
-        className={styles.chipRow}
-        role="group"
-        aria-labelledby={groupLabelId}
-      >
-        {(items || []).map(item => {
-          const name = typeof item === "string" ? item : item.name;
-          const id = typeof item === "object" && item.id ? item.id : name;
-          const state = chipStates[name] || "neutral";
+      <div className={styles.chipRow} role="group" aria-labelledby={groupLabelId}>
+        {(items || []).map((item) => {
+          const name = item.name;
+          const id = item.id;
+          const state = chipStates[name] ?? "neutral";
           return (
             <TriButton
               key={id}
               label={name}
               state={state}
-              onChange={nextState =>
+              onChange={(nextState) =>
                 handleTriChipChange(fieldInclude, fieldExclude, name, nextState)
               }
             />
@@ -92,33 +113,31 @@ export default function SidebarFilters({
     );
   }
 
-  // Year change handler
-  function handleYearChange(field, value) {
-    setFilters((f) => {
-      const updatedFilters = { ...f, [field]: value };
-      if (onFiltersChange) onFiltersChange(updatedFilters);
-      return updatedFilters;
+  function handleYearChange(field: "yearFrom" | "yearTo", value: string) {
+    const intVal = value ? parseInt(value, 10) : undefined;
+    setFilters((prev) => {
+      const updated = { ...prev, [field]: intVal };
+      if (onFiltersChange) onFiltersChange(updated);
+      return updated;
     });
   }
 
-  // SORT BY change
-  function handleSortByChange(e) {
-    const value = e.target.value;
-    setFilters(f => ({ ...f, sortBy: value }));
-  }
-  // SORT ORDER change
-  function handleSortOrderChange(e) {
-    const value = e.target.value;
-    setFilters(f => ({ ...f, sortOrder: value }));
+  function handleSortByChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value as UseFactDatabaseFilters["sortBy"];
+    setFilters((prev) => ({ ...prev, sortBy: value }));
   }
 
-  // Apply Filters button
+  function handleSortOrderChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value as UseFactDatabaseFilters["sortOrder"];
+    setFilters((prev) => ({ ...prev, sortOrder: value }));
+  }
+
   function handleApplyFilters() {
     if (onApplyFilters) onApplyFilters(filters);
-    setFilters((f) => ({ ...f }));
+    setFilters((prev) => ({ ...prev }));
   }
 
-  // Accessibility IDs
+  // --- Accessibility IDs ---
   const yearFromId = "sidebar-year-from";
   const yearToId = "sidebar-year-to";
   const subjectsLabelId = "sidebar-label-subjects";
@@ -127,9 +146,17 @@ export default function SidebarFilters({
   const sortById = "sidebar-sortby";
   const sortOrderId = "sidebar-sortorder";
 
-  // Prepare chip state maps from props for each group
-  const subjectChipStates = getChipStates(subjects, subjectsInclude, subjectsExclude);
-  const audienceChipStates = getChipStates(audiences, audiencesInclude, audiencesExclude);
+  // --- Tri-state maps ---
+  const subjectChipStates = getChipStates(
+    subjects,
+    filters.subjectsInclude ?? [],
+    filters.subjectsExclude ?? []
+  );
+  const audienceChipStates = getChipStates(
+    audiences,
+    filters.audiencesInclude ?? [],
+    filters.audiencesExclude ?? []
+  );
 
   return (
     <aside className={styles.sidebarFilters} aria-label="Filters">
@@ -143,11 +170,13 @@ export default function SidebarFilters({
         <select
           id={sortById}
           className={styles.selectInput}
-          value={filters.sortBy || "date"}
+          value={filters.sortBy ?? "date"}
           onChange={handleSortByChange}
         >
-          {SORT_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
         <label htmlFor={sortOrderId} className={styles.filterLabel} style={{ marginTop: 8 }}>
@@ -156,11 +185,13 @@ export default function SidebarFilters({
         <select
           id={sortOrderId}
           className={styles.selectInput}
-          value={filters.sortOrder || "desc"}
+          value={filters.sortOrder ?? "desc"}
           onChange={handleSortOrderChange}
         >
-          {SORT_DIRECTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          {SORT_DIRECTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </div>
@@ -194,7 +225,10 @@ export default function SidebarFilters({
       </div>
 
       {/* Year Range */}
-      <fieldset className={`${styles.filterSection} ${styles.filterYears}`} aria-labelledby={yearsGroupId}>
+      <fieldset
+        className={`${styles.filterSection} ${styles.filterYears}`}
+        aria-labelledby={yearsGroupId}
+      >
         <legend id={yearsGroupId} className={styles.filterLabel}>
           Year
         </legend>
@@ -203,11 +237,11 @@ export default function SidebarFilters({
           <input
             id={yearFromId}
             type="number"
-            min="1900"
+            min={1900}
             max={new Date().getFullYear()}
-            value={filters.yearFrom || ""}
+            value={filters.yearFrom ?? ""}
             placeholder="YYYY"
-            onChange={e => handleYearChange("yearFrom", e.target.value)}
+            onChange={(e) => handleYearChange("yearFrom", e.target.value)}
             inputMode="numeric"
             aria-labelledby={`${yearsGroupId} ${yearFromId}-label`}
           />
@@ -220,11 +254,11 @@ export default function SidebarFilters({
           <input
             id={yearToId}
             type="number"
-            min="1900"
+            min={1900}
             max={new Date().getFullYear()}
-            value={filters.yearTo || ""}
+            value={filters.yearTo ?? ""}
             placeholder="YYYY"
-            onChange={e => handleYearChange("yearTo", e.target.value)}
+            onChange={(e) => handleYearChange("yearTo", e.target.value)}
             inputMode="numeric"
             aria-labelledby={`${yearsGroupId} ${yearToId}-label`}
           />
@@ -246,25 +280,3 @@ export default function SidebarFilters({
     </aside>
   );
 }
-
-SidebarFilters.propTypes = {
-  filters: PropTypes.object.isRequired,
-  setFilters: PropTypes.func.isRequired,
-  subjects: PropTypes.array.isRequired,
-  audiences: PropTypes.array.isRequired,
-  subjectsInclude: PropTypes.array,
-  subjectsExclude: PropTypes.array,
-  audiencesInclude: PropTypes.array,
-  audiencesExclude: PropTypes.array,
-  onFiltersChange: PropTypes.func,
-  onApplyFilters: PropTypes.func,
-};
-
-SidebarFilters.defaultProps = {
-  subjectsInclude: [],
-  subjectsExclude: [],
-  audiencesInclude: [],
-  audiencesExclude: [],
-  onFiltersChange: undefined,
-  onApplyFilters: undefined,
-};

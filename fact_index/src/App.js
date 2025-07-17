@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider, useAuthContext } from "./context/AuthContext";
+import { AuthProvider } from "./hooks/useAuth"; // ✅ Correct import path
 import NavBar from "./components/NavBar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -13,35 +13,19 @@ import FactEdit from "./pages/FactDatabase/FactEdit";
 import TestPage from "./pages/TestPage/TestPage";
 import "./App.scss";
 
-// Create a QueryClient instance once, outside the component
 const queryClient = new QueryClient();
 
-
-// Helper component for login redirect logic
-function LoginRedirect() {
-  const { authenticated, loading } = useAuthContext();
-
-  if (loading) return <div>Loading...</div>;
-  return authenticated ? <Navigate to="/" /> : <Login />;
-}
-
-function App() {
+export default function App() {
   return (
-    // AuthProvider provides user auth context
-    <AuthProvider>
-      {/* QueryClientProvider must wrap your app for React Query to work */}
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <Router>
           <NavBar />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
-            <Route
-              path="/login"
-              element={<LoginRedirect />}
-            />
-           <Route path="/test" element={<TestPage />}>
-          </Route>
+            <Route path="/login" element={<Login/>} />
+            <Route path="/test" element={<TestPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
@@ -51,13 +35,11 @@ function App() {
               <Route path="/facts/:id/edit" element={<FactEdit />} />
             </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
+            {/* Fallback redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
-      </QueryClientProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
-
-export default App;

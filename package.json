@@ -15,10 +15,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@atproto/jwk-jose": "^0.1.9",
+    "@atproto/oauth-client-node": "^0.3.3",
+    "@dicebear/collection": "^9.2.3",
+    "@dicebear/core": "^9.2.3",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "authenticate-pam": "^1.0.5",
     "body-parser": "^2.2.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
@@ -27,20 +33,32 @@
     "es6-crawler-detect": "^4.0.2",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "google-auth-library": "^10.1.0",
     "helmet": "^8.1.0",
     "http-proxy-middleware": "^3.0.5",
+    "ipaddr.js": "^2.2.0",
     "knex": "^3.1.0",
     "limits": "^1.0.0",
     "local": "^0.3.3",
+    "mime-types": "^3.0.1",
     "passport": "^0.7.0",
+    "passport-bluemix": "^0.1.2-b",
     "passport-custom": "^1.1.1",
     "passport-discord": "^0.1.4",
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
+    "passport-oauth2-refresh": "^2.2.0",
     "rate-limiter-flexible": "^7.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "typed-css-modules": "github:Quramy/typed-css-modules"
   },
   "devDependencies": {
     "@parcel/config-default": "^2.15.4",
-    "@parcel/core": "^2.15.4"
+    "@parcel/core": "^2.15.4",
+    "@parcel/packager-raw-url": "^2.15.4",
+    "@parcel/transformer-sass": "^2.15.4",
+    "@parcel/transformer-webmanifest": "^2.15.4",
+    "@types/node": "^24.0.14"
   }
 }

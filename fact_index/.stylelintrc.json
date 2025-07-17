@@ -1,0 +1,27 @@
+{
+  "plugins": [
+  ],
+  "extends": [
+    "stylelint-config-standard",
+    "stylelint-scss"
+  ],
+  "rules": {
+    "at-rule-no-unknown": null,
+    "scss/at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["use", "include", "tailwind", "apply", "variants", "responsive", "screen"]
+      }
+    ],
+    "prettier/prettier": [
+      true,
+      {
+        "singleQuote": true,
+        "semi": true
+      }
+    ],
+    "plugin/dead-code": [true, {
+      "patterns": ["**/*.{js,jsx,ts,tsx,html}"]
+    }]
+  }
+}

@@ -1,4 +1,6 @@
-@use "global"; // Import global theme variables
+@use "global";
+
+ // Import global theme variables
 
 // 3. WINDOWS XP THEME MAP  (Emi says this was the peak of UI design, so let's emulate it.)
 $theme_xp: map-merge($theme-global, (
@@ -117,4 +119,4 @@ $theme_xp: map-merge($theme-global, (
   info: var(--color-brand-softer),
   error: var(--color-accent-red4),
   warn: var(--color-warning)
-));
+));Importglobalthemevariables3.WINDOWSXPTHEMEMAPEmisaysthiswasthepeakofUIdesign,soletemulateit.$theme_xp

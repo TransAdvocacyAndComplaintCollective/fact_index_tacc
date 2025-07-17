@@ -1,14 +1,13 @@
-@use '../../style/mixins';
+@use "../../style/mixins";
 @use "../../style/variables";
 @use "../../style/color"; // For CSS vars
 
 .factEditForm {
-    background: var(--theme-color-bg);
-
+  background: var(--theme-color-bg);
   border-radius: 8px;
   box-shadow: 0 2px 12px var(--theme-shadow-2);
   border: 1px solid var(--theme-color-border);
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
   color: var(--theme-color-text);
   max-width: 640px;
   margin: 2.5rem auto;
@@ -47,7 +46,9 @@
     color: var(--theme-color-text);
     font-family: inherit;
     box-sizing: border-box;
-    transition: border-color 0.18s, background 0.17s;
+    transition:
+      border-color 0.18s,
+      background 0.17s;
 
     &:focus {
       border-color: var(--theme-color-border-focus);
@@ -72,7 +73,9 @@
     border-radius: 8px;
     padding: 0.6em 1.3em;
     cursor: pointer;
-    transition: background 0.18s, color 0.18s;
+    transition:
+      background 0.18s,
+      color 0.18s;
     box-shadow: 0 2px 8px var(--theme-shadow-1);
     outline: none;
 
@@ -81,12 +84,14 @@
       background: var(--theme-color-accent-green5);
       outline: 2px solid var(--theme-color-focus-outline);
     }
+
     &:disabled {
       background: var(--theme-color-disabled);
       color: var(--theme-color-text-light);
       cursor: not-allowed;
     }
   }
+
   .factEditCancelBtn {
     background: var(--theme-color-bg-offwhite);
     color: var(--theme-color-text);
@@ -96,7 +101,9 @@
     border-radius: 8px;
     padding: 0.6em 1.3em;
     cursor: pointer;
-    transition: background 0.16s, color 0.18s;
+    transition:
+      background 0.16s,
+      color 0.18s;
     box-shadow: 0 2px 6px var(--theme-shadow-1);
 
     &:hover,
@@ -105,6 +112,7 @@
       color: var(--theme-color-link-hover);
       outline: 2px solid var(--theme-color-focus-outline);
     }
+
     &:disabled {
       background: var(--theme-color-disabled);
       color: var(--theme-color-text-light);
@@ -118,12 +126,14 @@
     font-weight: 600;
     font-size: 1.04rem;
   }
+
   .factEditSuccess {
     margin-top: 1em;
     color: var(--theme-color-accent-green5);
     font-weight: 600;
     font-size: 1.03rem;
   }
+
   fieldset {
     border: none;
     padding: 0;
@@ -136,6 +146,7 @@
     border-radius: 8px;
     max-width: 99vw;
     font-size: 1rem;
+
     .factEditActions {
       flex-direction: column;
       gap: 0.8em;

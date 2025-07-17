@@ -1,12 +1,17 @@
 import React from "react";
-import PropTypes from "prop-types";
 import clsx from "clsx";
 import * as styles from "./FactResultRow.module.scss";
+import { Fact } from "@/hooks/useFactDatabase";
 
 /**
  * Renders a single fact result row with accessibility and programmatic names.
  */
-export default function FactResultRow({ fact, isSelected }) {
+type FactResultRowProps = {
+  fact: Fact;
+  isSelected?: boolean;
+};
+
+export default function FactResultRow({ fact, isSelected }: FactResultRowProps) {
   const {
     fact_text,
     summary,
@@ -17,7 +22,6 @@ export default function FactResultRow({ fact, isSelected }) {
     suppressed,
     context,
   } = fact;
-  console.log("FactResultRow", fact);
   // Accessibility: Status message for suppressed
   const statusId = suppressed ? `fact-row-status-${fact.id || fact_text.replace(/\s+/g, '-').toLowerCase()}` : undefined;
 
@@ -49,7 +53,7 @@ export default function FactResultRow({ fact, isSelected }) {
         )}
         <div className={styles.metaRow}>
           {source && (
-            <span className={styles.source} label="Source" >
+            <span className={styles.source} aria-label="Source" >
               {source}
             </span>
           )}
@@ -110,21 +114,3 @@ export default function FactResultRow({ fact, isSelected }) {
   );
 }
 
-FactResultRow.propTypes = {
-  fact: PropTypes.shape({
-    fact_text: PropTypes.string.isRequired,
-    summary: PropTypes.string,
-    datePublished: PropTypes.string,
-    source: PropTypes.string,
-    score: PropTypes.number,
-    subjects: PropTypes.arrayOf(PropTypes.string),
-    audiences: PropTypes.arrayOf(PropTypes.string),
-    suppressed: PropTypes.bool,
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  }).isRequired,
-  isSelected: PropTypes.bool,
-};
-
-FactResultRow.defaultProps = {
-  isSelected: false,
-};

@@ -3,11 +3,31 @@
 
 // Helper: see above for how theme maps are updated!
 
+/* src/pages/FactDatabase/FactDatabase.module.scss */
+.factDatabaseSidebar {
+  padding: 1rem;
+  border-right: 1px solid var(--theme-color-border);
+  background: var(--theme-color-bg-light);
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 2.5rem;
+  color: #555;
+  font-size: 1rem;
+  cursor: pointer;
+
+  /* Optional: add a spinner or animation here */
+}
+
+
 /* --- Main container --- */
 .factDatabase {
   min-height: 100vh;
   padding: 2.5rem 1rem;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
     background: var(--theme-color-bg);
 
 
@@ -25,8 +45,7 @@
 }
 
 .factDatabase__header {
-  width: 100%;          // Always fill container width
-  display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 2rem;
@@ -47,10 +66,11 @@
     padding-bottom: 0.2rem;
   }
 }
+
 .factDatabase__title {
   width: 100%;             // Ensures it takes a whole line
   display: block;          // Forces new line in flex container
-  text-align: center;      // Centers the text
+  text-align: center;    // Centers the text
   font-size: 2rem;
   font-weight: 700;
   color: var(--theme-color-title);
@@ -87,8 +107,8 @@
     font-size: 1rem;
     margin-left: 0;         // REMOVE margin-left for mobile
     margin-top: 0.7rem;     // Smaller top margin on mobile
-    width: 100%;            // Optional: make button fill width on mobile
-    display: block;         // Ensures own line
+    width: 100%;           // Optional: make button fill width on mobile;
+    display: block         // Ensures own line
   }
 }
 
@@ -178,17 +198,18 @@
   font-size: 1rem;
   color: var(--theme-color-text);
 
-  // @include mixins.respond-to-width(netbook) {
-  //   min-width: 160px;
-  //   padding: 1rem 0.6rem;
-  // }
-  // @include mixins.respond-to-width(mobile) {
-  //   width: 100%;
-  //   max-width: none;
-  //   margin-right: 0;
-  //   margin-bottom: 1rem;
-  //   padding: 1.2rem 0.5rem;
-  // }
+  @include mixins.respond-to-width(netbook) {
+    min-width: 160px;
+    padding: 1rem 0.6rem;
+  }
+  @include mixins.respond-to-width(mobile) {
+    width: 100%;
+    max-width: none;
+    
+    margin-right: 0;
+    margin-bottom: 1rem;
+    padding: 1.2rem 0.5rem;
+  }
 }
 
 .factDatabase__results {
@@ -234,7 +255,7 @@
 
 .factDatabase__end {
   text-align: center;
-  margin: 1.3rem 0 0.7rem 0;
+  margin: 1.3rem 0 0.7rem;
   color: var(--theme-color-end-message);
   font-size: 1.01rem;
   letter-spacing: 0.01em;
@@ -264,15 +285,18 @@
     border-bottom: 1px solid var(--theme-color-border);
     text-align: left;
   }
+
   th {
     background: var(--theme-color-bg-offwhite);
     font-weight: 600;
     font-size: 1.01em;
     color: var(--theme-color-title);
   }
+
   tr:last-child td {
     border-bottom: none;
   }
+
   tr:hover {
     background: var(--theme-color-row-hover);
     cursor: pointer;
@@ -284,10 +308,12 @@
   width: 8px;
   background: var(--theme-color-bg-offwhite);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--theme-color-accent-blue4);
   border-radius: 8px;
 }
+
 .keywordInput {
   width: 320px;
   padding: 0.45rem 0.7rem;
@@ -353,10 +379,10 @@
   border: 1px solid var(--theme-color-error-border, #ffa2a2);
   border-radius: 8px;
   padding: 1.1em 1.2em;
-  margin: 1.1rem 0 1.3rem 0;
+  margin: 1.1rem 0 1.3rem;
   font-size: 1.06rem;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgb(255 0 0 / 5%);
   outline: none;
 
   &:focus {

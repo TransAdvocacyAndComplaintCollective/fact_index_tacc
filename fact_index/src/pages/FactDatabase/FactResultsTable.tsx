@@ -1,9 +1,15 @@
 import React from "react";
-import PropTypes from "prop-types";
 import FactResultRow from "./FactResultRow";
 import * as styles from "./FactResultsTable.module.scss";
+import { Fact } from "@/hooks/useFactDatabase";
 
-export default function FactResultsTable({ facts, onRowClick, selectedFact }) {
+type PropFactResultsTable = {
+  facts: Fact[];
+  onRowClick: (fact: Fact) => void;
+  selectedFact?: Fact;
+};
+
+export default function FactResultsTable({ facts, onRowClick, selectedFact }: PropFactResultsTable) {
   return (
     <div className={styles.factdbResultsTable}>
       <div className={styles.factdbResults} role="list">
@@ -44,8 +50,3 @@ export default function FactResultsTable({ facts, onRowClick, selectedFact }) {
   );
 }
 
-FactResultsTable.propTypes = {
-  facts: PropTypes.array.isRequired,
-  onRowClick: PropTypes.func.isRequired,
-  selectedFact: PropTypes.object,
-};

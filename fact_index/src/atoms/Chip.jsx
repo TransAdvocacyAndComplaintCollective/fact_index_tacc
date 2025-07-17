@@ -1,7 +1,6 @@
-// Chip.jsx
 import React from "react";
 import PropTypes from "prop-types";
-import * as styles from "./Chip.module.scss";
+import  styles from "./Chip.module.scss";
 
 /**
  * Renders a styled chip with the correct modifier class.

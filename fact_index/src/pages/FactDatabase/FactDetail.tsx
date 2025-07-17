@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Button from "../../atoms/Button"; // Update path if needed
 import * as styles from "./FactDetail.module.scss";
 

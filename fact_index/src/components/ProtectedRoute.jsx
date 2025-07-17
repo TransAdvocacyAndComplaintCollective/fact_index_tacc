@@ -1,28 +1,31 @@
-// +// src/components/ProtectedRoute.jsx
-// This component is used to protect routes that require authentication.
-// It checks if the user is authenticated and either renders the child components or redirects to the login page.
-// If the authentication status is still loading, it shows a loading message.
-// It uses React Router's `Outlet` to render nested routes, allowing for more complex routing
-// structures where child routes can be protected under a single parent route.
-// It also uses the `useLocation` hook to preserve the attempted URL for redirecting after login.
-//  
-
-
+// src/components/ProtectedRoute.jsx
 import React from "react";
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthContext } from "../hooks/useAuth"; // ✅ Correct import path
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
+/**
+ * ProtectedRoute ensures only authenticated users can access its child routes.
+ * - Shows a loading state while auth is being determined.
+ * - Redirects unauthenticated users to /login, saving the intended destination.
+ * - Renders nested routes via <Outlet /> when the user is authenticated.
+ */
 export default function ProtectedRoute() {
   const { loading, authenticated } = useAuthContext();
   const location = useLocation();
 
-  if (loading) return <div>Loading...</div>;
-
-  if (!authenticated) {
-    // Redirect to login and preserve attempted URL for redirect after login
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
-  // For nested routing: renders matched child routes (see previous App.js suggestion)
+  if (!authenticated) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location }}
+      />
+    );
+  }
+
   return <Outlet />;
 }

@@ -1,5 +1,22 @@
 @use "../style/_color.scss" as color;
 
+/* End of file */
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -12,10 +29,10 @@
   vertical-align: middle;
   outline: none;
   border: none;
-  transition: 
-    background 0.13s, 
-    color 0.13s, 
-    border 0.13s, 
+  transition:
+    background 0.13s,
+    color 0.13s,
+    border 0.13s,
     box-shadow 0.13s;
   position: relative;
   gap: 0.5em;
@@ -51,7 +68,7 @@
 // ---- Variants ----
 .primary {
   background: var(--theme-color-button-bg, #005eff);
-  color: var(--theme-color-button-text, #fff)!important;
+  color: var(--theme-color-button-text, #fff) !important;
   border: 1.5px solid var(--theme-color-button-border, #2363a6);
 
   &:hover:not(:disabled),
@@ -60,6 +77,7 @@
     color: var(--theme-color-chip-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-focus-outline, #1554bf40);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-brand, #031b44);
@@ -67,7 +85,7 @@
     border-color: var(--theme-color-button-border, #2363a6);
     box-shadow: 0 0 0 3px var(--theme-color-brand-highlight, #f0f8ff);
     outline: 2px solid var(--theme-color-focus-outline, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -82,6 +100,7 @@
     color: var(--theme-color-button-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-focus-outline, #1554bf40);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-brand-bg, #1888e4);
@@ -89,14 +108,13 @@
     border-color: var(--theme-color-brand, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-brand-highlight, #f0f8ff);
     outline: 2px solid var(--theme-color-focus-outline, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
 .outlined {
-  background: transparent;
   color: var(--theme-color-brand, #1554bf);
-  background: var(--theme-color-brand-bg, #e7f0fa)  ;
+  background: var(--theme-color-brand-bg, #e7f0fa);
   border: 1.5px solid var(--theme-color-brand, #1554bf);
 
   &:hover:not(:disabled),
@@ -105,6 +123,7 @@
     color: var(--theme-color-brand, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-focus-outline, #1554bf40);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-brand-bg2, #e0ecfa);
@@ -112,7 +131,7 @@
     border-color: var(--theme-color-brand, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-brand-highlight, #f0f8ff);
     outline: 2px solid var(--theme-color-focus-outline, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -127,6 +146,7 @@
     color: var(--theme-color-button-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-accent-red3, #e34646);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-accent-red3, #e34646);
@@ -134,7 +154,7 @@
     border-color: var(--theme-color-accent-red2, #b91c1c);
     box-shadow: 0 0 0 3px var(--theme-color-accent-red, #d43d3d);
     outline: 2px solid var(--theme-color-accent-red, #d43d3d);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -149,6 +169,7 @@
     color: var(--theme-color-button-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-accent-green2, #eefbe6);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-accent-green2, #eefbe6);
@@ -156,7 +177,7 @@
     border-color: var(--theme-color-accent-green4, #217846);
     box-shadow: 0 0 0 3px var(--theme-color-accent-green5, #156636);
     outline: 2px solid var(--theme-color-accent-green5, #156636);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -171,6 +192,7 @@
     color: var(--theme-color-button-text, #fff);
     box-shadow: 0 0 0 3px var(--theme-color-accent-blue3, #5faaff);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-accent-blue3, #5faaff);
@@ -178,7 +200,7 @@
     border-color: var(--theme-color-accent-blue2, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-accent-blue, #7db1df);
     outline: 2px solid var(--theme-color-accent-blue4, #7db1df);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -193,6 +215,7 @@
     color: var(--theme-color-warning, #eeb700);
     box-shadow: 0 0 0 3px var(--theme-color-warning, #eeb70060);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-warning, #eeb700);
@@ -200,7 +223,7 @@
     border-color: var(--theme-color-warning, #eeb700);
     box-shadow: 0 0 0 3px var(--theme-color-warning, #eeb70060);
     outline: 2px solid var(--theme-color-warning, #eeb700);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -217,13 +240,14 @@
     text-decoration: underline;
     box-shadow: none;
   }
+
   &.active,
   &:active {
     background: var(--theme-color-brand-bg2, #e0ecfa);
     color: var(--theme-color-link-hover, #181818);
     text-decoration: underline;
     outline: 2px solid var(--theme-color-link, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
     box-shadow: none;
   }
 }
@@ -239,6 +263,7 @@
     color: var(--theme-color-link, #1554bf);
     box-shadow: 0 0 0 2.5px var(--theme-color-focus-outline, #1554bf30);
   }
+
   &.active,
   &:active {
     background: var(--theme-color-brand-highlight, #f0f8ff);
@@ -246,7 +271,7 @@
     border-color: var(--theme-color-link, #1554bf);
     box-shadow: 0 0 0 3px var(--theme-color-brand, #1554bf30);
     outline: 2px solid var(--theme-color-link, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
   }
 }
 
@@ -268,13 +293,14 @@
     background: none;
     box-shadow: none;
   }
+
   &.active,
   &:active {
     color: var(--theme-color-link-hover, #181818);
     background: var(--theme-color-brand-highlight, #f0f8ff);
     text-decoration: underline;
     outline: 2px solid var(--theme-color-link, #1554bf);
-    outline-offset: 0px;
+    outline-offset: 0;
     box-shadow: none;
   }
 }
@@ -303,6 +329,10 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

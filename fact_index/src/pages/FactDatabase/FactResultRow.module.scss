@@ -6,12 +6,11 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  // gap: 0.25rem;
-  background: var(--theme-color-bg-white); // Fixed: Use card/surface bg, not chip bg!
+  background: var(--theme-color-bg-white);
   border: 1.5px solid var(--theme-color-border-light);
   border-radius: 8px;
   padding: 1rem;
-  // box-shadow: 0 2px 6px var(--theme-shadow-1);
+  // box-shadow: 0 2px 6px var(--theme-shadow-1);box-shadow
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 
@@ -26,10 +25,12 @@
     border-color: var(--theme-color-brand);
     background: var(--theme-color-selected);
   }
+
   &.suppressed {
     opacity: 0.65;
     filter: grayscale(0.15);
     border-style: dashed;
+
     .suppressedTag {
       color: var(--theme-color-accent-red);
     }
@@ -52,6 +53,7 @@
   font-size: 1.13rem;
   color: var(--theme-title);
 }
+
 .title {
   flex: 1;
   white-space: pre-line;
@@ -70,7 +72,7 @@
 .summary {
   font-size: 1rem;
   color: var(--theme-color-text-muted);
-  margin: 0.25rem 0 0.2rem 0;
+  margin: 0.25rem 0 0.2rem;
 }
 
 // META ROW: Source, date, score, etc.
@@ -82,13 +84,16 @@
   color: var(--theme-color-meta-bold);
   opacity: 0.82;
 }
+
 .source {
   font-weight: 500;
   color: var(--theme-color-link);
 }
+
 .date {
   color: var(--theme-color-text-light);
 }
+
 .score {
   color: var(--theme-color-accent-blue);
   font-weight: 600;
@@ -105,7 +110,6 @@
   margin-bottom: 0.25em;
   align-items: flex-start;
   // Avoid pushing chips out if there's too many
-  overflow-x: visible;
   overflow-y: visible;
 }
 
@@ -118,7 +122,6 @@
   min-width: 0;
   align-items: flex-start;
   // In case you ever want vertical stacking with many chips in one group:
-  // max-width: 100%;
 }
 
 // CHIP BASE STYLING
@@ -133,7 +136,7 @@
   font-weight: 500;
   white-space: pre;
   box-shadow: 0 1px 2px var(--theme-shadow-1);
-    word-break: break-word;  // or overflow-wrap: anywhere;
+    word-break: break-word;  // or overflow-wrap: anywhere;oroverflow-wrap
   max-width: 100%;
 
   // Type modifier: Audience (e.g. green)
@@ -163,7 +166,7 @@
   display: block;
   width: 100%;
   margin-top: 0.7em;
-  padding: 0.7em 1.2em 0.7em 1.2em;
+  padding: 0.7em 1.2em;
   background: var(--theme-color-context-bg, #f0f8ff);
   color: var(--theme-color-context, #217846);
   border-left: 4.5px solid var(--theme-color-context-bold, #156636);
@@ -175,12 +178,12 @@
   font-family: inherit;
   letter-spacing: 0.01em;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
-
   // Remove default border
   border-top: none;
   border-bottom: none;
   border-right: none;
 }
+
 .suppressedMessage {
   color: var(--theme-color-accent-red);
   font-weight: 500;

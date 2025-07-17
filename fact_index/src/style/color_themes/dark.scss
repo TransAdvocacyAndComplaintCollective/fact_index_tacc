@@ -1,5 +1,7 @@
 @use "sass:map";
-@use "global"; // Import global theme variables
+@use "global";
+
+ // Import global theme variables
 
 // ./style/color_themes/dark_high_contrast.scss
 // WCAG-compliant DARK THEME MAP
@@ -8,7 +10,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
       nav-bg: #0d1117,
       nav-link: #8ecbff,
       nav-link-hover-bg: #223850,
-      nav-link-hover: #ffffff,
+      nav-link-hover: #fff,
 
       // Brand & Primary
       color-brand: #58a6ff,
@@ -47,7 +49,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
       // Chips
       chip-bg: #222c3a,
       chip-border: #5a7290,
-      chip-label: #ffffff,
+      chip-label: #fff,
       chip-none-bg: #382839,
       chip-none-border: #9578aa,
       chip-subject-bg: #1d3557,
@@ -57,7 +59,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
       chip-pink3: #faadf7,
 
       // Text & Neutral
-      color-text: #ffffff,
+      color-text: #fff,
       color-text-dark: #e5e8ee,
       // lighten muted text from #a7adc5 → #bcc3da (contrast 8.06:1 on bg-offwhite)
       color-text-muted: #bcc3da,
@@ -86,7 +88,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
 
       shadow-selected: #295fbfbb,
 
-      color-chip-text: #ffffff,
+      color-chip-text: #fff,
 
       // Misc backgrounds
       color-bg: #1b2638,
@@ -95,7 +97,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
       color-bg-offwhite: #252b39,
       color-bg-neutral: #1a2232,
       color-button-text: #181818, // highest contrast against accent blue2
-      color-button-text-light: #ffffff, // highest contrast against dark backgrounds
+      color-button-text-light: #fff, // highest contrast against dark backgrounds
       color-button-bg: #8ecbff, // matches nav-link and is high-contrast on dark backgrounds
       color-button-bg-hover: #b5e6ff, // matches color-link-hover, lighter for hover
 
@@ -107,7 +109,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
 
       // Warnings
       color-warning: #f9d423,
-      color-disabled: #444444,
+      color-disabled: #444,
 
       // Misc
       color-link-visited: #b3e6ff,
@@ -117,7 +119,7 @@ $theme_dark: map.merge(global.$theme-global, ( // Navbar
 
       // Extra UI
       color-heading: #d5e9ff,
-      color-button-border: #000000,
+      color-button-border: #000,
       color-bg-neutral-alt: #253a5e,
 
       // Fact DB custom

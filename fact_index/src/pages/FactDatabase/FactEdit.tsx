@@ -1,11 +1,27 @@
 import React, { useState, useRef, useEffect } from "react";
-import PropTypes from "prop-types";
+
+// define the shape of a fact
+type FactType = {
+  id?: string | number;
+  fact_text: string;
+  source: string;
+  type: string;
+  context: string;
+};
+
+// props interface for FactEdit
+interface FactEditProps {
+  fact: FactType;
+  mode: "edit" | "create";
+  onSave?: () => void;
+  onCancel?: () => void;
+}
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import * as styles from  "./FactEdit.module.scss"; 
 import Button from "../../atoms/Button";
 
-export function FactEdit({ fact, mode, onSave, onCancel }) {
+export function FactEdit({ fact, mode, onSave, onCancel }: FactEditProps) {
   const isEdit = mode === "edit";
   const [form, setForm] = useState({
     fact_text: fact.fact_text || "",
@@ -17,9 +33,21 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const textareaRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
+
+  // compute submit button label to avoid nested ternary
+  let submitLabel: string;
+  if (saving && isEdit) {
+    submitLabel = "Saving...";
+  } else if (saving) {
+    submitLabel = "Creating...";
+  } else if (isEdit) {
+    submitLabel = "Save";
+  } else {
+    submitLabel = "Create";
+  }
 
   function handleCancel() {
     setForm({
@@ -40,14 +68,14 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
     form.type !== (fact.type || "") ||
     form.context !== (fact.context || "");
 
-  function handleChange(e) {
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
     setError("");
     setSuccess("");
   }
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -85,8 +113,12 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
       }
       setSuccess(isEdit ? "Fact updated successfully." : "Fact created successfully.");
       if (onSave) onSave();
-    } catch (e) {
-      setError(e.response?.data?.error || "Failed to save.");
+      } catch (error: unknown) {
+      let errMsg = "Failed to save.";
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        errMsg = error.response.data.error;
+      }
+      setError(errMsg);
     } finally {
       setSaving(false);
     }
@@ -172,7 +204,7 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
               (isEdit && (!dirty || !form.reason.trim()))
             }
           >
-            {saving ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save" : "Create"}
+            {submitLabel}
           </Button>
           <Button
             type="button"
@@ -190,18 +222,6 @@ export function FactEdit({ fact, mode, onSave, onCancel }) {
   );
 }
 
-FactEdit.propTypes = {
-  fact: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    fact_text: PropTypes.string,
-    source: PropTypes.string,
-    type: PropTypes.string,
-    context: PropTypes.string,
-  }),
-  mode: PropTypes.oneOf(["edit", "create"]).isRequired,
-  onSave: PropTypes.func,
-  onCancel: PropTypes.func,
-};
 
 export default function FactEditRoute() {
   const { id } = useParams();
@@ -232,7 +252,7 @@ export default function FactEditRoute() {
 
   return (
     <FactEdit
-      fact={fact}
+      fact={fact!}
       mode={id ? "edit" : "create"}
       onSave={() => id ? navigate(`/facts/${id}`) : navigate(`/facts`)}
       onCancel={() => id ? navigate(`/facts/${id}`) : navigate(`/facts`)}

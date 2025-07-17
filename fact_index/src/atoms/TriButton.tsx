@@ -1,41 +1,49 @@
 import React, { useState, useRef } from "react";
-import PropTypes from "prop-types";
 import * as styles from "./TriButton.module.scss";
 
+export type State = "neutral" | "include" | "exclude";
+
+interface TriButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+  label: string;
+  state?: State;
+  onChange: (nextState:State) => void;
+  onStateChange?: (nextState: State) => void;
+  className?: string;
+}
+
 // Cycle through tri-states: neutral → include → exclude → neutral...
-const nextTriState = (current) => {
+const nextTriState = (current: State): State => {
   if (current === "include") return "exclude";
   if (current === "exclude") return "neutral";
   return "include";
 };
 
-// Map tri-state to ARIA checked states for accessibility
-const triAriaChecked = (state) => {
-  if (state === "include") return true;
+// Map tri-state to ARIA pressed states for accessibility
+const triAriaPressed = (state: State): "true" | "mixed" | "false" => {
+  if (state === "include") return "true";
   if (state === "exclude") return "mixed";
-  return false;
+  return "false";
 };
 
 /**
- * TriButton - tri-state toggle button component
- *
+ * TriButton component for tri-state toggling (neutral, include, exclude).
  * @param {string} label - Button text label
  * @param {"neutral"|"include"|"exclude"} state - Current toggle state
  * @param {function} onChange - Called with next state when toggled
  * @param {function} [onStateChange] - Optional callback fired on state change
  * @param {string} className - Optional additional CSS classes
  */
-export default function TriButton({ label, state, onChange, onStateChange, className = "", ...props }) {
+export default function TriButton({
+  label,
+  state = "neutral",
+  onChange,
+  onStateChange,
+  className = "",
+  ...props
+}: TriButtonProps) {
   // For status messages
   const [status, setStatus] = useState("");
-  const statusRef = useRef();
-
-  // Map state to a user-friendly string for announcement
-  const stateLabel = {
-    neutral: "Not selected",
-    include: "Included",
-    exclude: "Excluded"
-  }[state];
+  const statusRef = useRef<HTMLSpanElement | null>(null);
 
   // Wrapper to handle toggle and callback
   const handleToggle = () => {
@@ -66,8 +74,8 @@ export default function TriButton({ label, state, onChange, onStateChange, class
         ]
           .filter(Boolean)
           .join(" ")}
-        role="checkbox"
-        aria-checked={triAriaChecked(state)}
+        role="switch"
+        aria-checked={triAriaPressed(state)}
         tabIndex={0}
         onClick={handleToggle}
         onKeyDown={(e) => {
@@ -80,17 +88,17 @@ export default function TriButton({ label, state, onChange, onStateChange, class
       >
         {label}
         {state === "include" && (
-          <span className={styles.chipMark} >
+          <span className={styles.chipMark} aria-hidden="true">
             ✔
           </span>
         )}
         {state === "exclude" && (
-          <span className={styles.chipMark} >
+          <span className={styles.chipMark} aria-hidden="true">
             ✖
           </span>
         )}
         {state === "neutral" && (
-          <span className={styles.chipMark}>
+          <span className={styles.chipMark} aria-hidden="true">
             ⏺
           </span>
         )}
@@ -107,11 +115,3 @@ export default function TriButton({ label, state, onChange, onStateChange, class
     </>
   );
 }
-
-TriButton.propTypes = {
-  label: PropTypes.string.isRequired,
-  state: PropTypes.oneOf(["neutral", "include", "exclude"]).isRequired,
-  onChange: PropTypes.func.isRequired,
-  onStateChange: PropTypes.func,
-  className: PropTypes.string,
-};

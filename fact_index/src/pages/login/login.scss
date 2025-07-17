@@ -17,8 +17,10 @@
   max-width: 360px;
   background: var(--theme-color-bg-white);
   border-radius: 8px;
-  box-shadow: 0 8px 32px var(--theme-shadow-2), 0 1.5px 3px var(--theme-shadow-1);
-  padding: 3rem 2.2rem 2.2rem 2.2rem;
+  box-shadow:
+    0 8px 32px var(--theme-shadow-2),
+    0 1.5px 3px var(--theme-shadow-1);
+  padding: 3rem 2.2rem 2.2rem;
   margin: 2.5rem auto;
 
   h2 {
@@ -46,19 +48,26 @@
     font-weight: 600;
     letter-spacing: 0.01em;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border 0.2s, box-shadow 0.2s;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      border 0.2s,
+      box-shadow 0.2s;
     box-shadow: 0 0 0 0 var(--theme-color-focus-outline, transparent);
 
     &:last-child {
       margin-bottom: 0;
     }
-    &:hover, &:focus {
+
+    &:hover,
+    &:focus {
       background: var(--theme-nav-link-hover-bg);
       color: var(--theme-color-brand-light);
       border-color: var(--theme-color-brand);
       box-shadow: 0 0 0 3px var(--theme-color-focus-outline);
       outline: none;
     }
+
     &:active {
       filter: brightness(0.98);
       box-shadow: 0 0 0 2px var(--theme-color-brand-light);
@@ -74,17 +83,19 @@
 
   // Optional: Discord-specific style
   .login-btn-discord {
-    background: #5865F2;
-    border-color: #4652C8;
+    background: #5865f2;
+    border-color: #4652c8;
     color: #fff;
-    &:hover, &:focus {
-      background: #4652C8;
+
+    &:hover,
+    &:focus {
+      background: #4652c8;
       color: #fff;
     }
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .login-screen {
     padding: 1.4rem 0.7rem;
     min-width: 0;
@@ -93,6 +104,7 @@
     h2 {
       font-size: 1.16rem;
     }
+
     .login-btn {
       font-size: 0.98rem;
       padding: 1rem 0.7rem;

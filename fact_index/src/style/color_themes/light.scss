@@ -1,5 +1,7 @@
 @use "sass:map";
-@use "global"; // Import global theme variables
+@use "global";
+
+ // Import global theme variables
 
 $theme_light: map.merge(global.$theme-global, (
                  // Navbar
@@ -33,7 +35,7 @@ $theme_light: map.merge(global.$theme-global, (
                   color-accent-red: #d43d3d,
                   color-accent-red2: #b91c1c,
                   color-accent-red3: #e34646,
-                  color-accent-red4: #ffcccc, // was #ffe7e7, now AA on red2 text
+                  color-accent-red4: #fcc, // was #ffe7e7, now AA on red2 text
                   // chips will use red2 or d43d3d as text
 
                   color-accent-pink: #c5b0c4,

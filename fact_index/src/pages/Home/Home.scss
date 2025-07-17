@@ -1,12 +1,12 @@
-@use '../../style/color.scss';  // For theme variables
-@use '../../style/mixins';      // For media-width)
+@use "../../style/color.scss"; // For theme variables
+@use "../../style/mixins"; // For media-width)
 
 .app-root {
   min-height: 100vh;
-  padding: 2.5rem 1.5rem 1.5rem 1.5rem;
+  padding: 2.5rem 1.5rem 1.5rem;
   background: var(--theme-color-bg);
   color: var(--theme-color-text);
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,7 +18,9 @@
     color: var(--theme-color-title);
     margin-bottom: 1rem;
     letter-spacing: 0.03em;
-    text-shadow: 0 1px 0 var(--theme-color-bg-white), 0 2px 8px var(--theme-shadow-2);
+    text-shadow:
+      0 1px 0 var(--theme-color-bg-white),
+      0 2px 8px var(--theme-shadow-2);
     text-align: center;
   }
 
@@ -63,7 +65,9 @@
       text-decoration: none;
       padding: 0.55em 1.4em;
       border-radius: 8px;
-      transition: background 0.18s, color 0.16s;
+      transition:
+        background 0.18s,
+        color 0.16s;
 
       &:hover,
       &:focus {
@@ -86,18 +90,22 @@
       font-size: 1.3rem;
       margin-bottom: 0.7rem;
     }
+
     .home-intro {
       font-size: 1rem;
       margin-bottom: 1.2rem;
     }
+
     nav {
       padding: 1rem 0.4rem;
       min-width: 0;
       width: 100%;
       margin-top: 1rem;
+
       ul {
         gap: 0.6rem;
       }
+
       a {
         font-size: 1rem;
         padding: 0.48em 1em;

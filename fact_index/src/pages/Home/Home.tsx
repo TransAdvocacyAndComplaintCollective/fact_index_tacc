@@ -2,15 +2,9 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuthContext } from "../../context/AuthContext";
+import { useAuthContext,User } from "../../hooks/useAuth"; // Adjust the import path as needed
 import "./Home.scss";
-import Button from "../../atoms/Button"; // <-- Make sure Button.tsx exists here
 
-// You may want to declare or import these types from your AuthContext
-interface User {
-  username?: string;
-  [key: string]: any;
-}
 
 interface AuthContextValue {
   loading: boolean;

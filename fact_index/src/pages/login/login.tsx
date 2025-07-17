@@ -11,7 +11,7 @@ interface Provider {
 const providers: Provider[] = [
   {
     name: "Discord",
-    url: "/auth/discord/discord",
+    url: "/auth/discord/login",
     icon: <FontAwesomeIcon icon={faDiscord} />,
   },
   // ...add others as needed

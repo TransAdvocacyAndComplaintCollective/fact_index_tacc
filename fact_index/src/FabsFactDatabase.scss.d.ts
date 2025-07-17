@@ -1,0 +1,12 @@
+export declare const factDbCloseBtn: string;
+export declare const factDbContextBtn: string;
+export declare const factDbContextPopup: string;
+export declare const factDbDateRow: string;
+export declare const factDbFilters: string;
+export declare const factDbFindBtn: string;
+export declare const factDbMain: string;
+export declare const factDbResults: string;
+export declare const factDbRoot: string;
+export declare const factDbRow: string;
+export declare const factDbSearchbox: string;
+export declare const factDbSearchRow: string;

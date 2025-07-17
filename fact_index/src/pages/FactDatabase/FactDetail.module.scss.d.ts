@@ -1,0 +1,10 @@
+export declare const chip: string;
+export declare const chipList: string;
+export declare const chipNone: string;
+export declare const context: string;
+export declare const factDetailContext: string;
+export declare const factDetailList: string;
+export declare const factDetailMain: string;
+export declare const factDetailNav: string;
+export declare const factDetailSourceLink: string;
+export declare const factDetailTitle: string;

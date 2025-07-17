@@ -3,7 +3,6 @@ import React, {
   useCallback,
   ReactNode,
   ButtonHTMLAttributes,
-  AnchorHTMLAttributes,
 } from "react";
 import clsx from "clsx";
 import {
@@ -39,9 +38,9 @@ type CommonButtonProps = {
   active?: boolean;
   defaultActive?: boolean;
   onToggle?: (active: boolean) => void;
+  onClick?: (e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => void;
   style?: React.CSSProperties;
 };
-
 type RouterButtonProps = CommonButtonProps & {
   to: string;
   href?: undefined;
@@ -49,27 +48,25 @@ type RouterButtonProps = CommonButtonProps & {
   target?: string;
   rel?: string;
   type?: never;
-  onClick?: (e?: any) => void;
 };
+
 type AnchorButtonProps = CommonButtonProps & {
   href: string;
   to?: undefined;
   target?: string;
   rel?: string;
   type?: never;
-  onClick?: (e?: any) => void;
 };
+
 type NativeButtonProps = CommonButtonProps &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "className" | "children" | "onClick"> & {
     type?: "button" | "submit" | "reset";
     to?: undefined;
     href?: undefined;
     nav?: never;
-    onClick?: (e?: any) => void;
   };
 
-export type ButtonProps = RouterButtonProps | AnchorButtonProps | NativeButtonProps;
-
+type ButtonProps = RouterButtonProps | AnchorButtonProps | NativeButtonProps;
 export default function Button(props: ButtonProps) {
   const {
     children,
@@ -92,18 +89,24 @@ export default function Button(props: ButtonProps) {
     defaultActive = false,
     onToggle,
     style,
-    ...rest
-  } = props as ButtonProps & { [key: string]: any };
+  } = props as ButtonProps & { [key: string]: unknown };
 
   const isDisabled = disabled || loading;
   const [uncontrolledActive, setUncontrolledActive] = useState(defaultActive);
 
-  const isActive = toggleable
-    ? (controlledActive !== undefined ? controlledActive : uncontrolledActive)
-    : undefined;
+  let isActive: boolean | undefined;
+  if (toggleable) {
+    if (controlledActive !== undefined) {
+      isActive = controlledActive;
+    } else {
+      isActive = uncontrolledActive;
+    }
+  } else {
+    isActive = undefined;
+  }
 
   const handleToggle = useCallback(
-    (e: React.MouseEvent | React.KeyboardEvent) => {
+    () => {
       if (isDisabled) return;
       if (toggleable) {
         const nextActive =
@@ -119,7 +122,7 @@ export default function Button(props: ButtonProps) {
     (e: React.KeyboardEvent<HTMLElement>) => {
       if (toggleable && (e.key === " " || e.key === "Enter")) {
         e.preventDefault();
-        handleToggle(e);
+        handleToggle();
         if (onClick) onClick(e);
       }
     },
@@ -130,7 +133,7 @@ export default function Button(props: ButtonProps) {
     <>
       {loading && (
         <svg
-          className={styles.spinner}
+          className={(styles).spinner}
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -155,95 +158,114 @@ export default function Button(props: ButtonProps) {
     </>
   );
 
+  const sizeStyles: Record<ButtonSize, string> = {
+    sm: (styles as unknown as Record<string, string>).sm,
+    md: (styles as unknown as Record<string, string>).md,
+    lg: (styles as unknown as Record<string, string>).lg,
+  };
   const computedClass = clsx(
     styles.button,
-    styles[variant],
-    styles[size],
-    fullWidth && styles.fullWidth,
+    (styles as unknown as Record<string, string>)[variant],
+    sizeStyles[size],
+    fullWidth && (styles).fullWidth,
     className,
-    toggleable && isActive && styles.active
+    toggleable && isActive && (activeClassName || "active")
   );
 
-  const sharedProps = {
-    className: computedClass,
-    "aria-busy": loading ? true : undefined,
-    tabIndex: isDisabled ? -1 : 0,
-    "aria-disabled": isDisabled ? true : undefined,
-    style,
-    ...toggleable && { "aria-pressed": !!isActive },
-    ...rest,
-  };
-
-  if (nav && to && !isDisabled) {
-    const navSharedProps = sharedProps;
-    return (
-      <RouterNavLink
-        to={to}
-        {...navSharedProps}
-        className={({ isActive: navActive }) =>
-          clsx(
-            styles.button,
-            styles[variant],
-            styles[size],
-            fullWidth && styles.fullWidth,
-            className,
-            (navActive || (toggleable && isActive)) &&
-              (activeClassName || styles.active)
-          )
-        }
-        tabIndex={0}
-      >
-        {content}
-      </RouterNavLink>
-    );
+  let buttonType: "button" | "submit" | "reset";
+  if (type === "submit") {
+    buttonType = "submit";
+  } else if (type === "reset") {
+    buttonType = "reset";
+  } else {
+    buttonType = "button";
   }
 
-  if (to && !isDisabled) {
-    const { onCopy, onCopyCapture, onCut, onCutCapture, onPaste, onPasteCapture, ...linkSharedProps } = sharedProps;
-    return (
-      <RouterLink
-         to={to}
-         {...linkSharedProps}
-         tabIndex={0}
-         aria-pressed={toggleable ? !!isActive : undefined}
-      >
-         {content}
-      </RouterLink>
-    );
-  }
+  // Extract small render functions to reduce complexity
+  const renderNavLink = () => (
+    <RouterNavLink
+      to={to!}
+      aria-busy={loading || undefined}
+      aria-disabled={isDisabled || undefined}
+      style={style}
+      aria-pressed={toggleable ? !!isActive : undefined}
+      className={({ isActive: navActive }) =>
+        clsx(
+          styles.button,
+          styles[variant],
+          styles[size],
+          fullWidth && styles.fullWidth,
+          className,
+          (navActive || (toggleable && isActive)) &&
+            (activeClassName || styles.active)
+        )
+      }
+      tabIndex={0}
+    >
+      {content}
+    </RouterNavLink>
+  );
 
-  if (href && !isDisabled) {
-    const { onCopy, ...anchorSharedProps } = sharedProps;
-    return (
-      <a
-        href={href}
-        target={target}
-        rel={target === "_blank" ? rel || "noopener noreferrer" : rel}
-        {...anchorSharedProps}
-        aria-pressed={toggleable ? !!isActive : undefined}
-        onClick={e => {
-          if (toggleable) handleToggle(e);
-          if (onClick) onClick(e);
-        }}
-        onKeyDown={handleKeyDown}
-      >
-        {content}
-      </a>
-    );
-  }
+  const renderRouterLink = () => (
+    <RouterLink
+      to={to!}
+      className={computedClass}
+      aria-busy={loading || undefined}
+      style={style}
+      aria-disabled={isDisabled || undefined}
+      tabIndex={0}
+      aria-pressed={toggleable ? !!isActive : undefined}
+    >
+      {content}
+    </RouterLink>
+  );
 
-  return (
-    <button
-      type={type}
+  const renderAnchorLink = () => (
+    <a
+      href={href!}
+      target={target}
+      rel={target === "_blank" ? rel || "noopener noreferrer" : rel}
+      className={computedClass}
+      aria-busy={loading || undefined}
+      tabIndex={isDisabled ? -1 : 0}
+      aria-disabled={isDisabled || undefined}
+      style={style}
       onClick={e => {
-        if (toggleable) handleToggle(e);
+        if (toggleable) handleToggle();
+        if (onClick) onClick(e);
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      {content}
+    </a>
+  );
+
+  const renderNativeButton = () => (
+    <button
+      type={buttonType}
+      onClick={e => {
+        if (toggleable) handleToggle();
         if (onClick) onClick(e);
       }}
       onKeyDown={handleKeyDown}
       disabled={isDisabled}
-      {...sharedProps}
+      className={computedClass}
+      aria-busy={loading || undefined}
+      tabIndex={isDisabled ? -1 : 0}
+      aria-disabled={isDisabled || undefined}
+      style={style}
+      aria-pressed={toggleable ? !!isActive : undefined}
     >
       {content}
     </button>
   );
+
+  const renderContent = () => {
+    if (nav && to && !isDisabled) return renderNavLink();
+    if (to && !isDisabled) return renderRouterLink();
+    if (href && !isDisabled) return renderAnchorLink();
+    return renderNativeButton();
+  };
+
+  return renderContent();
 }
