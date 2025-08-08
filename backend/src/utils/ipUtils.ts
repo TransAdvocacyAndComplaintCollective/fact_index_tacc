@@ -43,7 +43,7 @@ export function isProxy(req: Request): boolean {
   return found.length > 0;
 }
 
-export function ipPublic(req: Request): string | null {
+export function ipPublic(req: Request): true | false  {
   const hdr = req.headers['x-forwarded-for'];
   ipLog.debug('[ipPublic] x-forwarded-for header', { hdr });
   console.log('[IP DEBUG] [ipPublic] x-forwarded-for header:', hdr);
@@ -62,7 +62,7 @@ export function ipPublic(req: Request): string | null {
     if (isValid(ip) && parse(ip).range() === 'unicast') {
       ipLog.info('[ipPublic] public IP found (header)', { ip });
       console.log('[IP DEBUG] [ipPublic] public IP found (header):', ip);
-      return ip;
+      return true;
     }
   }
   const raw = req.socket.remoteAddress;
@@ -73,22 +73,23 @@ export function ipPublic(req: Request): string | null {
     if (isValid(ip) && parse(ip).range() === 'unicast') {
       ipLog.info('[ipPublic] public IP found (socket)', { ip });
       console.log('[IP DEBUG] [ipPublic] public IP found (socket):', ip);
-      return ip;
+      return Boolean(ip);
     }
   }
   ipLog.info('[ipPublic] No public IP found');
   console.log('[IP DEBUG] [ipPublic] No public IP found');
-  return null;
+  return false;
 }
 
-export function ipPrivate(req: Request): string | null {
+export function ipPrivate(req: Request): boolean {
+  
   const raw = req.socket.remoteAddress || null;
   ipLog.debug('[ipPrivate] remoteAddress', { raw });
   console.log('[IP DEBUG] [ipPrivate] remoteAddress:', raw);
   if (!raw) {
     ipLog.warn('[ipPrivate] No remoteAddress found');
     console.log('[IP DEBUG] [ipPrivate] No remoteAddress found');
-    return null;
+    return false;
   }
   const ip = normalizeIp(raw);
   ipLog.debug('[ipPrivate] normalized', { ip });
@@ -96,7 +97,7 @@ export function ipPrivate(req: Request): string | null {
   if (!isValid(ip)) {
     ipLog.warn('[ipPrivate] Not valid', { ip });
     console.log('[IP DEBUG] [ipPrivate] Not valid:', ip);
-    return null;
+    return false;
   }
   const range = parse(ip).range();
   ipLog.debug('[ipPrivate] range', { ip, range });
@@ -104,11 +105,11 @@ export function ipPrivate(req: Request): string | null {
   if (['loopback', 'private', 'uniqueLocal', 'linkLocal',"loopback", 'ipv4Mapped'].includes(range)) {
     ipLog.info('[ipPrivate] Private IP detected', { ip, range });
     console.log('[IP DEBUG] [ipPrivate] Private IP detected:', ip, range);
-    return ip;
+    return  Boolean(ip);;
   } else {
     ipLog.info('[ipPrivate] Public IP detected', { ip, range });
     console.log('[IP DEBUG] [ipPrivate] Public IP detected:', ip, range);
-    return null;
+    return false;
   }
 }
 

@@ -1,7 +1,7 @@
 // backend/src/router/fact/facts.ts
 
 import express from 'express';
-
+import { validateAndRefreshStateless } from '../../auth/authRouter.ts';
 import pkg from 'express';
 type NextFunction = pkg.NextFunction;
 type Response = pkg.Response;
@@ -59,9 +59,10 @@ interface FactSearchParams {
 }
 
 // Middleware to require authentication on all /api/facts routes
-router.use((req: Request, res: Response, next: NextFunction) => {
-  pinolog.debug('/api/facts middleware', req.method, req.originalUrl);
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+
+router.use(validateAndRefreshStateless, (req: Request, res: Response, next: NextFunction) => {
+  const authStatus = (req as any).authStatus;
+  if (!authStatus?.authenticated) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   next();

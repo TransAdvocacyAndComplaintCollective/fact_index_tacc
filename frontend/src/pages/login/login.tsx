@@ -1,4 +1,4 @@
-// fact_index/src/pages/login/login.tsx
+// pages/login/login.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {

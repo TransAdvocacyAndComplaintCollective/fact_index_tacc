@@ -1,186 +1,233 @@
-import express from "express";
-import session from "express-session";
-
-import pkg_express from 'express';
-type Request = pkg_express.Request;
-type Response = pkg_express.Response;
-type NextFunction = pkg_express.NextFunction;
-
-import pkg_oauth, { OAuthClient } from '@atproto/oauth-client-node';
-type DigestAlgorithm = pkg_oauth.DigestAlgorithm;
-type Key = pkg_oauth.Key;
+// auth/passport-bluesky.ts
+import expressPkg from "express";
+const { Router } = expressPkg;
 import { JoseKey } from "@atproto/jwk-jose";
-import pinoLogger from "../logger/pino.ts"; // reuse your logger
-import type { AuthUser, BlueskyAuthUser } from "./auth_types";
-// Awaitable type for compatibility
-type Awaitable<T> = T | Promise<T>;
-
-// Extend express-session to include bsky property
-declare module "express-session" {
-  interface SessionData {
-    bsky?: any;
-  }
-}
+import pkg from "@atproto/oauth-client-node";
+import { randomBytes, createHash } from "crypto";
+import jwt from "jsonwebtoken";
+import pinoLogger from "../logger/pino.ts";
+import type { AuthUser, UnauthenticatedUser } from "./auth_types.d.ts";
+import type { Request, Response } from "express"; // type-only import (ESM-safe)
 
 const log = pinoLogger.child({ component: "bluesky-auth" });
-const blueskyRouter = express.Router();
-export default blueskyRouter;
+// Helper to get required environment variables
+function safeEnv(key: string): string {
+  const val = process.env[key];
+  if (!val?.trim()) {
+    log.warn({ key }, "Missing required env var");
+    return "";
+  }
+  return val.trim();
+}
+const BLUESKY_JWT_SECRET = safeEnv("BLUESKY_JWT_SECRET");
+export const BLUESKY_ENABLED = Boolean(
+  process.env.BLUESKY_ENABLED === "true" &&
+  safeEnv("BLUESKY_CLIENT_METADATA_URL") &&
+  safeEnv("CLIENT_URI") &&
+  safeEnv("BLUESKY_CALLBACK_URL") &&
+  safeEnv("BLUESKY_JWKS_URL") &&
+  safeEnv("PRIVATE_KEY_1") &&
+  safeEnv("BLUESKY_JWT_SECRET")
+);
 
-const STATE_STORE = new Map<string, any>();
-const SESSION_STORE = new Map<string, any>();
+// --- Client key (no top-level await)
+let clientKeyPromise: ReturnType<typeof JoseKey.fromImportable> | null = null;
+function getClientKey() {
+  if (!clientKeyPromise) {
+    clientKeyPromise = JoseKey.fromImportable(
+      JSON.parse(safeEnv("PRIVATE_KEY_1"))
+    );
+  }
+  return clientKeyPromise;
+}
 
 async function getOAuthClient() {
-  const keyset = [
-    // parse your private JWK(s) from env
-    await JoseKey.fromImportable(JSON.parse(process.env.PRIVATE_KEY_1!)),
-  ];
-  return new OAuthClient({
+  const clientKey = await getClientKey();
+  return new pkg.OAuthClient({
     responseMode: "query",
     runtimeImplementation: {
-      createKey: function (algs: string[]): Key | PromiseLike<Key> {
-        throw new Error("Function not implemented.");
+      createKey: () => clientKey,
+      getRandomValues: (len: number) => randomBytes(len),
+      digest: (data: Uint8Array, alg) => {
+        const name = typeof alg === "object" ? alg.name : String(alg);
+        const algo = name.replace("SHA-", "sha").toLowerCase();
+        return Uint8Array.from(createHash(algo).update(data).digest());
       },
-      getRandomValues: function (length: number): Awaitable<Uint8Array> {
-        throw new Error("Function not implemented.");
-      },
-      digest: function (data: Uint8Array, alg: DigestAlgorithm): Awaitable<Uint8Array> {
-        throw new Error("Function not implemented.");
-      }
     },
     clientMetadata: {
-      client_id: process.env.BLUESKY_CLIENT_METADATA_URL!,
-      client_name: process.env.CLIENT_NAME || "BlueSkyApp",
-      client_uri: process.env.CLIENT_URI!,
-      redirect_uris: [process.env.BLUESKY_CALLBACK_URL!],
+      client_id: safeEnv("BLUESKY_CLIENT_METADATA_URL"),
+      client_name: process.env.CLIENT_NAME ?? "BlueSky Stateless App",
+      client_uri: safeEnv("CLIENT_URI"),
+      redirect_uris: [safeEnv("BLUESKY_CALLBACK_URL")],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
-      token_endpoint_auth_method:
-        (process.env.TOKEN_METHOD as
-          | "none"
-          | "client_secret_basic"
-          | "client_secret_jwt"
-          | "client_secret_post"
-          | "private_key_jwt"
-          | "self_signed_tls_client_auth"
-          | "tls_client_auth"
-          | undefined) || "private_key_jwt",
+      token_endpoint_auth_method: (process.env.TOKEN_METHOD as any) || "private_key_jwt",
       token_endpoint_auth_signing_alg: "ES256",
-      scope: "atproto",
-      jwks_uri: process.env.BLUESKY_JWKS_URL!,
+      scope: "https://atproto.com",
+      jwks_uri: safeEnv("BLUESKY_JWKS_URL"),
       dpop_bound_access_tokens: true,
     },
-    keyset,
+    keyset: [clientKey],
+    // Stateless stores: implement as no-ops; avoid importing CJS-only types
     stateStore: {
-      set: async (k, v) => {
-        STATE_STORE.set(k, v);
-      },
-      get: async (k) => STATE_STORE.get(k),
-      del: async (k) => {
-        STATE_STORE.delete(k);
-      },
+      async set(_key: string, _value: unknown) {/* no-op */},
+      async get(_key: string) { return undefined; },
+      async del(_key: string) {/* no-op */},
     },
     sessionStore: {
-      set: async (sub, s) => {
-        SESSION_STORE.set(sub, s);
-      },
-      get: async (sub) => SESSION_STORE.get(sub),
-      del: async (sub) => {
-        SESSION_STORE.delete(sub);
-      },
+      async set(_key: string, _value: unknown) {/* no-op */},
+      async get(_key: string) { return undefined; },
+      async del(_key: string) {/* no-op */},
     },
   });
 }
 
-// 1. initiate OAuth
-blueskyRouter.get("/login", async (req, res) => {
-  const { handle } = req.query as any;
-  if (!handle) {
-    log.error("Missing handle");
-    return res.status(400).send("Missing ?handle=alice.bsky.social");
-  }
-  const client = await getOAuthClient();
-  const url = await client.authorize(handle, { state: req.sessionID });
-  res.redirect(url.toString());
-});
-
-// 2. callback
-blueskyRouter.get("/callback", async (req, res) => {
-  const client = await getOAuthClient();
-  const params = new URLSearchParams(
-    Object.entries(req.query).map(([k, v]) => [
-      k,
-      Array.isArray(v)
-        ? String(v[0])
-        : typeof v === "object" && v !== null
-          ? JSON.stringify(v)
-          : String(v),
-    ])
-  );
-  const result = await client.callback(params);
-  if (!result.session) {
-    log.error({ query: req.query }, "Callback error: no session");
-    return res.status(400).send("OAuth failed");
-  }
-  log.info("Bluesky user authenticated", { did: result.session.did });
-  res.redirect("/");
-});
-
-// 3. validate & auto‑refresh
-async function validateAndRefreshBlueSky(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  req.authUser = {
-    provider: null,
-    authenticated: false,
-    reason: "unauthenticated",
-    username: undefined,
-    expiresAt: null,
-  };
-  return next();
-
-  // // Get a client instance
-  // const client = await getOAuthClient();
-
-  // try {
-  //   // Restore session via DID (sub) from store
-  //   const restored = await client.restore(sess.sub);
-  //   req.session.bsky = restored; // updated session if refresh happened
-  //   req.authUser = {
-  //     provider: "bluesky",
-  //     authenticated: true,
-  //     reason: "authenticated",
-  //     handle: restored.handle,
-  //     session: restored,
-  //   };
-  // } catch (err) {
-  //   log.error({ err: err.message }, "Session restore/refresh failed");
-  //   delete req.session.bsky;
-  //   req.authUser = {
-  //     provider: null,
-  //     authenticated: false,
-  //     reason: "token_expired",
-  //     username: undefined,
-  //     expiresAt: null,
-  //   };
-  // }
-
-  // next();
+// Cookie helpers
+function encrypt(value: string): string {
+  return Buffer.from(value).toString("base64");
+}
+function decrypt(value: string): string {
+  return Buffer.from(value, "base64").toString("utf8");
 }
 
-// usage: in your main app setup
-blueskyRouter.use(
-  session({
-    secret: process.env.SESSION_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-blueskyRouter.use(validateAndRefreshBlueSky);
+export async function validateBlueskyJwt(
+  token: string
+): Promise<AuthUser | UnauthenticatedUser> {
+  try {
+    const client = await getOAuthClient();
+    const session = await client.restore(token);
+    return {
+      provider: "bluesky",
+      authenticated: true,
+      reason: "authenticated",
+      username: session.sub,
+      id: session.did,
+      avatar: undefined,
+      expiresAt: Date.now() + 3600 * 1000,
+      params: [],
+    };
+  } catch (err: any) {
+    log.error({ err }, "Bluesky validation failed");
+    return {
+      provider: null,
+      authenticated: false,
+      reason: "token_expired",
+      username: undefined,
+      expiresAt: null,
+    };
+  }
+}
 
-// Enable Bluesky based on environment variable
-const BLUESKY_ENABLED = !!process.env.BLUESKY_ENABLED;
+const router = Router();
 
-export { validateAndRefreshBlueSky, BLUESKY_ENABLED };
-// export router
+// --- LOGIN ---
+router.post("/login", async (req: Request, res: Response) => {
+  if (!BLUESKY_ENABLED) {
+    return res.status(403).json({ error: "Bluesky OAuth is disabled" });
+  }
+
+  try {
+    const client = await getOAuthClient();
+
+    // Expect a Bluesky handle or full host—for example "alice.bsky.social"
+    const handle = (req.body?.handle || req.query.handle) as string | undefined;
+    if (!handle?.trim()) {
+      return res
+        .status(400)
+        .json({ error: "Missing 'handle' (e.g. alice.bsky.social)" });
+    }
+
+    const state = randomBytes(16).toString("hex");
+    const redirectUri = (req.query.redirect_uri as string) || safeEnv("BLUESKY_CALLBACK_URL");
+
+    // Store encrypted state & callback redirect in secure HTTP-only cookies
+    res.cookie("bluesky_state", encrypt(state), { httpOnly: true, sameSite: "lax", secure: true });
+    res.cookie(`bluesky_cb_${state}`, encrypt(redirectUri), { httpOnly: true, sameSite: "lax", secure: true });
+
+    // Ensure redirectUri matches the expected type
+    const validRedirectUri =
+      /^https:\/\/.+/.test(redirectUri) ||
+      /^http:\/\/127\.0\.0\.1(:\d+)?(\/.*)?$/.test(redirectUri)
+        ? redirectUri
+        : safeEnv("BLUESKY_CALLBACK_URL");
+
+    const authUrl = await client.authorize(handle, {
+      state,
+      redirect_uri: validRedirectUri as
+        | `http://[::1]${string}`
+        | "http://127.0.0.1"
+        | `http://127.0.0.1:${string}`
+        | `http://127.0.0.1/${string}`
+        | `http://127.0.0.1?${string}`
+        | `http://127.0.0.1#${string}`
+        | `https://${string}`
+        | `${string}.${string}:/${string}`
+        | undefined,
+      scope: "atproto",
+      prompt: "consent",
+    });
+
+    return res.redirect(authUrl.toString());
+  } catch (e: any) {
+    log.error({ err: e, handle: req.body?.handle }, "Error during Bluesky OAuth authorization");
+    return res.status(500).json({ error: "Internal OAuth error" });
+  }
+});
+
+const JWT_EXPIRES_IN = "1h"; // Set JWT expiration to 1 hour
+
+function signBlueskyJwt(did: string, sub?: string) {
+  return jwt.sign(
+    {
+      id: did,
+      provider: "bluesky",
+      username: sub ?? did,
+      avatar: null,
+      expiresAt: Date.now() + 3600 * 1000,
+      authenticated: true,
+      reason: "authenticated",
+      params: [],
+    },
+    BLUESKY_JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+}
+
+// --- CALLBACK ---
+router.get("/callback", async (req, res) => {
+  const { state, code } = req.query;
+  if (typeof state !== "string" || typeof code !== "string") {
+    return res.status(400).json({ error: "Missing state or code" });
+  }
+  if (decrypt(req.cookies["bluesky_state"]) !== state) {
+    return res.status(400).json({ error: "Invalid state" });
+  }
+  const redirectUri =
+    req.cookies[`bluesky_cb_${state}`] ?
+      decrypt(req.cookies[`bluesky_cb_${state}`]) :
+      safeEnv("BLUESKY_CALLBACK_URL");
+
+  const client = await getOAuthClient();
+  const { session } = await client.callback(new URLSearchParams({ code, redirect_uri: redirectUri }));
+
+  const token = signBlueskyJwt(session.did, (session as any).sub);
+  res.clearCookie("bluesky_state");
+  res.clearCookie(`bluesky_cb_${state}`);
+  res.redirect(`${redirectUri}?token=${encodeURIComponent(token)}&provider=bluesky`);
+});
+
+// --- ME ---
+router.get("/me", async (req: Request, res: Response) => {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Missing token" });
+
+  const user = await validateBlueskyJwt(token);
+  if (!user.authenticated) return res.status(401).json({ error: "Invalid or expired token" });
+
+  res.json({ user });
+});
+
+router.use((_req, res) => res.status(404).json({ error: "Not Found" }));
+
+export default router;

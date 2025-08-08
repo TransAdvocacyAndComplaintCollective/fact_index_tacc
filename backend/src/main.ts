@@ -1,6 +1,4 @@
-
 import 'dotenv/config';
-
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
@@ -8,7 +6,7 @@ import passport from 'passport';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { middleware as botMiddleware } from 'es6-crawler-detect';
-import pinoHttp from 'pino-http';
+import pinoHttp, { stdSerializers } from 'pino-http';
 
 import pinologger from './logger/pino.ts';
 import authRouter from './auth/authRouter.ts';
@@ -16,37 +14,52 @@ import apiRouter from './router/api.ts';
 import staticRouter from './router/static/static.ts';
 import { securityMiddleware } from './models/suspicious.ts';
 
-const { PORT = '16261', NODE_ENV, BEHIND_PROXY, COOKIE_SECURE, SESSION_SECRET = 'change_me' } = process.env;
+// Extend Express Request type to include crawlerDetect
+declare global {
+  namespace Express {
+    interface Request {
+      crawlerDetect?: boolean;
+    }
+  }
+}
+
+console.log('[main.ts] Loading config and env');
+const {
+  PORT = '16261',
+  NODE_ENV,
+  BEHIND_PROXY,
+  COOKIE_SECURE,
+  SESSION_SECRET = 'change_me'
+} = process.env;
+
+console.log('[main.ts] Loaded env:', { PORT, NODE_ENV, BEHIND_PROXY, COOKIE_SECURE });
 const portNumber = Number(PORT);
 const isProd = NODE_ENV === 'production';
 const behindProxy = BEHIND_PROXY === 'TRUE';
 const cookieSecure = isProd && COOKIE_SECURE === 'TRUE';
 
- pinologger.child({ component: 'main' });
-const app = express();
+console.log('[main.ts] portNumber:', portNumber);
+console.log('[main.ts] isProd:', isProd);
+console.log('[main.ts] behindProxy:', behindProxy);
+console.log('[main.ts] cookieSecure:', cookieSecure);
 
-pinologger.info(`Configuration: PORT=${PORT}, NODE_ENV=${NODE_ENV}, behindProxy=${behindProxy}, cookieSecure=${cookieSecure}`);
+const appLogger = pinologger.child({ component: 'main' });
+appLogger.info({ port: portNumber, env: NODE_ENV, behindProxy, cookieSecure }, 'Initializing application');
+
+const app = express();
+console.log('[main.ts] Express app created');
+
+app.use(pinoHttp({ logger: pinologger }));
+
+console.log('[main.ts] Attached pino-http middleware');
+
+appLogger.debug('Attached pino-http middleware with enriched request logging');
 
 app.use((req, res, next) => {
-  pinologger.info(`Received ${req.method} request for ${req.url}`);
-  pinologger.debug({ method: req.method, url: req.url }, 'Incoming request');
+  console.log('[main.ts] Incoming request', req.method, req.url, { query: req.query, body: req.body });
+  req.log.trace({ query: req.query, body: req.body }, 'Request initial payload logged');
   next();
 });
-
-
-app.use(pinoHttp({
-  logger: pinologger as any,
-  autoLogging: true,
-}));
-// app.use(slowDown({
-//   windowMs: 15 * 60 * 1000,
-//   delayAfter: 50,
-//   delayMs: 200,
-//   onLimitReached: (req) => {
-//     pinologger.info(`Slowdown limit reached for IP: ${req.ip}`);
-//     req.log.warn({ ip: req.ip }, 'Slowdown limit reached');
-//   },
-// }));
 
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -54,36 +67,50 @@ app.use(rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    pinologger.info(`Rate limit exceeded for IP: ${req.ip}`);
-    req.log.warn({ ip: req.ip }, 'Too many requests');
+    console.warn('[main.ts] Rate limit exceeded for IP:', req.ip);
+    req.log.warn({ ip: req.ip }, 'Rate limit exceeded');
     res.status(429).send('Too many requests, please try again later.');
-  },
+  }
 }));
+appLogger.info('Configured rate limiting middleware');
 
 app.disable('x-powered-by');
-pinologger.info('Disabled x-powered-by header');
+appLogger.info('Disabled x-powered-by header');
+
 app.set('trust proxy', behindProxy);
-pinologger.info(`Set trust proxy to ${behindProxy}`);
+console.log('[main.ts] trust proxy set:', behindProxy);
+appLogger.info({ behindProxy }, 'Configured trust proxy');
+
 app.use(helmet());
-pinologger.info('Applied Helmet security headers');
+console.log('[main.ts] Helmet applied');
+appLogger.info('Applied Helmet security middleware');
+
 app.use(cors({ origin: true, credentials: true }));
-pinologger.info('Applied CORS middleware');
+console.log('[main.ts] CORS applied');
+appLogger.info('Applied CORS policy');
+
 app.use(express.json({ limit: '2mb' }));
-pinologger.info('Configured JSON body parser');
+console.log('[main.ts] JSON body parser applied');
+appLogger.info('JSON parser configured');
+
 app.use(express.urlencoded({ extended: false, limit: '2mb' }));
-pinologger.info('Configured URL-encoded body parser');
+console.log('[main.ts] URL-encoded parser applied');
+appLogger.info('URL-encoded parser configured');
 
 app.use(botMiddleware());
-pinologger.info('Applied bot detection middleware');
+console.log('[main.ts] Bot detection middleware applied');
+appLogger.info('Bot detection middleware applied');
+
 app.use((req, res, next) => {
   const ua = req.get('User-Agent') || '';
-  pinologger.info(`User-Agent: ${ua}`);
-  if (req.crawlerDetect || /sqlmap|nikto|acunetix|dirbuster|masscan|wpscan|nmap|hydra|arachni|python-requests|curl/i.test(ua)) {
-    pinologger.info(`Blocked suspicious User-Agent: ${ua}`);
+  console.log('[main.ts] User-Agent:', ua);
+  req.log.info({ ua }, 'Captured User-Agent');
+  if (req.crawlerDetect || /sqlmap|nikto|curl|nmap|hydra|arachni|masscan/i.test(ua)) {
+    console.warn('[main.ts] Blocked suspicious User-Agent:', ua);
     req.log.warn({ crawler: req.crawlerDetect, ua }, 'Blocked suspicious User-Agent');
     return res.sendStatus(403);
   }
-  pinologger.info('User-Agent passed check');
+  req.log.trace('User-Agent passed');
   next();
 });
 
@@ -92,54 +119,45 @@ app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, secure: cookieSecure, sameSite: 'lax', maxAge: 86400000 },
+  cookie: { httpOnly: true, secure: cookieSecure, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
 }));
-pinologger.info('Session middleware applied');
+console.log('[main.ts] Session middleware applied');
+appLogger.info('Session middleware applied');
+
 app.use(passport.initialize());
 app.use(passport.session());
-pinologger.info('Passport initialized and session handling applied');
+console.log('[main.ts] Passport initialized');
+appLogger.info('Passport initialized');
 
 app.use(securityMiddleware);
-pinologger.info('Applied custom security middleware');
+console.log('[main.ts] Custom security middleware applied');
+appLogger.info('Custom security middleware applied');
 
 app.use('/auth', authRouter);
-pinologger.info('Mounted auth router at /auth');
+console.log('[main.ts] Mounted authRouter at /auth');
+appLogger.info('Mounted authRouter at /auth');
+
 app.use('/api', apiRouter);
-pinologger.info('Mounted API router at /api');
+console.log('[main.ts] Mounted apiRouter at /api');
+appLogger.info('Mounted apiRouter at /api');
+
 app.use(staticRouter);
-pinologger.info('Applied static router');
+console.log('[main.ts] Mounted static assets router');
+appLogger.info('Mounted static assets router');
 
 app.use((req, res) => {
-  pinologger.info(`404 Not Found: ${req.originalUrl}`);
-  req.log.info({ url: req.originalUrl }, '404 Not Found');
+  console.warn('[main.ts] 404 Not Found:', req.method, req.originalUrl);
+  req.log.warn({ method: req.method, url: req.originalUrl }, '404 Not Found');
   res.status(404).send("Sorry, can't find that!");
 });
 
-import type { Request, Response, NextFunction } from 'express';
-
-// Extend Express Request type to include crawlerDetect
-declare module 'express-serve-static-core' {
-  interface Request {
-    crawlerDetect?: boolean;
-  }
-}
-
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  pinologger.error(`Unhandled error at ${req.originalUrl}:`, err);
-  req.log.error({ err, url: req.originalUrl, stack: err.stack }, 'Unhandled error');
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[main.ts] Unhandled error:', err);
+  req.log.error({ err: err.message, stack: err.stack, url: req.originalUrl }, 'Unhandled error occurred');
   res.status(500).send('Internal Server Error');
 });
 
-// process.on('unhandledRejection', (reason, promise) => {
-//   pinologger.error('Unhandled Rejection:', reason);
-//   pinologger.error({ reason, promise }, 'Unhandled Rejection');
-// });
-// process.on('uncaughtException', (err) => {
-//   pinologger.error('Uncaught Exception:', err);
-//   pinologger.error({ err }, 'Uncaught Exception');
-//   process.exit(1);
-// });
 app.listen(portNumber, '0.0.0.0', () => {
-  pinologger.info(`Server started on port ${portNumber} with env ${NODE_ENV}, behindProxy=${behindProxy}, cookieSecure=${cookieSecure}`);
-  pinologger.info({ port: portNumber, env: NODE_ENV, behindProxy, cookieSecure }, 'Server listening');
+  console.log('[main.ts] Server started on port', portNumber, 'env:', NODE_ENV);
+  appLogger.info({ port: portNumber, env: NODE_ENV }, 'Server started and listening');
 });

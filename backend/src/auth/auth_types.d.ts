@@ -20,6 +20,7 @@ export type ProviderType =
  * ------------------------------------------------------------------ */
 export type UnauthenticatedAuthReason =
   | "unknown"
+  | "invalid"
   | "not_authenticated"
   | "refresh_failed"
   | "not_logged_in"
@@ -27,7 +28,10 @@ export type UnauthenticatedAuthReason =
   | "token_expired"
   | "disabled"
   | "left_guild"
+  |"token_invalid"
+  |"token_error"
   | "missing_role"
+  |"unknown_provider"
   | "remote_access"
   | "not_found"
   | "validation_failed"

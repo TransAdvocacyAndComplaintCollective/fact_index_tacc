@@ -1,14 +1,6 @@
-// auth/passport-google.js
+// auth/passport-google.ts
 
 import express from "express";
-import type { Response, NextFunction, Request } from "express";
-
-// Extend Express Request type to include authUser
-declare module "express" {
-  interface Request {
-    authUser?: import("./auth_types.d.ts").AuthUser | import("./auth_types.d.ts").UnauthenticatedUser;
-  }
-}
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { OAuth2Client } from "google-auth-library";
@@ -17,21 +9,23 @@ import { lorelei } from "@dicebear/collection";
 import process from "process";
 import { Buffer } from "buffer";
 import pinoLogger from "../logger/pino.ts";
+import jwt from "jsonwebtoken";
 import type {
   GoogleAuthUser,
   UnauthenticatedUser,
-  AuthUser,
 } from "./auth_types.d.ts";
 
+// --- Express and logger setup ---
 const router = express.Router();
+pinoLogger.info("Loading passport-google.ts...");
 
-pinoLogger.info("Loading passport-google.js...");
-
+// --- Env check ---
 export const GOOGLE_ENABLED = (() => {
   const required = [
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "GOOGLE_CALLBACK_URL",
+    "GOOGLE_JWT_SECRET"
   ];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
@@ -42,35 +36,54 @@ export const GOOGLE_ENABLED = (() => {
   return true;
 })();
 
-async function refreshGoogleAccessToken(user: GoogleAuthUser) {
-  try {
-    const client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
-    );
-    client.setCredentials({
-      access_token: user.accessToken,
-    });
-    const res = await client.getAccessToken();
-    const token = typeof res === "string" ? res : res?.token;
-    if (!token) throw new Error("Token missing");
-    pinoLogger.info("Access token refreshed");
-    return { accessToken: token, expiresAt: Date.now() + 3600 * 1000 };
-  } catch (err) {
-    const errorMsg =
-      typeof err === "object" && err !== null && "message" in err
-        ? (err as { message?: string }).message
-        : String(err);
-    pinoLogger.error("Token refresh error", errorMsg);
-    throw err;
-  }
-}
+const JWT_SECRET = process.env.GOOGLE_JWT_SECRET as string;
+const JWT_EXPIRES_IN = "1h";
 
+// --- Helpers ---
 function getFallbackAvatar(seed: string) {
   const svg = createAvatar(lorelei, { seed: seed || "anon" }).toString();
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
+// --- JWT Sign & Validate ---
+function signGoogleJwt(user: GoogleAuthUser) {
+  // Only include minimal safe data!
+  return jwt.sign(
+    {
+      id: user.id,
+      provider: user.provider,
+      username: user.username,
+      avatar: user.avatar,
+      expiresAt: user.expiresAt,
+      authenticated: true,
+      reason: user.reason,
+      params: user.params || [],
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+}
+
+// Required for multi-provider stateless system!
+export async function validateGoogleJwt(token: string): Promise<GoogleAuthUser | null> {
+  try {
+    const user = jwt.verify(token, JWT_SECRET) as GoogleAuthUser;
+    if (
+      user &&
+      user.provider === "google" &&
+      user.authenticated &&
+      user.id
+    ) {
+      return user;
+    }
+    return null;
+  } catch (err) {
+    pinoLogger.warn("Invalid google JWT", { error: (err as Error)?.message });
+    return null;
+  }
+}
+
+// --- Passport Strategy ---
 if (GOOGLE_ENABLED) {
   passport.use(
     new GoogleStrategy(
@@ -121,82 +134,7 @@ if (GOOGLE_ENABLED) {
   );
 }
 
-passport.serializeUser((user: any, done) => {
-  pinoLogger.info("serializeUser, provider:", user.provider);
-  done(null, {
-    id: user.id,
-    provider: user.provider,
-    avatar: user.avatar,
-    expiresAt: user.expiresAt,
-    accessToken: "accessToken" in user ? user.accessToken : undefined,
-    username: "username" in user ? user.username : undefined,
-  });
-});
-
-passport.deserializeUser((obj: any, done) => {
-  pinoLogger.info("deserializeUser, provider:", obj.provider);
-  done(null, {
-    ...obj,
-    authenticated: true,
-    reason: "authenticated",
-    params: [],
-  });
-});
-
-async function validateAndRefreshGoogleSession(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const authStatus_: UnauthenticatedUser = {
-    authenticated: false,
-    provider: null,
-    reason: "not_authenticated",
-    username: undefined,
-    expiresAt: null,
-  };
-  req.authUser = req.authUser || authStatus_;
-
-  const typedReq = req as Request & {
-    isAuthenticated?: () => boolean;
-    user?: any;
-  };
-
-  if (
-    !GOOGLE_ENABLED ||
-    !typedReq.isAuthenticated?.() ||
-    typedReq.user?.provider !== "google"
-  ) {
-    req.authUser = authStatus_;
-    return next();
-  }
-
-  const user = typedReq.user;
-  if (user.expiresAt < Date.now()) {
-    try {
-      const update = await refreshGoogleAccessToken(user);
-      Object.assign(user, update);
-      pinoLogger.info("Session token refreshed");
-    } catch {
-      req.authUser = authStatus_;
-      return next();
-    }
-  }
-
-  req.authUser = {
-    id: user.id,
-    provider: "google",
-    accessToken: user.accessToken,
-    expiresAt: user.expiresAt,
-    authenticated: true,
-    reason: "authenticated",
-    username: user.username,
-    avatar: user.avatar ?? null,
-    params: [],
-  };
-
-  next();
-}
+// --- Routes ---
 
 if (GOOGLE_ENABLED) {
   router.get(
@@ -210,8 +148,16 @@ if (GOOGLE_ENABLED) {
 
   router.get(
     "/callback",
-    passport.authenticate("google", { failureRedirect: "/", session: true }),
-    (req, res) => res.redirect("/profile")
+    passport.authenticate("google", { failureRedirect: "/", session: false }),
+    (req, res) => {
+      const user = req.user as GoogleAuthUser;
+      const token = signGoogleJwt(user);
+      // For SPA: send as JSON
+      res.json({ token, user });
+      // Or, for web: set as cookie and redirect if needed
+      // res.cookie('auth', token, { httpOnly: true, maxAge: 3600 * 1000 });
+      // res.redirect(process.env.FRONTEND_URL || '/');
+    }
   );
 } else {
   router.get(["/login", "/callback"], (req, res) =>
@@ -219,24 +165,22 @@ if (GOOGLE_ENABLED) {
   );
 }
 
-router.get("/me", validateAndRefreshGoogleSession, (req, res) => {
-  if (!req.authUser?.authenticated) {
-    return res
-      .status(401)
-      .json({ error: req.authUser?.reason || "not_authenticated" });
+// --- JWT-protected /me ---
+router.get("/me", async (req, res) => {
+  const auth = req.headers.authorization;
+  const token = auth && auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: "Missing token" });
   }
-
-  const user = req.authUser;
-  res.json({
-    id: "id" in user ? user.id : null,
-    avatar: "avatar" in user ? user.avatar ?? null : null,
-    expiresAt: "expiresAt" in user ? user.expiresAt : null,
-  });
+  const user = await validateGoogleJwt(token);
+  if (!user) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+  res.json({ user });
 });
 
 router.use((req, res) => res.status(404).send("Not Found"));
 
 pinoLogger.info("passport-google router ready");
 
-export { validateAndRefreshGoogleSession };
 export default router;
