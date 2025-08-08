@@ -1,0 +1,88 @@
+// TriButton.module.scss
+
+// === Pill-shaped chip (fully rounded) ===
+.chip {
+  display: inline-block;
+  border-radius: 8px;
+  font-size: 0.93em;
+  font-weight: 500;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere; // optional, even better for unbreakable words
+  max-width: 100%;
+  border: 2px solid var(--theme-chip-border);
+  color: var(--theme-color-chip-text);
+  background: var(--theme-color-bg-white);
+  box-shadow: 0 1px 5px var(--theme-shadow-1);
+}
+
+// Icon alignment
+.chipMark {
+  margin-left: 0.27em;
+  font-size: 1.08em;
+  user-select: none;
+}
+
+// === States—neutral / include / exclude ===
+.chipNeutral {
+  background-color: var(--theme-color-bg-white) !important;
+  border-color: var(--theme-chip-none-border);
+  color: var(--theme-color-text-dark);
+  opacity: 0.97;
+
+  &:hover,
+  &:focus {
+    background-color: var(--theme-chip-none-bg) !important;
+    border-color: var(--theme-chip-none-border);
+    box-shadow: 0 1px 6px var(--theme-shadow-1);
+  }
+}
+
+.chipInclude {
+  background-color: var(--theme-color-accent-green) !important;
+  border-color: var(--theme-chip-subject-border);
+  color: var(--theme-color-accent-green2) !important;
+  opacity: 1;
+
+  &:hover,
+  &:focus {
+    box-shadow: 0 2px 8px var(--theme-shadow-2);
+  }
+}
+
+.chipExclude {
+  background-color: var(--theme-color-accent-red2) !important;
+  border-color: var(--theme-color-accent-red);
+  color: #fff !important;
+  opacity: 1;
+
+  // text-decoration: line-through wavy var(--theme-color-warning);text-decoration
+
+  &:hover,
+  &:focus {
+    background-color: var(--theme-color-accent-red4);
+    box-shadow: 0 2px 10px var(--theme-shadow-3);
+  }
+}
+
+// === Focus, hover, and active effects ===
+.chip:focus-visible {
+  outline: 2.5px solid var(--theme-color-focus-outline);
+  z-index: 1;
+}
+
+.chip:hover,
+.chip:focus {
+  outline: 2px solid var(--theme-color-focus-outline);
+  z-index: 2;
+  transform: scale(1.08);
+}
+
+.chip:active {
+  transform: scale(0.97);
+}
+
+// === ARIA ARIA-pressed keyboard styling ===
+.chip[aria-pressed="true"] {
+  font-weight: 800;
+  box-shadow: 0 2px 8px var(--theme-shadow-2);
+}

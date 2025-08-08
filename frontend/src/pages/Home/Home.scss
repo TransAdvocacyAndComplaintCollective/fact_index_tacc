@@ -1,0 +1,121 @@
+@use "../../style/color"; // For theme variables
+@use "../../style/mixins"; // For media-width
+
+.app-root {
+
+  /* stylelint-disable order/order order/properties-order */
+  @include mixins.respond-to-width(mobile) {
+    padding: 1.2rem 0.6rem;
+
+    h1 {
+      font-size: 1.3rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .home-intro {
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    nav {
+      width: 100%;
+      padding: 1rem 0.4rem;
+      min-width: 0;
+      margin-top: 1rem;
+
+      ul {
+        gap: 0.6rem;
+      }
+
+      a {
+        padding: 0.48em 1em;
+        font-size: 1rem;
+        border-radius: 8px;
+      }
+    }
+  }
+
+  // All normal rules and declarations go inside & { ... }
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    display: flex;
+    padding: 2.5rem 1.5rem 1.5rem;
+    color: var(--theme-color-text);
+    background: var(--theme-color-bg);
+    min-height: 100vh;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--theme-color-title);
+      margin-bottom: 1rem;
+      letter-spacing: 0.03em;
+      text-shadow:
+        0 1px 0 var(--theme-color-bg-white),
+        0 2px 8px var(--theme-shadow-2);
+      text-align: center;
+    }
+
+    .home-intro {
+      font-size: 1.13rem;
+      line-height: 1.55;
+      color: var(--theme-color-text-muted);
+      margin-bottom: 1.8rem;
+      text-align: center;
+      font-weight: 500;
+      max-width: 540px;
+    }
+
+    nav {
+      padding: 1.3rem 2rem;
+      background: var(--theme-color-bg-white);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px var(--theme-shadow-1);
+      margin-top: 1.5rem;
+      min-width: 250px;
+
+      ul {
+        display: flex;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      li {
+        width: 100%;
+        text-align: center;
+      }
+
+      a {
+        display: inline-block;
+        padding: 0.55em 1.4em;
+        font-size: 1.13rem;
+        color: var(--theme-color-link);
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 8px;
+        transition:
+          background 0.18s,
+          color 0.16s;
+      }
+
+      a:hover,
+      a:focus {
+        color: var(--theme-color-bg-white);
+        background: var(--theme-color-link-hover);
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--theme-color-focus-outline);
+        outline-offset: 2px;
+      }
+    }
+  }
+}

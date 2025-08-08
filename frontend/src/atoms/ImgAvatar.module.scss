@@ -1,0 +1,28 @@
+@use "../style/color";
+@use "../style/mixins" as mixins;
+
+// ===========================
+// Avatar
+// ===========================
+.avatar {
+  // 1. List ALL property declarations FIRST
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 0.38em;
+  background: var(--theme-color-bg-white);
+  box-shadow: 0 0.5px 2px var(--theme-shadow-1);
+
+  // 2. THEN, add any nested rules (media queries)
+  @include mixins.respond-to-width(mobile) {
+    width: 1.72em;
+    height: 1.72em;
+    margin-right: 0.21em;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    width: 2.4em;
+    height: 2.4em;
+  }
+}

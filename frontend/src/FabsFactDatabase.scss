@@ -1,0 +1,154 @@
+@use "./style/mixins";
+@use "./style/variables";
+@use "./style/color";
+
+.fact-db-root {
+  padding: 2rem;
+  background: var(--color-brand-bg2); // #e0ecfa
+  min-height: 100vh;
+  font-family: sans-serif;
+}
+
+.fact-db-search-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+
+  .factDbSearchbox {
+    width: 45%;
+    padding: 0.5rem;
+    font-size: 1.1rem;
+    border: 1px solid var(--color-border-input); // #aac6ea
+    border-radius: 8px;
+    outline: none;
+  }
+
+  .factDbFindBtn {
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    color: var(--color-bg-white);
+    background: var(--color-brand);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-link-hover);
+    }
+  }
+}
+
+.fact-db-main {
+  display: flex;
+  gap: 2.5rem;
+}
+
+.fact-db-filters {
+  padding: 1.3rem;
+  background: var(--color-filter-bg); // <--- create a variable if used often, e.g. var(--color-filter-bg
+  border-radius: 8px;
+  min-width: 200px;
+  max-width: 230px;
+
+  h3 {
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+
+  label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.3rem;
+    margin-top: 1rem;
+  }
+
+  input[type="text"],
+  input[type="date"] {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    padding: 0.4rem;
+    border: 1px solid var(--color-border-input); // #aac6ea
+    border-radius: 8px;
+    font-size: 1rem;
+    background: var(--color-bg-white);
+  }
+
+  .fact-db-date-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    input[type="date"] {
+      flex: 1 1 0;
+    }
+
+    span {
+      color: var(--color-brand); // #2574a9 or you can use another accent blue if needed
+      font-weight: bold;
+    }
+  }
+}
+
+.fact-db-results {
+  flex: 1;
+
+  table {
+    width: 100%;
+    background: var(--color-bg-white);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px var(--shadow-5);
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--color-brand-bg2); // #e0ecfa
+    }
+
+    th {
+      background: var(--color-brand-softer); // #e6f0fa
+      font-weight: 700;
+      text-align: left;
+    }
+
+    tr.fact-db-row {
+      cursor: pointer;
+
+      &:hover {
+        background: var(--color-brand-bg3); // #f3f7fb
+      }
+    }
+
+    .factDbContextBtn {
+      font-size: 1em;
+      color: var(--color-link-hover); // #255ca3
+      background: none;
+      text-decoration: underline;
+      border: none;
+      cursor: pointer;
+    }
+  }
+
+  .fact-db-context-popup {
+    position: relative;
+    padding: 1rem;
+    font-size: 1.05rem;
+    background: var(--color-context-bg); // <--- create a variable if reused, e.g. var(--color-context-bg
+    margin-top: 1.2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px var(--shadow-5);
+
+    .fact-db-close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1.2rem;
+      font-size: 0.95em;
+      color: var(--color-accent-red3); // #d43d3d
+      background: none;
+      margin-left: 2rem;
+      border: none;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}

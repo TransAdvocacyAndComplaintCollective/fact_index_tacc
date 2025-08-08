@@ -1,0 +1,117 @@
+@use "../../style/color";
+
+.loginWrapper {
+  display: flex;
+  background: var(--theme-color-bg);
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginScreen {
+  display: flex;
+  width: 100%;
+  margin: 2.5rem auto;
+  padding: 3rem 2.2rem 2.2rem;
+  background: var(--theme-color-bg-white);
+  flex-direction: column;
+  align-items: center;
+  min-width: 310px;
+  max-width: 360px;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 32px var(--theme-shadow-2),
+    0 1.5px 3px var(--theme-shadow-1);
+
+  h2 {
+    font-size: 1.7rem;
+    color: var(--theme-color-title);
+    margin-bottom: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+}
+
+.loginBtn {
+  display: flex;
+  width: 100%;
+  padding: 1.1rem 1.5rem;
+  font-size: 1.08rem;
+  color: var(--theme-color-bg-white);
+  background: var(--theme-color-brand);
+  align-items: center;
+  justify-content: center;
+  gap: 0.8em;
+  margin-bottom: 1.1rem;
+  border: 2px solid var(--theme-color-brand-light);
+  border-radius: 8px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 0 0 0 var(--theme-color-focus-outline, transparent);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover,
+  &:focus {
+    color: var(--theme-color-brand-light);
+    background: var(--theme-nav-link-hover-bg);
+    border-color: var(--theme-color-brand);
+    box-shadow: 0 0 0 3px var(--theme-color-focus-outline);
+    outline: none;
+  }
+
+  &:active {
+    filter: brightness(0.98);
+    box-shadow: 0 0 0 2px var(--theme-color-brand-light);
+  }
+}
+
+// Add a modifier for Discord
+.loginBtnDiscord {
+  color: #fff;
+  background: #5865f2;
+  border-color: #4652c8;
+
+  &:hover {
+    color: #fff;
+    background: #4652c8;
+  }
+
+  &:focus {
+    color: #fff;
+    background: #4652c8;
+  }
+}
+
+.loginIcon {
+  display: flex;
+  align-items: center;
+  font-size: 1.5em;
+  margin-right: 0.3em;
+}
+
+@media (width <=480px) {
+  .loginScreen {
+    padding: 1.4rem 0.7rem;
+    min-width: 0;
+    max-width: 98vw;
+
+    h2 {
+      font-size: 1.16rem;
+    }
+  }
+
+  .loginBtn {
+    padding: 1rem 0.7rem;
+    font-size: 0.98rem;
+  }
+}

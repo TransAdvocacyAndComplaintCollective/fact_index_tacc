@@ -1,0 +1,298 @@
+// src/components/NavBar.module.scss
+@use "../../style/color";
+@use "../../style/mixins" as mixins;
+
+// ===========================
+// Main Navigation Bar Container
+// ===========================
+.appNavbar {
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.6rem 0.5rem;
+    min-height: 52px;
+    gap: 0.5rem;
+  }
+
+  @include mixins.respond-to-width(tablet) {
+    padding: 0.8rem 1.2rem 0.8rem 1rem;
+    min-height: 56px;
+  }
+
+  @include mixins.respond-to-width(tablet-portrait) {
+    border-bottom-width: 2px;
+  }
+
+  @include mixins.respond-to-width(tablet-landscape) {
+    border-bottom-width: 3px;
+  }
+
+  @include mixins.respond-to-width(netbook) {
+    padding: 0.8rem 1.5rem 0.8rem 1.1rem;
+    min-height: 60px;
+  }
+
+  @include mixins.respond-to-width(laptop) {
+    padding: 0.95rem 2.4rem 0.95rem 2rem;
+    min-height: 62px;
+  }
+
+  @include mixins.respond-to-width(desktop) {
+    padding: 1.05rem 3.5rem 1.05rem 2.3rem;
+    min-height: 68px;
+  }
+
+  @include mixins.respond-to-width(large-desktop) {
+    font-size: 1.18rem;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    font-size: 1.26rem;
+    padding-left: 6vw;
+    padding-right: 6vw;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    position: relative;
+    display: flex;
+    z-index: 10;
+    width: 100%;
+    padding: 0.9rem 2.1rem 0.9rem 1.7rem;
+    background: var(--theme-color-bg-white);
+    border-bottom: 1px solid var(--theme-color-border);
+    box-shadow: 0 1px 7px var(--theme-shadow-1);
+    justify-content: space-between;
+    align-items: center;
+    min-height: 62px;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    transition:
+      background 0.3s,
+      color 0.3s,
+      box-shadow 0.3s;
+  }
+}
+
+// ===========================
+// Individual NavLink
+// ===========================
+.link {
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.26em 0.6em;
+    font-size: 1.02rem;
+  }
+
+  @include mixins.respond-to-width(tablet-portrait) {
+    font-size: 1.08rem;
+  }
+
+  @include mixins.respond-to-width(tablet-landscape) {
+    font-size: 1.11rem;
+  }
+
+  @include mixins.respond-to-width(laptop) {
+    padding: 0.3em 0.8em;
+    font-size: 1.19rem;
+  }
+
+  @include mixins.respond-to-width(desktop) {
+    font-size: 1.22rem;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    font-size: 1.3rem;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    position: relative;
+    padding: 0.28em 0.7em;
+    font-size: 1.14rem;
+    color: var(--theme-color-link);
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 8px;
+    transition:
+      background 0.14s,
+      color 0.15s,
+      box-shadow 0.13s;
+    letter-spacing: 0.01em;
+    outline: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      z-index: 2;
+      color: var(--theme-color-link-hover);
+      background: var(--theme-color-bg-offwhite);
+      box-shadow: 0 1px 6px var(--theme-shadow-1);
+      outline: 2px solid var(--theme-color-focus-outline);
+      text-decoration: none;
+    }
+
+    &.active {
+      font-weight: 700;
+      border: 1.5px solid var(--theme-color-accent-blue4);
+      color: var(--theme-color-accent-blue4);
+      background: var(--theme-color-bg-offwhite);
+    }
+  }
+}
+
+// ===========================
+// Provider text
+// ===========================
+.provider {
+  @include mixins.respond-to-width(mobile) {
+    font-size: 0.7rem;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    font-size: 0.75rem;
+    color: var(--theme-color-text-muted);
+    margin-top: -0.2em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ===========================
+// Logout Button
+// ===========================
+.btnLogout {
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.34em 0.77em;
+    font-size: 0.92rem;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    padding: 0.43em 1.14em;
+    font-size: 1.06rem;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    padding: 0.38em 0.97em;
+    font-size: 0.98rem;
+    color: var(--theme-color-button-text);
+    background: var(--theme-color-text-muted);
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      box-shadow 0.13s;
+    margin-left: 0.1em;
+    box-shadow: 0 0.5px 1.5px var(--theme-shadow-1);
+    align-self: center;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--theme-color-button-text);
+      background: var(--theme-color-accent-blue3);
+      outline: 2px solid var(--theme-color-focus-outline);
+    }
+
+    &:active {
+      background: var(--theme-color-accent-blue2);
+    }
+
+    &:disabled {
+      color: var(--theme-color-button-text);
+      background: var(--theme-color-disabled);
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ===========================
+// Login Button
+// ===========================
+.btnLogin {
+  @include mixins.respond-to-width(mobile) {
+    padding: 0.34em 0.77em;
+    font-size: 0.92rem;
+    min-width: 82px;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    padding: 0.43em 1.14em;
+    font-size: 1.06rem;
+    min-width: 110px;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    display: inline-block;
+    padding: 0.38em 1.02em;
+    font-size: 1.02rem;
+    color: var(--theme-color-button-text);
+    background: var(--theme-color-accent-blue2);
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      box-shadow 0.13s;
+    box-shadow: 0 0.5px 1.5px var(--theme-shadow-1);
+    align-self: center;
+    min-width: 96px;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--theme-color-button-text);
+      background: var(--theme-color-accent-blue3);
+      outline: 2px solid var(--theme-color-focus-outline);
+    }
+
+    &:active {
+      color: var(--theme-color-link-hover);
+      background: var(--theme-color-accent-blue4);
+    }
+
+    &:disabled {
+      color: var(--theme-color-button-text);
+      background: var(--theme-color-disabled);
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ===========================
+// Login Buttons Group
+// ===========================
+.loginButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// ===========================
+// Nav Left Group
+// ===========================
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+// ===========================
+// Font-size shrink for very small screens
+// ===========================
+@media (width <=480px) {
+  .appNavbar {
+    font-size: 0.97rem;
+  }
+
+  .link,
+  .btnLogin,
+  .btnLogout {
+    font-size: 0.92rem;
+  }
+}

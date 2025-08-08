@@ -1,0 +1,51 @@
+@use "../style/mixins";
+@use "../style/variables";
+
+.navLinks {
+  @include mixins.respond-to-width(mobile) {
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: stretch;
+    margin-bottom: 0.2rem;
+  }
+
+  @include mixins.respond-to-width(tablet) {
+    gap: 0.95rem;
+  }
+
+  @include mixins.respond-to-width(tablet-portrait) {
+    gap: 1.1rem;
+  }
+
+  @include mixins.respond-to-width(tablet-landscape) {
+    gap: 1.25rem;
+  }
+
+  @include mixins.respond-to-width(netbook) {
+    gap: 1.15rem;
+  }
+
+  @include mixins.respond-to-width(laptop) {
+    gap: 1.55rem;
+  }
+
+  @include mixins.respond-to-width(desktop) {
+    gap: 2.1rem;
+  }
+
+  @include mixins.respond-to-width(large-desktop) {
+    gap: 2.6rem;
+  }
+
+  @include mixins.respond-to-width(ultra-wide-only) {
+    gap: 3rem;
+  }
+
+  // 👇 All declarations after mixins go inside & { ... }
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  & {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+}

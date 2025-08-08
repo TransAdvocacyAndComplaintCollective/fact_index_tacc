@@ -1,0 +1,21 @@
+@use "color_themes/light";
+@use "color_themes/dark";
+
+// Mixin: Outputs CSS variables for a theme map inside a block
+@mixin theme-vars($theme) {
+  @each $name, $value in $theme {
+    --theme-#{$name}: #{$value};
+  }
+}
+
+// Set base (light) theme
+:root {
+  @include theme-vars(light.$theme_light);
+}
+
+// Dark theme overrides
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include theme-vars(dark.$theme_dark);
+  }
+}

@@ -1,0 +1,479 @@
+{
+  "extends": [
+    "stylelint-config-standard",
+    "stylelint-config-recommended-scss"
+  ],
+  "plugins": [
+    "stylelint-order",
+    "stylelint-scss",
+    "@stylistic/stylelint-plugin"
+  ],
+  "ignoreFiles": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "rules": {
+    "color-no-invalid-hex": [
+      true,
+      {
+        "severity": "error"
+      }
+    ],
+    "function-calc-no-unspaced-operator": [
+      true,
+      {
+        "severity": "error"
+      }
+    ],
+    "block-no-empty": [
+      true,
+      {
+        "severity": "error"
+      }
+    ],
+    "property-no-unknown": [
+      true,
+      {
+        "ignoreProperties": [
+          "composes"
+        ],
+        "severity": "error"
+      }
+    ],
+    "declaration-property-unit-allowed-list": {
+      "/^font-size$/": [
+        "em",
+        "rem",
+        "%"
+      ],
+      "/^line-height$/": [
+        "number",
+        "unitless",
+        "%"
+      ]
+    },
+    "no-descending-specificity": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
+    "selector-max-specificity": [
+      "0,4,0",
+      {
+        "severity": "warning"
+      }
+    ],
+    "scss/at-rule-no-unknown": null,
+    "at-rule-no-unknown": null
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.scss"
+      ],
+      "customSyntax": "postcss-scss",
+      "rules": {
+        "declaration-no-important": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "scss/no-duplicate-mixins": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "scss/percent-placeholder-pattern": [
+          "^[a-z][a-zA-Z0-9-]+$",
+          {
+            "severity": "error"
+          }
+        ],
+        "scss/at-extend-no-missing-placeholder": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "scss/selector-no-redundant-nesting-selector": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "max-nesting-depth": [
+          6,
+          {
+            "severity": "error"
+          }
+        ],
+        "selector-class-pattern": [
+          "^[a-z][a-zA-Z0-9]*$",
+          {
+            "severity": "warning"
+          }
+        ],
+        "order/properties-order": [
+          [
+            {
+              "properties": [
+                "position",
+                "top",
+                "right",
+                "bottom",
+                "left",
+                "display",
+                "z-index"
+              ]
+            },
+            {
+              "properties": [
+                "width",
+                "height",
+                "margin",
+                "padding"
+              ]
+            },
+            {
+              "properties": [
+                "font-size",
+                "line-height",
+                "color",
+                "background"
+              ]
+            }
+          ],
+          {
+            "severity": "warning"
+          }
+        ],
+        "scss/at-rule-no-unknown": [
+          true,
+          {
+            "ignoreAtRules": [
+              "use",
+              "include",
+              "mixin",
+              "if",
+              "else",
+              "for",
+              "each",
+              "while",
+              "function",
+              "return",
+              "tailwind",
+              "apply",
+              "variants",
+              "responsive",
+              "screen"
+            ],
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/*.css"
+      ],
+      "rules": {
+        "block-no-empty": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "color-no-invalid-hex": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "font-family-no-duplicate-names": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "function-calc-no-unspaced-operator": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "property-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "unit-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "selector-pseudo-element-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "string-no-newline": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "declaration-block-no-duplicate-properties": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "declaration-block-no-shorthand-property-overrides": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "no-descending-specificity": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "declaration-block-no-extra-semicolons": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "no-invalid-double-slash-comments": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "@stylistic/string-quotes": [
+          "double",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/color-hex-case": [
+          "lower",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/color-hex-length": [
+          "short",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/declaration-colon-space-after": [
+          "always",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/declaration-colon-space-before": [
+          "never",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/number-leading-zero": [
+          "always",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/number-no-trailing-zeros": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/selector-list-comma-newline-after": [
+          "always-multi-line",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/block-opening-brace-space-before": [
+          "always",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/block-closing-brace-newline-after": [
+          "always",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/block-opening-brace-newline-after": [
+          "always-multi-line",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/block-opening-brace-newline-before": [
+          "never-single-line",
+          {
+            "severity": "warning"
+          }
+        ],
+        "order/order": [
+          [
+            "custom-properties",
+            "declarations"
+          ],
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-max-id": [
+          0,
+          {
+            "severity": "error"
+          }
+        ],
+        "selector-max-class": [
+          3,
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-max-compound-selectors": [
+          3,
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-max-universal": [
+          1,
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-no-qualifying-type": [
+          true,
+          {
+            "ignore": [
+              "class",
+              "id"
+            ],
+            "severity": "warning"
+          }
+        ],
+        "max-nesting-depth": [
+          6,
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-max-specificity": [
+          "0,4,0",
+          {
+            "severity": "warning"
+          }
+        ],
+        "color-named": [
+          "never",
+          {
+            "severity": "error"
+          }
+        ],
+        "declaration-property-value-disallowed-list": [
+          {
+            "outline": [
+              "none"
+            ]
+          },
+          {
+            "severity": "warning"
+          }
+        ],
+        "unit-disallowed-list": [
+          [
+            "pt",
+            "in",
+            "cm",
+            "mm",
+            "pc"
+          ],
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/declaration-block-semicolon-newline-after": [
+          "always-multi-line",
+          {
+            "severity": "warning"
+          }
+        ],
+        "@stylistic/declaration-block-semicolon-space-after": [
+          "always-single-line",
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-pseudo-class-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "media-feature-name-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "at-rule-no-unknown": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "scss/no-duplicate-mixins": [
+          true,
+          {
+            "severity": "error"
+          }
+        ],
+        "selector-class-pattern": [
+          "^[a-z]+(?:[A-Z][a-z0-9]*)*$",
+          {
+            "message": "Class selectors must be camelCase (e.g. myComponentClass)",
+            "severity": "warning"
+          }
+        ],
+        "scss/percent-placeholder-pattern": [
+          "^[a-z][a-zA-Z0-9-]+$",
+          {
+            "severity": "error"
+          }
+        ],
+        "comment-empty-line-before": [
+          "always",
+          {
+            "except": [
+              "first-nested"
+            ],
+            "severity": "warning"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/lucy/fact_index_tacc/logs/.2795eea3c7069d95e3da2bc0ab83b9e33041b156-audit.json",
+    "files": [
+        {
+            "date": 1754409304515,
+            "name": "/home/lucy/fact_index_tacc/logs/app-2025-08-05.log",
+            "hash": "15ca4160b1fa769a51d65c2a443ec47a7141e2ebbc65f1a177e65d42992f422c"
+        }
+    ],
+    "hashType": "sha256"
+}

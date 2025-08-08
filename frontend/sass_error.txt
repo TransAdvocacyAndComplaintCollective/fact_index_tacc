@@ -1,0 +1,139 @@
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m12  │[0m     [31mgrid-area: chips[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 12:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m13  │[0m     [31mdisplay: flex[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 13:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m14  │[0m     [31mflex-wrap: wrap[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 14:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m15  │[0m     [31mgap: 0.37em 0.27em[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 15:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m16  │[0m     [31malign-items: center[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 16:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m17  │[0m     [31mmin-height: 1.5em[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 17:3  root stylesheet
+
+[33m[1mDeprecation Warning[0m [[34mmixed-decls[0m]: Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+[34m    ┌[0m[34m──>[0m src/atoms/Chip.module.scss
+[34m18  │[0m     [31mfont-size: 0.96em[0m;
+[34m    │[0m   [31m  ^^^^^^^^^^^^^^^^^[0m[31m declaration[0m
+[34m    ╵[0m
+[34m    ┌[0m[34m──>[0m src/style/_mixins.scss
+[34m133 │[0m [34m┌[0m     @media (max-width: variables.$bp-phablet-max-width) {
+[34m134 │[0m [34m│[0m       @content;
+[34m135 │[0m [34m│[0m     }
+[34m    │[0m [34m└[0m[34m───[0m[34m nested rule[0m
+[34m    ╵[0m
+    src/atoms/Chip.module.scss 18:3  root stylesheet
+
+Error: Undefined variable.
+[34m  ╷[0m
+[34m6 │[0m $theme_xp: map-merge([31m$theme-global[0m, (
+[34m  │[0m [31m                     ^^^^^^^^^^^^^[0m
+[34m  ╵[0m
+  src/style/color_themes/xp.scss 6:22  root stylesheet

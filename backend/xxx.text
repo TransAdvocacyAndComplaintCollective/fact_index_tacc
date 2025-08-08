@@ -1,0 +1,219 @@
+[2025-08-07 00:02:35] [32mINFO[39m: [36mLoading passport-google.js...[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [33mWARN[39m: [36mMissing env vars:[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mpassport-google router ready[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [33mWARN[39m: [36mFacebook auth disabled due to missing env vars[39m
+    [35mcomponent[39m: "facebook-passport"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+    [35mmissing[39m: [
+      "FACEBOOK_APP_ID",
+      "FACEBOOK_APP_SECRET",
+      "FACEBOOK_CALLBACK_URL"
+    ]
+[2025-08-07 00:02:35] [33mWARN[39m: [36mPAM module unavailable, admin login disabled.[39m
+    [35mcomponent[39m: "admin-passport"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mModule loaded[39m
+    [35mcomponent[39m: "dev-passport"
+    [35mprovider[39m: "dev"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [33mWARN[39m: [36mDev login mode disabled — strategy not registered[39m
+    [35mcomponent[39m: "dev-passport"
+    [35mprovider[39m: "dev"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mLoaded authRouter.ts[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mENV:[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: dev (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: google (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: discord (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: bluesky (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: facebook (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mProvider: admin (enabled: false)[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mRegistered routes:[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mroute[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mroute[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mroute[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mroute[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36m[authRouter] printRoutes complete[39m
+    [35mcomponent[39m: "auth-router"
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mConfiguration: PORT=16261, NODE_ENV=undefined, behindProxy=false, cookieSecure=false[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mDisabled x-powered-by header[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mSet trust proxy to false[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mApplied Helmet security headers[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mApplied CORS middleware[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mConfigured JSON body parser[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mConfigured URL-encoded body parser[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mApplied bot detection middleware[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mSession middleware applied[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mPassport initialized and session handling applied[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mApplied custom security middleware[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mMounted auth router at /auth[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mMounted API router at /api[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mApplied static router[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mServer started on port 16261 with env undefined, behindProxy=false, cookieSecure=false[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+[2025-08-07 00:02:35] [32mINFO[39m: [36mServer listening[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+    [35mport[39m: 16261
+    [35mbehindProxy[39m: false
+    [35mcookieSecure[39m: false
+[2025-08-07 00:06:26] [32mINFO[39m: [36mProcess exit[39m
+    [35mfilepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts"
+    [35mvscode_filepath[39m: "file:///home/lucy/fact_index_tacc/backend/src/logger/pino.ts:105"
+    [35mline[39m: 105
+    [35mfunc[39m: "mixin"
+    [35mcode[39m: 0
