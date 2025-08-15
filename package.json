@@ -11,7 +11,8 @@
     "bootstrap": "npm install",
     "build": "npm run build --workspaces",
     "start:frontend": "npm --workspace frontend start",
-    "start:backend": "npm --workspace backend start",
+    "start_dev": "npm --workspace backend start_dev",
+    "start": "npm --workspace backend start",
     "test:frontend": "npm --workspace frontend test",
     "lint:frontend": "npm --workspace frontend lint",
     "lint:backend": "npm --workspace backend lint"
@@ -26,7 +27,9 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.5.3",
     "eslint-plugin-security": "^3.0.1",
-    "prettier": "^3.6.2"
+    "knex": "^3.1.0",
+    "prettier": "^3.6.2",
+    "sqlite3": "^5.1.7"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
@@ -37,6 +40,7 @@
     "pino-caller": "^4.0.0",
     "pino-pretty": "^13.1.1",
     "pino-std-serializers": "^7.0.0",
+    "typeorm": "^0.3.25",
     "winston": "^3.17.0"
   }
 }

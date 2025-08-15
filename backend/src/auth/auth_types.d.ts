@@ -1,8 +1,7 @@
 // src/auth/auth_types.d.ts
-
 import type { Request } from "express";
 import type { Profile } from "passport-discord";
-
+import type { ParamsCheck, LoginFact } from "../../db/user/types.ts";
 /* ------------------------------------------------------------------
  *  Supported authentication providers
  * ------------------------------------------------------------------ */
@@ -12,7 +11,6 @@ export type ProviderType =
   | "discord"
   | "bluesky"
   | "facebook"
-  | "admin"
   | null;
 
 /* ------------------------------------------------------------------
@@ -28,10 +26,10 @@ export type UnauthenticatedAuthReason =
   | "token_expired"
   | "disabled"
   | "left_guild"
-  |"token_invalid"
-  |"token_error"
+  | "token_invalid"
+  | "token_error"
   | "missing_role"
-  |"unknown_provider"
+  | "unknown_provider"
   | "remote_access"
   | "not_found"
   | "validation_failed"
@@ -45,7 +43,7 @@ export interface Permission {
   value: string;
   description: string;
   startDate: string; // ISO-8601
-  endDate?: string;  // ISO-8601
+  endDate?: string; // ISO-8601
   createdAt: string; // ISO-8601
   updatedAt: string; // ISO-8601
 }
@@ -63,11 +61,12 @@ export type BaseUserFields = {
  *  Common fields for **authenticated** users
  * ------------------------------------------------------------------ */
 type AuthenticatedCommon = BaseUserFields & {
+  loginFacts: LoginFact[];
   id: string;
   username: string;
   authenticated: true;
   reason: "authenticated";
-  params: Permission[];
+  params: ParamsCheck[];
   avatar?: string | null; // Always use `avatar` or null if absent
 };
 
@@ -81,6 +80,8 @@ export interface GoogleAuthUser extends AuthenticatedCommon {
 }
 
 export interface DiscordAuthUser extends AuthenticatedCommon {
+  guildIds: string[];
+  roleIds: string[];
   provider: "discord";
   accessToken: string;
   expiresAt: number;
@@ -88,6 +89,8 @@ export interface DiscordAuthUser extends AuthenticatedCommon {
 
 export interface BlueskyAuthUser extends AuthenticatedCommon {
   provider: "bluesky";
+  cbCookie: string | null;
+  cookieState: string | null;
 }
 
 export interface FacebookAuthUser extends AuthenticatedCommon {
@@ -103,10 +106,6 @@ export interface DevAuthUser extends AuthenticatedCommon {
   expiresAt: number;
 }
 
-export interface AdminAuthUser extends AuthenticatedCommon {
-  id: any;
-  provider: "admin";
-}
 /* ------------------------------------------------------------------
  *  Unauthenticated user type
  * ------------------------------------------------------------------ */
@@ -118,7 +117,7 @@ export interface UnauthenticatedUser extends BaseUserFields {
   username: undefined;
   avatar?: null;
   previousProvider?: ProviderType;
-    expiresAt: null; // Unix timestamp
+  expiresAt: null; // Unix timestamp
 }
 
 /* ------------------------------------------------------------------
@@ -133,18 +132,35 @@ export type AuthUser =
   | AdminAuthUser
   | UnauthenticatedUser;
 
+/**
+ * Result returned by validateJwt
+ */
+export type RotateReason = "legacy_key" | "expiring_soon";
+export type JwtValidationResult = {
+  user: AuthUser | null;
+  rotateRecommended: boolean;
+  rotateReason?: RotateReason;
+  tokenKid?: string;
+  activeKid?: string;
+  exp?: number;
+  iat?: number;
+};
+export type MaybeRefreshResult = {
+  token: string; // original or new
+  rotated: boolean;
+  reasons: (RotateReason | "claims_changed")[];
+  oldKid?: string;
+  newKid?: string;
+};
 
 /* ------------------------------------------------------------------
  *  Express global augmentation
  * ------------------------------------------------------------------ */
 declare global {
   namespace Express {
-    export interface Request {
-      isAuthenticated: () => this is AuthenticatedRequest;
+    export type RequestAuth = Request & {
       authUser?: AuthUser;
-    }
-    export interface AuthenticatedRequest extends Request {
-      authUser: AuthUser;
-    }
+    };
   }
 }
+export type RequestAuth = Request & { authUser?: AuthUser };

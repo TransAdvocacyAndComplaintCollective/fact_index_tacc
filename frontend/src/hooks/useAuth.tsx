@@ -26,7 +26,7 @@ export type User = {
   profileImage?: string;
 };
 
-type Status = {
+export type Status = {
   authenticated: boolean;
   user?: User | null;
   reason?: string | null;

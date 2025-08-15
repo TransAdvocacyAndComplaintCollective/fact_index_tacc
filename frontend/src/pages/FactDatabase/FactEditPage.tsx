@@ -1,22 +1,23 @@
-// pages/FactDatabase/FactEditPage.tsx
-import React, { useEffect, useMemo, useCallback } from "react";
+import useFact from "@/hooks/useFact";
+import FactEditForm from "@/organisms/FactEditForm";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import FactEditForm from "../../organisms/FactEditForm";
-import useFact from "../../hooks/useFact";
-// import type { Fact } from "./../hooks/useFactDatabase";
 
-interface FormValues {
+type FormValues = {
   fact_text: string;
   source: string;
   type: string;
   context: string;
   reason?: string;
-}
+};
 
 export default function FactEditPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
+  const isEdit = id !== "new" && Boolean(id);
+
+  // Only pass an ID to useFact if we're actually editing
   const {
     fact,
     loading,
@@ -24,13 +25,10 @@ export default function FactEditPage() {
     createFact,
     updateFact,
     fetchFact,
-    setFact,
     reset,
-  } = useFact(id);
+  } = useFact(isEdit ? id : undefined);
 
-  // Map between API fact and form values
   const initialValues: FormValues = useMemo(() => {
-    // also guard against Error values
     if (!fact || fact instanceof Error) {
       return {
         fact_text: "",
@@ -49,23 +47,17 @@ export default function FactEditPage() {
     };
   }, [fact]);
 
-  // On id change, fetch or clear fact as needed
   useEffect(() => {
-    if ((id != null) && id !== "") {
-      fetchFact(id).catch((err) => {
+    if (isEdit && id?.trim() && typeof fetchFact === "function") {
+      fetchFact().catch((err: any) => {
         console.error("Failed to fetch fact:", err);
-        setFact(null);
         reset();
-      });;
+      });
     } else {
-      // If no id, clear state for new fact creation
-      setFact(null);
       reset();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [isEdit, id, fetchFact, reset]);
 
-  // Submission handler
   const handleSubmit = useCallback(
     async (form: FormValues) => {
       const payload = {
@@ -73,12 +65,12 @@ export default function FactEditPage() {
         source: form.source,
         ...(form.type ? { type: form.type } : {}),
         ...(form.context ? { context: form.context } : {}),
-        timestamp: "",      // Adjust if you need to set a timestamp
-        subjects: [],       // Add subjects/audiences if required
+        timestamp: "",
+        subjects: [],
         audiences: [],
       };
 
-      if ((id != null) && id !== "") {
+      if (isEdit && id) {
         const res = await updateFact(id, payload);
         if (res != null) {
           navigate(`/facts/${id}`);
@@ -92,7 +84,7 @@ export default function FactEditPage() {
         }
       }
     },
-    [id, createFact, updateFact, navigate]
+    [isEdit, id, createFact, updateFact, navigate]
   );
 
   if (loading) return <div>Loading…</div>;
@@ -101,12 +93,12 @@ export default function FactEditPage() {
   return (
     <FactEditForm
       initialValues={initialValues}
-      mode={(id != null) && id !== "" ? "edit" : "create"}
+      mode={isEdit ? "edit" : "create"}
       saving={loading}
       error={error ?? ""}
       success={undefined}
       onSubmit={handleSubmit}
-      onCancel={() => navigate((id != null) && id !== "" ? `/facts/${id}` : "/facts")}
+      onCancel={() => navigate(isEdit ? `/facts/${id}` : "/facts")}
     />
   );
 }
