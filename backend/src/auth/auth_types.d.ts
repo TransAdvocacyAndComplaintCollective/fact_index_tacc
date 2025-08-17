@@ -1,7 +1,7 @@
 // src/auth/auth_types.d.ts
 import type { Request } from "express";
 import type { Profile } from "passport-discord";
-import type { ParamsCheck, LoginFact } from "../../db/user/types.ts";
+import type { ParamsCheck, export LoginFact } from "../../db/user/types.ts";
 /* ------------------------------------------------------------------
  *  Supported authentication providers
  * ------------------------------------------------------------------ */
@@ -35,6 +35,8 @@ export type UnauthenticatedAuthReason =
   | "validation_failed"
   | "invalid_user_type";
 
+
+
 /* ------------------------------------------------------------------
  *  System-level permission model
  * ------------------------------------------------------------------ */
@@ -66,7 +68,6 @@ type AuthenticatedCommon = BaseUserFields & {
   username: string;
   authenticated: true;
   reason: "authenticated";
-  params: ParamsCheck[];
   avatar?: string | null; // Always use `avatar` or null if absent
 };
 
@@ -80,8 +81,6 @@ export interface GoogleAuthUser extends AuthenticatedCommon {
 }
 
 export interface DiscordAuthUser extends AuthenticatedCommon {
-  guildIds: string[];
-  roleIds: string[];
   provider: "discord";
   accessToken: string;
   expiresAt: number;
@@ -89,8 +88,6 @@ export interface DiscordAuthUser extends AuthenticatedCommon {
 
 export interface BlueskyAuthUser extends AuthenticatedCommon {
   provider: "bluesky";
-  cbCookie: string | null;
-  cookieState: string | null;
 }
 
 export interface FacebookAuthUser extends AuthenticatedCommon {

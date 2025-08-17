@@ -1,25 +1,8 @@
-// src/entities/access-model.ts
-// TypeORM v0.3+ entity definitions for a flexible identity → group/role → policy model
-// Cleaned up and simplified by removing Tag/TagNamespace. Added helper function for finding candidate subjects.
+// src/entities/model.ts
 
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  OneToMany,
-  ManyToMany,
-  JoinTable,
-  Index,
-  Unique,
-  DataSource,
-} from "typeorm";
+/** Max clearance used for dev/testing */
+export const MAX_DEV_CLEARANCE = Number.MAX_SAFE_INTEGER;
 
-/****************************
- * Enums
- ***************************/
 export enum Provider {
   PUBLIC = "PUBLIC",
   DEV = "DEV",
@@ -40,250 +23,125 @@ export enum IdentifierType {
   USERNAME = "USERNAME",
   USERNAME_PATTERN = "USERNAME_PATTERN",
   GROUP_ID = "GROUP_ID",
-  ROLE_ID = "Discord_ROLE_ID",
-  GUILD_ID = "Discord_GUILD_ID",
+  ROLE_ID = "DISCORD_ROLE_ID",
+  GUILD_ID = "DISCORD_GUILD_ID",
   DOMAIN = "DOMAIN",
-  EMAIL_DOMAIN = "EMAIL DOMAIN",
-  EMAIL_SUBDOMAIN = "EMAIL SUBDOMAIN",
+  EMAIL_DOMAIN = "EMAIL_DOMAIN",
+  EMAIL_SUBDOMAIN = "EMAIL_SUBDOMAIN",
   EMAIL = "EMAIL",
   PHONE_E164 = "PHONE_E164",
-  IP = "IP",
-  IP_RANGE_CIDR = "IP_RANGE_CIDR",
 }
 
-export enum MatchMode {
-  EXACT = "EXACT",
-  PREFIX = "PREFIX",
-  SUFFIX = "SUFFIX",
-  REGEX = "REGEX",
-  DOMAIN = "DOMAIN",
-  CIDR = "CIDR",
+export type Eft = "allow" | "deny";
+
+export type MatchKind =
+  | "ProjectMatch"
+  | "keyMatch"
+  | "keyMatch2"
+  | "keyMatch3"
+  | "keyMatch4"
+  | "keyMatch5"
+  | "globMatch"
+  | "regexMatch";
+
+export enum MATCH {
   HASH = "HASH",
+  plaintext = "plaintext",
+  domain = "domain",
+  subdomain = "subdomain",
+  prefix = "prefix",
+  suffix = "suffix",
 }
 
-export enum Decision {
-  ACCEPT = "ACCEPT",
-  DENY = "DENY",
-  NEUTRAL = "NEUTRAL",
+/** Label-Based Access Control operators */
+export type LBACOp =
+  | "=="
+  | "!="
+  | "<"
+  | "<="
+  | ">"
+  | ">="
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte";
+
+/**
+ * Standard HTTP methods — plus allow custom/extension verbs via `string & {}`.
+ * (Keeps strong typing for known methods while not blocking custom ones.)
+ */
+export type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "PATCH"
+  | "HEAD"
+  | "OPTIONS"
+  | "TRACE"
+  | (string & {});
+
+export type LoginFact = {
+  provider?:
+    | Provider.GOOGLE
+    | Provider.DISCORD
+    | Provider.BLUESKY
+    | Provider.FACEBOOK;
+  type?: IdentifierType;
+  value?: string;
+  must: boolean; // replaced SHOULD union with plain boolean
+  match?: MATCH;
+};
+
+export interface Subject {
+  id: string;
+  provider?: Provider;
+  clearance: number;
+  loginFacts?: LoginFact[];
 }
 
-/****************************
- * Subject & Identifiers
- ***************************/
-@Entity({ name: "subjects" })
-export class Subject {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @Index({ unique: true })
-  @Column({ type: "varchar", length: 190 })
-  slug!: string;
-
-  @Column({ type: "varchar", length: 255, nullable: true })
-  displayName?: string | null;
-
-  @Column({ type: "boolean", default: true })
-  active!: boolean;
-
-  @OneToMany(() => SubjectIdentifier, (si) => si.subject, { cascade: true })
-  identifiers!: SubjectIdentifier[];
-
-  @ManyToMany(() => Group, (g) => g.subjects, { cascade: false })
-  groups!: Group[];
-
-  @ManyToMany(() => Role, (r) => r.subjects, { cascade: false })
-  roles!: Role[];
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+export interface ProjectObject {
+  project: string;
+  subProject?: string;
+  task?: string;
+  subTask?: string;
 }
 
-@Entity({ name: "subject_identifiers" })
-@Unique("uq_subject_identifier", ["subject", "provider", "identifierType", "matchMode", "value"])
-@Index(["provider", "identifierType", "matchMode", "value"])
-export class SubjectIdentifier {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
+interface BasePolicy {
+  priority: number;
 
-  @ManyToOne(() => Subject, (s) => s.identifiers, { onDelete: "CASCADE" })
-  subject!: Subject;
+  /** Subject identifier constraints */
+  id_type?: IdentifierType;
+  id_value?: string;
 
-  @Column({ type: "text", enum: Provider })
-  provider!: Provider;
+  /** Clearance requirement with operator */
+  min_clearance: number;
+  lbac_op: LBACOp;
 
-  @Column({ type: "text", enum: IdentifierType })
-  identifierType!: IdentifierType;
+  /** Optional time window (inclusive start, inclusive end) */
+  start_ts?: Date;
+  end_ts?: Date;
 
-  @Column({ type: "text", enum: MatchMode })
-  matchMode!: MatchMode;
-
-  @Column({ type: "varchar", length: 512 })
-  value!: string;
-
-  @Column({ type: "boolean", default: false })
-  isHashed!: boolean;
-
-  @Column({ type: "boolean", default: false })
-  isPseudonymized!: boolean;
-
-  @Column({ type: "varchar", length: 64, nullable: true })
-  hashAlgorithm?: string | null;
-
-  @Column({ type: "varchar", length: 128, nullable: true })
-  hashSaltId?: string | null;
-
-  @Column({ type: "jsonb", nullable: true })
-  metadata?: Record<string, unknown> | null;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+  /** Effect: allow or deny */
+  eft: Eft;
+}
+export interface HttpPolicy extends BasePolicy {
+  match: Exclude<MatchKind, "ProjectMatch">; // e.g., keyMatch/globMatch/regexMatch
+  method: HttpMethod;
+  path: string;
+  matching: MatchKind;
+  /** Optional duplicated method field to interop with legacy schemas */
+  HTTP_METHOD?: string;
 }
 
-/****************************
- * Groups
- ***************************/
-@Entity({ name: "groups" })
-@Unique(["name"])
-export class Group {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @Column({ type: "varchar", length: 190 })
-  name!: string;
-
-  @Column({ type: "varchar", length: 255, nullable: true })
-  description?: string | null;
-
-  @ManyToMany(() => Subject, (s) => s.groups)
-  @JoinTable({ name: "group_subjects" })
-  subjects!: Subject[];
-
-  @ManyToMany(() => Role, (r) => r.groups)
-  roles!: Role[];
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+/**
+ * Policy for project-scoped objects.
+ */
+export interface ProjectPolicy extends BasePolicy {
+  match: "ProjectMatch";
+  obj_project: string;
+  obj_subProject?: string;
+  obj_task?: string;
+  obj_subTask?: string;
 }
-
-/****************************
- * Roles
- ***************************/
-@Entity({ name: "roles" })
-@Index(["name", "scopeGroup"], { unique: true })
-export class Role {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @Column({ type: "varchar", length: 160 })
-  name!: string;
-
-  @ManyToOne(() => Group, { nullable: true, onDelete: "SET NULL" })
-  scopeGroup?: Group | null;
-
-  @Column({ type: "varchar", length: 255, nullable: true })
-  description?: string | null;
-
-  @ManyToMany(() => Subject, (s) => s.roles)
-  @JoinTable({ name: "role_subjects" })
-  subjects!: Subject[];
-
-  @ManyToMany(() => Group, (g) => g.roles)
-  @JoinTable({ name: "role_groups" })
-  groups!: Group[];
-
-  @OneToMany(() => RoleObjectValue, (rov) => rov.role, { cascade: true })
-  objectValues!: RoleObjectValue[];
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-}
-
-/****************************
- * Policy Rules
- ***************************/
-@Entity({ name: "policy_rules" })
-@Index(["permission", "subPermission", "priority"])
-export class PolicyRule {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @Column({ type: "varchar", length: 255 })
-  permission!: string;
-
-  @Column({ type: "varchar", length: 255, nullable: true })
-  subPermission?: string | null;
-
-  @Column({ type: "enum", enum: Decision, default: Decision.NEUTRAL })
-  effect!: Decision;
-
-  @Column({ type: "int", default: 0 })
-  priority!: number;
-
-  @ManyToMany(() => Role)
-  @JoinTable({ name: "policy_rule_roles" })
-  roles!: Role[];
-
-  @ManyToMany(() => Group)
-  @JoinTable({ name: "policy_rule_groups" })
-  groups!: Group[];
-
-  @ManyToMany(() => Subject)
-  @JoinTable({ name: "policy_rule_subjects" })
-  subjects!: Subject[];
-
-  @Column({ type: "jsonb", nullable: true })
-  context?: Record<string, unknown> | null;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-}
-
-/****************************
- * RoleObjectValues
- ***************************/
-@Entity({ name: "role_object_values" })
-@Unique("uq_role_object_path", ["role", "project", "subProject", "task", "subTask"])
-export class RoleObjectValue {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @ManyToOne(() => Role, (r) => r.objectValues, { onDelete: "CASCADE" })
-  role!: Role;
-
-  @Column({ type: "varchar", length: 160 })
-  project!: string;
-
-  @Column({ type: "varchar", length: 160, nullable: true })
-  subProject?: string | null;
-
-  @Column({ type: "varchar", length: 160 })
-  task!: string;
-
-  @Column({ type: "varchar", length: 160, nullable: true })
-  subTask?: string | null;
-
-  @Column({ type: "jsonb", nullable: true })
-  value?: unknown;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-}
-
+ 

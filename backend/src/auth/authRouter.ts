@@ -1,3 +1,4 @@
+// ./auth/
 import express from 'express';
 import pinologger from '../logger/pino.js';
 import googleRouter, { GOOGLE_ENABLED } from './provider/passport-google.js';

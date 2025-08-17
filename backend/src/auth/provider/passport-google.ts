@@ -9,10 +9,10 @@ import process from "process";
 import pinoLogger from "../../logger/pino.js";
 import type { GoogleAuthUser } from "../auth_types.js";
 import { issueJWT } from "../tokenUtils.js";
-import { getPermissions } from "../../db/user/access.js";
 import { AppDataSource } from "../../db/db.js";
-import { LoginFact } from "../../db/user/types.js";
-import { IdentifierType, Provider } from "../../db/user/model.js";
+import { IdentifierType, LoginFact, ProviderType } from "../../db/user/types.js";
+import { addLoginFacts, encryptLoginFacts } from "../loginfacts.js";
+import { Provider } from "../../db/user/model.js";
 
 // --- Logger & Router ---
 const log = pinoLogger.child({ component: "google-auth" });
@@ -67,40 +67,25 @@ if (GOOGLE_ENABLED) {
           profile.emails?.[0]?.value;
         const emailVerified: boolean = Boolean(pj.email_verified);
         const avatar = profile.photos?.[0]?.value || getFallbackAvatar(id);
+          let loginFacts: LoginFact[] = [];
 
-          const loginFacts: LoginFact[] = [
-            {
-              provider: Provider.GOOGLE,
-              type: IdentifierType.USER_ID,
-              value: id,
-            },
-            {
-              provider: Provider.GOOGLE,
-              type: IdentifierType.USERNAME,
-              value: username,
-            }
-          ];
+                    
+          addLoginFacts(loginFacts, ProviderType.GOOGLE, IdentifierType.USER_ID, id);
+          addLoginFacts(loginFacts, ProviderType.GOOGLE, IdentifierType.USER_ID, username);
+          
           if(primaryEmail && emailVerified) {
-            loginFacts.push({
-              provider: Provider.GOOGLE,
-              type: IdentifierType.EMAIL,
-              value: primaryEmail,
-            });
+            addLoginFacts(loginFacts, ProviderType.GOOGLE, IdentifierType.EMAIL, primaryEmail);
           }
-
-          const params = await getPermissions(AppDataSource, loginFacts);
-
           const user: GoogleAuthUser = {
             provider: "google",
             id,
             username,
             avatar,
             accessToken,
-            expiresAt:0, // default 1h expiry
+            expiresAt:0,
             authenticated: true,
             reason: "authenticated",
-            params,
-            loginFacts,
+            loginFacts: encryptLoginFacts(loginFacts),
           };
 
           done(null, user);

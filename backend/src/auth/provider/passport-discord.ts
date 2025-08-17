@@ -5,11 +5,10 @@ import { Strategy as DiscordStrategy, Profile } from "passport-discord";
 import pinoLogger from "../../logger/pino.js";
 import type { AuthUser, DiscordAuthUser } from "../auth_types.js";
 import { RequestIssueJWT } from "../tokenUtils.js";
-import type { LoginFact } from "../../db/user/types.ts";
 
-import { IdentifierType, Provider } from "../../db/user/model.js";
-import { getPermissions } from "../../db/user/access.js";
 import { AppDataSource } from "../../db/db.js";
+import { addLoginFacts, encryptLoginFacts } from "../loginfacts.js";
+import { IdentifierType, LoginFact, ProviderType } from "../../db/user/types.js";
 
 const router = express.Router();
 const log = pinoLogger.child({ component: "discord-auth" });
@@ -90,45 +89,18 @@ if (DISCORD_ENABLED) {
             ? REQUIRED_ROLE_IDS.some(id => member.roles?.includes(id))
             : true;
           if (!hasRole) return done(null, false, { message: "Missing required role" });
-
-          const loginFacts: LoginFact[] = [
-            { 
-              provider: Provider.DISCORD,
-              type: IdentifierType.USER_ID,
-              value: profile.id,
-            },
-            { 
-              provider: Provider.DISCORD,
-              type: IdentifierType.USERNAME,
-              value: profile.username,
-            },
-          ];
+          let loginFacts: LoginFact[] = [];
+          const provider = ProviderType.DISCORD;
+          addLoginFacts(loginFacts, provider, IdentifierType.USER_ID, profile.id);
           if (profile.email) {
-            loginFacts.push({
-              provider: Provider.DISCORD,
-              type: IdentifierType.EMAIL,
-              value: profile.email,
-            });
+            addLoginFacts(loginFacts, provider, IdentifierType.EMAIL, profile.email);
           }
-          let guildIds: string[] = [];
-          let roles: string[] = [];
           profile.guilds?.forEach(guild => {
-            loginFacts.push({
-              provider: Provider.DISCORD,
-              type: IdentifierType.GUILD_ID,
-              value: guild.id,
-            });
-            guildIds.push(guild.id);
+            addLoginFacts(loginFacts, provider, IdentifierType.GUILD_ID, guild.id);
           });
           member.roles?.forEach(roleId => {
-            loginFacts.push({
-              provider: Provider.DISCORD,
-              type: IdentifierType.ROLE_ID,
-              value: roleId,
-            });
-            roles.push(roleId);
+            addLoginFacts(loginFacts, provider, IdentifierType.ROLE_ID, roleId);
           });
-          const params = await getPermissions(AppDataSource, loginFacts);
 
           const user: DiscordAuthUser = {
             id: profile.id,
@@ -139,10 +111,7 @@ if (DISCORD_ENABLED) {
             expiresAt: 0, // LET WORK THIS OUT LATER
             authenticated: true,
             reason: "authenticated",
-            params: params,
-            guildIds: guildIds,
-            roleIds: roles,
-            loginFacts: loginFacts
+            loginFacts: encryptLoginFacts(loginFacts),
           };
 
           done(null, user);

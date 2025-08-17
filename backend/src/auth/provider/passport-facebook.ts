@@ -7,10 +7,9 @@ import type { Request, Response } from "express";
 import type { FacebookAuthUser } from "../auth_types.js";
 import pinoLogger from "../../logger/pino.js";
 import { issueJWT } from "../tokenUtils.js";
-import { getPermissions } from "../../db/user/access.js";
 import { AppDataSource } from "../../db/db.js";
-import { LoginFact } from "../../db/user/types.js";
-import { IdentifierType, Provider } from "../../db/user/model.js";
+import { IdentifierType, LoginFact, ProviderType } from "../../db/user/types.js";
+import { addLoginFacts, encryptLoginFacts } from "../loginfacts.js";
 
 const log = pinoLogger.child({ component: "facebook-auth" });
 
@@ -52,29 +51,12 @@ if (FACEBOOK_ENABLED) {
         log.info({ facebookId: profile.id }, "Facebook OAuth callback");
 
         try {
-          const loginFacts: LoginFact[] = [
-            {
-              provider: Provider.FACEBOOK,
-              type: IdentifierType.USER_ID,
-              value: profile.id,
-            }
-          ];
-          if (profile.phone) {
-            loginFacts.push({
-              provider: Provider.FACEBOOK,
-              type: IdentifierType.PHONE_E164,
-              value: profile.phone
-            });
-          }
-          if (profile.email) {
-            loginFacts.push({
-              provider: Provider.FACEBOOK,
-              type: IdentifierType.EMAIL,
-              value: profile.email[0].value,
-            });
-          }
-
-          const params = await getPermissions(AppDataSource, loginFacts);
+          let loginFacts: LoginFact[] = [];
+          const provider = ProviderType.FACEBOOK;
+          addLoginFacts(loginFacts, provider, IdentifierType.USER_ID, profile.id);
+          addLoginFacts(loginFacts, provider, IdentifierType.PHONE_E164, profile.phone);
+          addLoginFacts(loginFacts, provider, IdentifierType.EMAIL, profile.email[0].value);
+          
 
           const user: FacebookAuthUser = {
             provider: "facebook",
@@ -82,11 +64,10 @@ if (FACEBOOK_ENABLED) {
             username: profile.displayName ?? null,
             avatar: profile.photos?.[0]?.value ?? null,
             accessToken,
-            expiresAt: 0, // 2h default expiry
+            expiresAt: 0,
             authenticated: true,
             reason: "authenticated",
-            params,
-            loginFacts,
+                        loginFacts: encryptLoginFacts(loginFacts),
           };
 
           done(null, user);

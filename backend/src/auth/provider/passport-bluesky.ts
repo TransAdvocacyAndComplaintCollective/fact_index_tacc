@@ -5,10 +5,8 @@ import pkg from "@atproto/oauth-client-node";
 import pinoLogger from "../../logger/pino.js";
 import type { BlueskyAuthUser } from "../auth_types.js";
 import { RequestIssueJWT } from "../tokenUtils.js";
-import { AppDataSource } from "../../db/db.js";
-import { LoginFact } from "../../db/user/types.js";
-import { IdentifierType, Provider } from "../../db/user/model.js";
-import { getPermissions } from "../../db/user/access.js";
+import { addLoginFacts, encryptLoginFacts } from "../loginfacts.js";
+import { ProviderType, IdentifierType, LoginFact } from "../../db/user/types.js";
 
 // === NEW: plug into your RBAC model ===
 
@@ -84,17 +82,15 @@ function b64d(value: string): string { return Buffer.from(value, "base64").toStr
 // Build LoginFacts for our RBAC/ABAC layer from Bluesky claims
 function buildBlueskyFacts(opts: { did: string; handle?: string | null }): LoginFact[] {
   const facts: LoginFact[] = [];
+  
+
   // DID is stable → treat as USER_ID
-  facts.push({ provider: Provider.BLUESKY, type: IdentifierType.USER_ID, value: opts.did });
+  facts.push({ provider: ProviderType.BLUESKY, type: IdentifierType.USER_ID, value: opts.did });
   // Handle is mutable but useful for matching
   if (opts.handle) {
-    facts.push({ provider: Provider.BLUESKY, type: IdentifierType.USERNAME, value: opts.handle });
+    facts.push({ provider: ProviderType.BLUESKY, type: IdentifierType.USERNAME, value: opts.handle });
   }
-  // Domain is mutable but useful for matching
-  const domain = opts.handle?.split("@")[1] ?? null;
-  if (domain) {
-    facts.push({ provider: Provider.BLUESKY, type: IdentifierType.DOMAIN, value: domain });
-  }
+  // Domai
   return facts;
 }
 
@@ -160,17 +156,10 @@ router.get("/callback", async (req: Request, res: Response) => {
     // Minimal user claims (do NOT store OAuth tokens in JWT)
     const did = session.did;
     const handle = (session as any).sub ?? session.did; // sub is usually the handle
-
-    // Build RBAC facts, then compute permissions → embed into JWT for convenience
-    const facts = buildBlueskyFacts({ did, handle });
-
-    let permissions = [] as Awaited<ReturnType<typeof getPermissions>>;
-    try {
-      permissions = await getPermissions(AppDataSource, facts);
-    } catch (permErr: any) {
-      log.warn({ err: String(permErr?.message || permErr) }, "getPermissions failed; continuing without perms");
-      permissions = [];
-    }
+    let facts: LoginFact[] = [];
+    const provider = ProviderType.BLUESKY;
+    addLoginFacts(facts, provider, IdentifierType.USERNAME, handle);
+    addLoginFacts(facts, provider, IdentifierType.USER_ID, did);
 
     const user: BlueskyAuthUser = {
       id: did,
@@ -180,10 +169,7 @@ router.get("/callback", async (req: Request, res: Response) => {
       expiresAt: 0, // 1h nominal; your RequestIssueJWT implementation controls expiry
       authenticated: true,
       reason: "authenticated",
-      params: [{ key: "permissions", value: permissions } as any], // if your type differs, adapt this
-      cbCookie: cbCookie,
-      cookieState: redirectUri,
-      loginFacts: facts,
+      loginFacts: encryptLoginFacts(facts),
     };
 
     // Issue JWT cookie
@@ -264,20 +250,6 @@ export async function validateBluesky(user: BlueskyAuthUser): Promise<BlueskyAut
   }
 }
 
-// Optional helper: quick endpoint to inspect computed permissions for current user
-router.get("/me/permissions", async (req, res) => {
-  try {
-    const user = (req as any).user as BlueskyAuthUser | undefined; // depends on your auth middleware
-    if (!user) return res.status(401).json({ error: "unauthorized" });
-
-    const facts = (user.loginFacts as LoginFact[] | undefined) ?? buildBlueskyFacts({ did: user.id, handle: user.username });
-    const permissions = await getPermissions(AppDataSource, facts);
-    res.json({ did: user.id, handle: user.username, permissions });
-  } catch (err: any) {
-    log.error({ err }, "/me/permissions error");
-    res.status(500).json({ error: "failed to fetch permissions" });
-  }
-});
 
 // 404
 router.use((_req, res) => res.status(404).json({ error: "Not Found" }));
