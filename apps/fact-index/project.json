@@ -1,0 +1,88 @@
+{
+  "name": "fact-index",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/fact-index/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "development",
+      "options": {
+        "outputPath": "dist/apps/fact-index",
+        "configFile": "apps/fact-index/vite.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "configFile": "apps/fact-index/vite.config.js"
+        },
+        "watch": {
+          "watch": true
+        }
+      }
+    },
+    "build:static": {
+      "executor": "@nx/workspace:run-commands",
+      "options": {
+        "command": "vite build --config vite.config.js"
+      }
+    },
+    "build:watch": {
+      "executor": "@nx/workspace:run-commands",
+      "options": {
+        "command": "vite build --watch --config vite.config.js",
+        "cwd": "."
+      }
+    },
+    "build-reload": {
+      "executor": "@nx/workspace:run-commands",
+      "options": {
+        "command": "vite build --config vite.config.js && echo 'Build complete - serving updated assets'"
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "configFile": "apps/fact-index/vite.config.js",
+        "hmr": true,
+        "port": 4200,
+        "buildTarget": "fact-index:build"
+      },
+      "configurations": {
+        "production": {
+          "configFile": "apps/fact-index/vite.config.js"
+        }
+      }
+    },
+    "storybook": {
+      "executor": "@nx/workspace:run-commands",
+      "options": {
+        "command": "pnpm --filter fact-index run storybook"
+      }
+    },
+    "storybook-build": {
+      "executor": "@nx/workspace:run-commands",
+      "options": {
+        "command": "pnpm --filter fact-index run build:storybook"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/fact-index/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/fact-index"],
+      "options": {
+        "jestConfig": "apps/fact-index/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

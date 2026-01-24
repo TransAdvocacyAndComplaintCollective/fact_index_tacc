@@ -1,0 +1,30 @@
+{
+  "name": "fact-server",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/apps/fact-server/main.js",
+  "scripts": {
+    "start": "node ./dist/apps/fact-server/main.ts",
+    "dev": "NODE_ENV=development node --watch --enable-source-maps -r @swc-node/register -r dotenv/config ./src/main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.25.0",
+  "dependencies": {
+    "@types/node": "latest",
+    "@types/passport": "^1.0.17",
+    "better-sqlite3": "^12.6.2",
+    "express-session": "^1.18.2",
+    "jose": "^6.1.3",
+    "jsonwebtoken": "^9.0.3",
+    "kysely": "^0.28.10",
+    "nodemon": "^3.1.11",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "sqlite3": "^5.1.6",
+    "zustand": "^5.0.10"
+  }
+}

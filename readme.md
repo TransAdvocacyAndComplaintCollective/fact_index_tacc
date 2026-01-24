@@ -4,8 +4,8 @@ This project provides an authenticated web app and API for managing and accessin
 
 ## Tech Stack
 
-* **Frontend:** React, React Router, Parcel (build tool)
-* **Backend:** Node.js, Express, Passport.js (Discord OAuth)
+* **Frontend:** React, React Router, Nx `@nx/react` (webpack build/server)
+* **Backend:** Node.js, Express, Nx `@nx/node` with Passport.js (Discord OAuth)
 * **Database:** SQLite3, Knex.js
 * **Styling:** Sass Modules
 
@@ -13,27 +13,27 @@ This project provides an authenticated web app and API for managing and accessin
 
 ```
 .
-├── auth
-│   ├── authRouter.js (Express routes for authentication)
-│   ├── discordRouter.js (Discord OAuth routes)
-│   └── passport-discord.js (Passport Discord strategy)
-├── db
-│   ├── dev.sqlite3 (development database)
-│   ├── factRepository.js (DB operations)
-│   ├── knexfile.js (Knex DB config)
-│   └── schema.js (DB schema definitions)
-├── fact_index (Frontend)
-│   ├── src
-│   │   ├── components (React components)
-│   │   ├── context (Auth context)
-│   │   ├── pages (Page components)
-│   │   └── hocks (Custom hooks)
-├── router (Backend API and static content routes)
-│   ├── api.js
-│   ├── fact
-│   │   └── facts.js (Fact CRUD API)
-│   └── sys_health (Health check routes)
-└── main.js (Backend entry point)
+├── apps
+│   ├── fact-server (Nx Node application)
+│   │   ├── src
+│   │   │   ├── auth (Discord + dev auth routers)
+│   │   │   ├── router (API, health, static middleware)
+│   │   │   ├── db (Knex repositories + migrations)
+│   │   │   ├── fallback (static fallback HTML)
+│   │   │   ├── cli-load-csv.js (data import helper)
+│   │   │   └── main.ts (Express entry point)
+│   │   └── project.json / tsconfig (Nx config)
+│   └── fact-index (Nx React application)
+│       ├── src
+│       │   ├── components
+│       │   ├── context
+│       │   ├── pages
+│       │   └── style (Sass themes & mixins)
+│       ├── webpack.config.js
+│       └── project.json (Nx build/test targets)
+├── libs (shared code, if needed by future work)
+├── nx.json (workspace layout + tooling defaults)
+└── package.json (npm + Nx scripts)
 ```
 
 ## Getting Started
@@ -54,10 +54,7 @@ cd fact_index_tacc
 
 2. Install dependencies:
 
-Run the following commands both at the project root and inside the /fact_index/ folder to install backend and frontend dependencies:
 ```bash
-npm install
-cd fact_index
 npm install
 ```
 
@@ -79,18 +76,24 @@ SESSION_SECRET=<secure_random_secret>
 
 ## Running the App
 
-Start servers (in the root of the project):
+Start the backend API:
 
 ```bash
-npm start
+npm run start:server
 ```
 
-The app will then be accessible at http://localhost:16261.
+Start the React front-end (runs on port 4200 by default):
+
+```bash
+npm run start:web
+```
+
+When both are running, the backend remains available at http://localhost:16261 and the UI on http://localhost:4200 (Nx dev server), or the backend proxies the built assets when you run `npm run build`.
 
 ## Development Workflow
 
-* **Frontend:** Code React components inside `fact_index/src`. Parcel automatically compiles changes.
-* **Backend:** Express routes and API handlers are located under `auth/`, `router/`, and `main.js`.
+* **Frontend:** The React SPA lives in `apps/fact-index/src`. Nx (`@nx/react` + webpack) bundles it; run `npm run start:web` to get the dev server with hot reload.
+* **Backend:** Express, Passport, and route files live under `apps/fact-server/src`. Run `npm run start:server` (Nx `@nx/node`) for the API server.
 
 ### Discord OAuth
 
@@ -101,9 +104,8 @@ Discord authentication is handled via Passport.js:
 
 ### Dev Mode
 
-If `DEV_LOGIN_MODE` is true, `/auth/dev-login` provides a quick development login bypass.
-if `DEBUG_REACT` is true, the backend will proxy React’s development server to allow hot-reloading and development features.
-Make sure the React app (typically via npm run start in fact_index/) is running on its dev port (usually 1234).
+* `DEV_LOGIN_MODE=true` provides a shortcut `/auth/dev-login` for development work.
+* `DEBUG_REACT=TRUE` tells the API server to proxy the React dev server (by default at port `4200`, configurable via `REACT_DEV_SERVER_PORT`). Start the front-end via `npm run start:web` before hitting the backend.
 ## API Routes
 
 * **Facts CRUD:** `/api/facts`

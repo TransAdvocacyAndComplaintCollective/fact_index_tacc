@@ -151,3 +151,8 @@ vite.config.ts.timestamp-*
 nohup.out
 Fabs Fact Database - Facts_Input-1.csv
 yarn.lock
+
+
+
+.nx/cache
+.nx/workspace-data

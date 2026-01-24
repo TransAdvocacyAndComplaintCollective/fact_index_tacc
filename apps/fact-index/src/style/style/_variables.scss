@@ -1,0 +1,119 @@
+// File: style/_variables.scss
+
+// Mobile Breakpoints (Width)
+$bp-mobile-xs-max-width: 319px;    // Extra small phones (old iPhones, some Androids)
+$bp-mobile-sm-min-width: 320px;    // Small phones (iPhone SE, Galaxy S5)
+$bp-mobile-sm-max-width: 359px;
+
+$bp-mobile-md-min-width: 360px;    // Most modern smaller smartphones (Pixel 4a, Galaxy S10e)
+$bp-mobile-md-max-width: 374px;
+
+$bp-mobile-lg-min-width: 375px;    // iPhone X/11/12 Mini, Pixel 5
+$bp-mobile-lg-max-width: 413px;
+
+// Landscape smartphones & mini-phablets
+$bp-mobile-xl-min-width: 414px;    // Large phones (iPhone Plus models, Pixel 6 Pro)
+$bp-mobile-xl-max-width: 479px;
+
+$bp-phablet-min-width: 480px;      // Very large phones/"phablets" (smallest tablets start here)
+$bp-phablet-max-width: 599px;
+
+// Optional: foldables and small tablets
+$bp-phone-fold-min-width: 600px;
+$bp-phone-fold-max-width: 767px;   // common foldable phone widths
+
+// Tablet Breakpoints (Width)
+$bp-tablet-xs-min-width: 600px;    // Smallest tablets (Nexus 7, Fire 7, etc.)
+$bp-tablet-xs-max-width: 719px;
+
+$bp-tablet-sm-min-width: 720px;    // Smaller portrait tablets, some large phones in landscape
+$bp-tablet-sm-max-width: 767px;
+
+$bp-tablet-md-min-width: 768px;    // iPad Mini, iPad (portrait)
+$bp-tablet-md-max-width: 1023px;
+
+$bp-tablet-lg-min-width: 1024px;   // iPad Air/Pro (landscape), Surface Go, etc.
+$bp-tablet-lg-max-width: 1279px;
+
+// Desktop & Larger Screens (Width)
+$bp-desktop-sm-min-width: 1025px;    // Laptops and small desktops (Bootstrap ‘md’ starts here)
+$bp-desktop-sm-max-width: 1199px;
+
+$bp-desktop-md-min-width: 1200px;    // Standard desktops (Bootstrap ‘lg’ threshold)
+$bp-desktop-md-max-width: 1439px;
+
+$bp-desktop-lg-min-width: 1440px;    // Large desktops, full HD screens
+$bp-desktop-lg-max-width: 1919px;
+
+$bp-ultra-wide-min-width: 1920px;    // 4K displays, ultrawide monitors
+$bp-desktop-4k-max-width: 3839px;
+
+$bp-desktop-8k-min-width: 3840px;    // 8K and ultra-high-end setups
+
+// Ultra HD & Beyond (Width)
+$bp-desktop-4k-min-width: 3840px;    // 4K UHD
+$bp-desktop-5k-min-width: 5120px;    // Apple iMac 5K, Studio Display
+$bp-desktop-6k-min-width: 6016px;    // Apple Pro Display XDR
+$bp-desktop-8k-min-width: 7680px;    // 8K UHD
+$bp-desktop-16k-min-width: 15360px;  // 16K UHD
+
+
+
+
+// Mobile Breakpoints (Height)
+$bp-mobile-xs-max-height: 480px;       // Very short screens (old phones landscape, tiny phones)
+$bp-mobile-sm-min-height: 481px;       // Small phones (older iPhone SE in portrait)
+$bp-mobile-sm-max-height: 599px;
+
+$bp-mobile-md-min-height: 600px;       // Most phones in landscape, small modern phones portrait
+$bp-mobile-md-max-height: 719px;
+
+$bp-mobile-lg-min-height: 720px;       // Average modern phones in portrait (iPhone 11, Pixel 4a)
+$bp-mobile-lg-max-height: 799px;
+
+$bp-mobile-xl-min-height: 800px;       // Very tall phones (iPhone X/11 Pro, Pixel 6, etc.)
+$bp-mobile-xl-max-height: 899px;
+
+$bp-phablet-min-height: 900px;         // Phablets, new super-tall phones (iPhone 14+, Fold, etc.)
+$bp-phablet-max-height: 1023px;
+
+// Foldables/Small Tablets (height in portrait mode)
+$bp-phone-fold-min-height: 1024px;
+$bp-phone-fold-max-height: 1279px;
+
+// Tablet Breakpoints (Height)
+$bp-tablet-xs-min-height: 600px;       // Smallest tablets in landscape (e.g. Fire 7)
+$bp-tablet-xs-max-height: 719px;
+
+$bp-tablet-sm-min-height: 720px;       // Small tablets in portrait, large tablets in landscape
+$bp-tablet-sm-max-height: 839px;
+
+$bp-tablet-md-min-height: 840px;       // iPad Mini, iPad (portrait)
+$bp-tablet-md-max-height: 1023px;
+
+$bp-tablet-lg-min-height: 1024px;      // iPad Pro, large tablets in portrait
+$bp-tablet-lg-max-height: 1279px;
+
+$bp-tablet-xl-min-height: 1280px;      // Super-tall tablets, foldables unfolded
+$bp-tablet-xl-max-height: 1599px;
+
+// Desktop & Larger Screens (Height)
+$bp-desktop-sm-min-height: 800px;      // Common for 13" laptops
+$bp-desktop-sm-max-height: 899px;
+
+$bp-desktop-md-min-height: 900px;      // 15" laptops, smaller external monitors
+$bp-desktop-md-max-height: 1079px;
+
+$bp-desktop-lg-min-height: 1080px;     // 1080p displays, common desktop monitors
+$bp-desktop-lg-max-height: 1439px;
+
+// Ultra-tall, QHD, and 4K screens
+$bp-ultra-tall-min-height: 1440px;     // 1440p (QHD), 4K, ultrawide, or tall portrait monitors
+$bp-ultra-tall-max-height: 2159px;
+
+// Ultra HD & Beyond (Height)
+$bp-desktop-4k-min-height: 2160px;     // 4K vertical
+$bp-desktop-5k-min-height: 2880px;     // Apple iMac 5K, Studio Display vertical
+$bp-desktop-6k-min-height: 3384px;     // Pro Display XDR (vertical)
+$bp-desktop-8k-min-height: 4320px;     // 8K UHD (vertical)
+$bp-desktop-16k-min-height: 8640px;    // 16K UHD (vertical, signage/future-proofing)

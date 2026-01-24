@@ -1,0 +1,129 @@
+// Import the base theme definitions.
+// ----------------------------------------------------
+// These files should define your core color palettes and variables
+// for light and dark modes, using SCSS maps like $theme_light and $theme_dark.
+// Make sure these files exist and are set up properly before proceeding.
+@use "sass:map";
+@use 'light';
+@use 'dark';
+
+// ----------------------------------------------------
+// Define SCSS maps for contrast and inversion overrides.
+// These are empty by default and intended to be extended below as needed.
+// Add variables for color tweaks that apply specifically to high contrast,
+// low contrast, or inverted color variants.
+$high_contrast: ();          // Override/add variables for high contrast themes here
+$low_contrast: ();           // Override/add variables for low contrast themes here
+$theme_inverted_colours: (); // Override/add variables for inverted color themes here
+
+
+// ----------------------------------------------------
+// LOW CONTRAST THEMES
+// ----------------------------------------------------
+// These maps create light and dark themes with reduced contrast, improving
+// accessibility for users who find standard themes too visually harsh.
+// To customize, add overrides inside the map-merge for $low_contrast.
+$theme_light_low_contrast: map.merge(
+  light.$theme_light, // Base: standard light theme
+  map.merge($low_contrast, (
+    // Add per-variable low-contrast overrides here, for example:
+    // 'background': #f8f8f8,
+    // 'text': #7a7a7a,
+  ))
+);
+
+$theme_dark_low_contrast: map.merge(
+  dark.$theme_dark, // Base: standard dark theme
+  map.merge($low_contrast, (
+    // Add per-variable low-contrast overrides here.
+  ))
+);
+
+
+// ----------------------------------------------------
+// HIGH CONTRAST THEMES
+// ----------------------------------------------------
+// These maps are for users who require enhanced contrast, for accessibility.
+// Add overrides for more distinct color separation (foreground/background).
+// Place your overrides within the relevant map-merge calls below.
+$theme_light_high_contrast: map.merge(
+  light.$theme_light, // Base: standard light theme
+  map.merge($high_contrast, (
+    // Example: 'background': #fff, 'text': #000,
+    // Add per-variable high-contrast overrides here.
+  ))
+);
+
+$theme_dark_high_contrast: map.merge(
+  dark.$theme_dark, // Base: standard dark theme
+  map.merge((
+    // Add per-variable high-contrast overrides here, e.g.:
+    // 'background': #000, 'text': #fff,
+  ), $high_contrast)
+);
+
+
+// ----------------------------------------------------
+// INVERTED COLOR THEMES
+// ----------------------------------------------------
+// These are for visually 'flipped' color schemes, such as for color-blind users
+// or strong visual differentiation. You can define $theme_inverted_colours as a base map
+// and then create variants (dark, light, etc.) by merging further overrides.
+// Extend each variant as needed with more specific overrides.
+$theme_inverted_colours: ();
+
+// Inverted Dark Theme: Inverts colors from the standard dark theme
+$theme_dark_inverted_colours: map.merge(
+  $theme_inverted_colours,
+  ()
+);
+
+$theme_light_inverted_colours: map.merge(
+  $theme_inverted_colours,
+  ()
+);
+
+// High/Low Contrast Variants
+$theme_inverted_colours_high_contrast: map.merge(
+  $theme_inverted_colours,
+  ()
+);
+
+$theme_inverted_colours_low_contrast: map.merge(
+  $theme_inverted_colours,
+  ()
+);
+
+// Dark High/Low Contrast
+$theme_dark_inverted_colours_high_contrast: map.merge(
+  $theme_dark_inverted_colours,
+  ()
+);
+
+$theme_dark_inverted_colours_low_contrast: map.merge(
+  $theme_dark_inverted_colours,
+  ()
+);
+
+// Light High/Low Contrast
+$theme_light_inverted_colours_high_contrast: map.merge(
+  $theme_light_inverted_colours,
+  ()
+);
+
+$theme_light_inverted_colours_low_contrast: map.merge(
+  $theme_light_inverted_colours,
+  ()
+);
+
+
+// ----------------------------------------------------
+// FORCED COLORS (for future implementation)
+// ----------------------------------------------------
+// These are placeholders for themes that adapt to "forced colors" user agent settings,
+// such as Windows High Contrast mode or browser-forced colors.
+// Leave them empty for now, but be ready to define them if needed for full accessibility.
+$theme_forced_colors_light: ();
+$theme_forced_colors_dark: ();
+$theme_forced_colors_inverted_light: ();
+$theme_forced_colors_inverted_dark: ();
