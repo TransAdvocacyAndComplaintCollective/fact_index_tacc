@@ -34,32 +34,32 @@ function writeToFiles(line: string, isError = false) {
   }
 }
 
-export function info(message: string, meta?: Meta) {
+function info(message: string, meta?: Meta) {
   const line = format('info', message, meta);
   console.info(line);
   writeToFiles(line, false);
 }
 
-export function warn(message: string, meta?: Meta) {
+function warn(message: string, meta?: Meta) {
   const line = format('warn', message, meta);
   console.warn(line);
   writeToFiles(line, false);
 }
 
-export function error(message: string, meta?: Meta) {
+function error(message: string, meta?: Meta) {
   const line = format('error', message, meta);
   console.error(line);
   writeToFiles(line, true);
 }
 
-export function debug(message: string, meta?: Meta) {
+function debug(message: string, meta?: Meta) {
   const line = format('debug', message, meta);
   console.debug(line);
   writeToFiles(line, false);
 }
 
 // Express request logger middleware
-export function requestLogger(req: Request, res: Response, next: NextFunction) {
+function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
   res.on('finish', () => {
     const diff = Number((process.hrtime.bigint() - start) / BigInt(1e6));
@@ -74,7 +74,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 }
 
 // Simple error handler to ensure errors get logged
-export function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunction) {
+function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunction) {
   const message = err instanceof Error ? err.message : String(err);
   const stack = err instanceof Error ? err.stack : undefined;
   error(message, { stack });

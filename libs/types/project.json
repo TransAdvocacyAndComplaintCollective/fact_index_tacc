@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@factdb/types",
+  "projectType": "library",
+  "root": "libs/types",
+  "sourceRoot": "libs/types/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "dependsOn": ["^build"],
+      "options": {
+        "buildLibsFromSource": false,
+        "tsConfig": "libs/types/tsconfig.json",
+        "outputPath": "dist/libs/types",
+        "main": "libs/types/src/index.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/types/**/*.ts"],
+        "tsConfig": ["libs/types/tsconfig.json"]
+      }
+    }
+  },
+  "tags": ["scope:shared-types"]
+}

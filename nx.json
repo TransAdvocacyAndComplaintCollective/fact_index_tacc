@@ -16,11 +16,17 @@
   },
   "projects": {
     "fact-server": "apps/fact-server",
-    "fact-index": "apps/fact-index"
+    "fact-index": "apps/fact-index",
+    "@factdb/types": "libs/types",
+    "@factdb/db-core": "libs/db-core",
+    "fact-data-import": "apps/script"
   },
   "plugins": [
     {
-      "plugin": "@nx/webpack/plugin",
+      "plugin": "@nx/eslint"
+    },
+    {
+      "plugin": "@nx/webpack",
       "options": {
         "buildTargetName": "build",
         "serveTargetName": "serve",
@@ -31,7 +37,7 @@
       }
     },
     {
-      "plugin": "@nx/jest/plugin",
+      "plugin": "@nx/jest",
       "options": {
         "targetName": "test"
       }

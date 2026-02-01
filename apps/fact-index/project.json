@@ -1,9 +1,10 @@
 {
   "name": "fact-index",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "apps/fact-index",
   "sourceRoot": "apps/fact-index/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:client"],
   "targets": {
     "build": {
       "executor": "@nx/vite:build",
@@ -21,6 +22,12 @@
         "watch": {
           "watch": true
         }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/fact-index/**/*.{ts,tsx,js,jsx}"]
       }
     },
     "build:static": {
@@ -69,18 +76,11 @@
         "command": "pnpm --filter fact-index run build:storybook"
       }
     },
-    "lint": {
-      "executor": "@nx/eslint:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/fact-index/**/*.{ts,tsx,js,jsx}"]
-      }
-    },
     "test": {
-      "executor": "@nx/jest:jest",
+      "executor": "@nx/vitest:test",
       "outputs": ["{workspaceRoot}/coverage/apps/fact-index"],
       "options": {
-        "jestConfig": "apps/fact-index/jest.config.js",
+        "vitest": true,
         "passWithNoTests": true
       }
     }

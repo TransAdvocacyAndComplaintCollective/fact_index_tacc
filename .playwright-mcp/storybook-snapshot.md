@@ -1,0 +1,193 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner "Storybook" [ref=e6]:
+      - heading "Storybook" [level=1] [ref=e7]
+      - img
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - link "Skip to content" [ref=e14] [cursor=pointer]:
+              - /url: "#storybook-preview-wrapper"
+            - link "Storybook" [ref=e16] [cursor=pointer]:
+              - /url: ./
+              - img "Storybook" [ref=e17]
+            - switch "Settings" [ref=e22] [cursor=pointer]:
+              - img [ref=e23]
+          - generic [ref=e28]:
+            - generic [ref=e30] [cursor=pointer]:
+              - button "Open onboarding guide" [ref=e34]:
+                - img [ref=e36]
+                - strong [ref=e38]: Get started
+              - generic [ref=e39]:
+                - button "Collapse onboarding checklist" [expanded] [ref=e40]:
+                  - img [ref=e41]
+                - button "21% completed" [ref=e43]:
+                  - generic [ref=e44]:
+                    - img [ref=e45]
+                    - img [ref=e47]
+                  - generic [ref=e50]: 21%
+            - list [ref=e52]:
+              - listitem [ref=e53]:
+                - button "Open onboarding guide for Add 5 components" [ref=e54] [cursor=pointer]:
+                  - img [ref=e56]
+                  - generic [ref=e59]: Add 5 components
+              - listitem [ref=e60]:
+                - button "Open onboarding guide for Change a story with Controls" [ref=e61] [cursor=pointer]:
+                  - img [ref=e63]
+                  - generic [ref=e66]: Change a story with Controls
+              - listitem [ref=e67]:
+                - button "Open onboarding guide for Install Vitest addon" [ref=e68] [cursor=pointer]:
+                  - img [ref=e70]
+                  - generic [ref=e73]: Install Vitest addon
+        - generic [ref=e74]: Search for components
+        - search [ref=e75]:
+          - combobox "Search for components" [ref=e76]:
+            - generic:
+              - img
+            - searchbox "Search for components" [ref=e77]
+            - code: ⌃ K
+            - button "Tag filters" [ref=e79] [cursor=pointer]:
+              - img [ref=e80]
+          - button "Create a new story" [ref=e82] [cursor=pointer]:
+            - img [ref=e83]
+        - navigation "Stories" [ref=e86]:
+          - heading "Stories" [level=2] [ref=e87]
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - button "Collapse" [expanded] [ref=e91] [cursor=pointer]:
+                - img [ref=e93]
+                - text: Fact Database
+              - button "Expand all" [ref=e95] [cursor=pointer]:
+                - img [ref=e96]
+            - button "FactResultRow" [expanded] [ref=e99] [cursor=pointer]:
+              - generic [ref=e100]:
+                - img [ref=e102]
+                - img [ref=e104]
+              - text: FactResultRow
+            - generic [ref=e106]:
+              - link "Default" [ref=e107] [cursor=pointer]:
+                - /url: /?path=/story/fact-database-factresultrow--default
+                - img [ref=e109]
+                - text: Default
+              - link "Skip to content" [ref=e550] [cursor=pointer]:
+                - /url: "#storybook-preview-wrapper"
+            - link "Selected" [ref=e113] [cursor=pointer]:
+              - /url: /?path=/story/fact-database-factresultrow--selected
+              - img [ref=e115]
+              - text: Selected
+            - button "FactResultsTable" [ref=e118] [cursor=pointer]:
+              - generic [ref=e119]:
+                - img [ref=e121]
+                - img [ref=e123]
+              - text: FactResultsTable
+            - button "SidebarFilters" [ref=e126] [cursor=pointer]:
+              - generic [ref=e127]:
+                - img [ref=e129]
+                - img [ref=e131]
+              - text: SidebarFilters
+    - generic [ref=e134]:
+      - region "Toolbar" [ref=e135]:
+        - heading "Toolbar" [level=2] [ref=e136]
+        - toolbar [ref=e137]:
+          - generic [ref=e138]:
+            - button "Reload story" [ref=e551] [cursor=pointer]:
+              - img [ref=e552]
+            - switch "Grid visibility" [ref=e554] [cursor=pointer]:
+              - img [ref=e555]
+            - button "Preview background" [ref=e557] [cursor=pointer]:
+              - img [ref=e558]
+            - switch "Measure tool" [ref=e561] [cursor=pointer]:
+              - img [ref=e562]
+            - switch "Outline tool" [ref=e565] [cursor=pointer]:
+              - img [ref=e566]
+            - button "Viewport size" [ref=e568] [cursor=pointer]:
+              - img [ref=e569]
+          - generic [ref=e154]:
+            - button "Change zoom level" [ref=e573] [cursor=pointer]: 100%
+            - button "Enter full screen" [ref=e574] [cursor=pointer]:
+              - img [ref=e575]
+            - button "Share" [ref=e577] [cursor=pointer]:
+              - img [ref=e578]
+            - button "Open in editor" [ref=e581] [cursor=pointer]:
+              - img [ref=e582]
+      - main "Main preview area" [ref=e167]:
+        - heading "Main preview area" [level=2] [ref=e168]
+        - generic [ref=e170]:
+          - link "Skip to sidebar" [ref=e171] [cursor=pointer]:
+            - /url: "#fact-database-factresultrow--default"
+          - iframe [ref=e175]:
+            - generic [ref=f1e25]:
+              - generic [ref=f1e26]:
+                - paragraph [ref=f1e27]: TACC hosts world-class HPC facilities
+                - generic [ref=f1e28]:
+                  - img [ref=f1e29]
+                  - paragraph [ref=f1e31]: 9/15/2024
+              - paragraph [ref=f1e32]: TACC provides researchers at UT Austin and beyond with access to supercomputing resources, visualization labs, and data storage.
+              - generic [ref=f1e33]:
+                - generic [ref=f1e34]: Research Infrastructure
+                - generic [ref=f1e35]: High Performance Computing
+              - generic [ref=f1e36]:
+                - img [ref=f1e37]
+                - paragraph [ref=f1e39]:
+                  - link "TACC Official" [ref=f1e40] [cursor=pointer]:
+                    - /url: https://www.tacc.utexas.edu/
+    - region "Addon panel" [ref=e587]:
+      - heading "Addon panel" [level=2] [ref=e588]
+      - generic [ref=e589]:
+        - generic [ref=e590]:
+          - generic [ref=e591]:
+            - button "Move addon panel to right" [ref=e592] [cursor=pointer]:
+              - img [ref=e593]
+            - button "Hide addon panel" [ref=e596] [cursor=pointer]:
+              - img [ref=e597]
+          - tablist "Available addons" [ref=e602]:
+            - tab "Controls" [selected] [ref=e603] [cursor=pointer]:
+              - generic [ref=e605]: Controls
+            - tab "Actions" [ref=e606] [cursor=pointer]:
+              - generic [ref=e608]: Actions
+            - tab "Interactions" [ref=e609] [cursor=pointer]:
+              - generic [ref=e611]: Interactions
+        - tabpanel "Controls" [ref=e612]:
+          - generic [ref=e619]:
+            - button "Reset controls" [ref=e621] [cursor=pointer]:
+              - img [ref=e622]
+            - table [ref=e624]:
+              - rowgroup [ref=e625]:
+                - row "Name Description Default Control" [ref=e626]:
+                  - columnheader "Name" [ref=e627]
+                  - columnheader "Description" [ref=e628]
+                  - columnheader "Default" [ref=e629]
+                  - columnheader "Control" [ref=e630]
+              - rowgroup [ref=e631]:
+                - row "fact* object - -" [ref=e632]:
+                  - cell "fact*" [ref=e633]
+                  - cell "object" [ref=e634]:
+                    - button "object" [expanded] [ref=e636] [cursor=pointer]:
+                      - generic [ref=e637]: object
+                      - img [ref=e663]
+                  - cell "-" [ref=e640]
+                  - cell "-" [ref=e641]
+                - row "isSelected bool false -" [ref=e642]:
+                  - cell "isSelected" [ref=e643]
+                  - cell "bool" [ref=e644]:
+                    - generic [ref=e647]: bool
+                  - cell "false" [ref=e648]:
+                    - generic [ref=e650]: "false"
+                  - cell "-" [ref=e651]
+                - row "classes object - -" [ref=e652]:
+                  - cell "classes" [ref=e653]
+                  - cell "object" [ref=e654]:
+                    - button "object" [ref=e656] [cursor=pointer]:
+                      - generic [ref=e657]: object
+                      - img [ref=e658]
+                  - cell "-" [ref=e660]
+                  - cell "-" [ref=e661]
+  - dialog "object" [active] [ref=e667]:
+    - button "Dismiss" [ref=e669]
+    - generic [ref=e670]:
+      - generic [ref=e677]:
+        - text: "{ id: number, title: string, fact_text: string, date: string, context: string, type: string, subject: string, source: string, sourceUrl: string"
+        - text: "}"
+      - button "Close" [ref=e678] [cursor=pointer]:
+        - img [ref=e679]
+    - button "Dismiss" [ref=e683]

@@ -1,3 +1,23 @@
 {
-  "guilds": {}
+  "guilds": {
+    "1271213624714723339": {
+      "requiredRole": [
+        "1274380260321792153",
+        "1305989446146981908"
+      ],
+      "name": "tacc"
+    }
+  },
+  "roles": {
+    "1305989446146981908": {
+      "name": "SOE",
+      "type": "user",
+      "description": "Discord role for SOE (user app role)"
+    }
+  },
+  "userRoles": {
+    "701037283582672936": ["French"]
+  },
+  "whitelistUsers": []
+
 }

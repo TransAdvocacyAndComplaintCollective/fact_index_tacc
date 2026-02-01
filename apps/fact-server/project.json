@@ -4,7 +4,7 @@
   "root": "apps/fact-server",
   "sourceRoot": "apps/fact-server/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:server"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -17,7 +17,7 @@
       "executor": "nx:run-commands",
       "defaultConfiguration": "development",
       "options": {
-        "command": "NODE_ENV=development DOTENV_CONFIG_PATH=apps/fact-server/.env node --watch --enable-source-maps -r @swc-node/register -r dotenv/config ./apps/fact-server/src/main.ts"
+        "command": "NODE_ENV=development TS_NODE_PROJECT=tsconfig.base.json TSCONFIG_PATHS_CONFIG_DIR=. DOTENV_CONFIG_PATH=apps/fact-server/.env node --watch --enable-source-maps -r tsconfig-paths/register -r @swc-node/register -r dotenv/config ./apps/fact-server/src/main.ts"
       },
       "configurations": {
         "development": {},
@@ -25,8 +25,13 @@
           "command": "DOTENV_CONFIG_PATH=apps/fact-server/.env node -r dotenv/config ./apps/fact-server/src/main.ts"
         }
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "eslintConfig": "apps/fact-server/eslint.config.mjs",
+        "lintFilePatterns": ["apps/fact-server/src/**/*.{ts,js}"]
+      }
     }
-
-    
   }
 }

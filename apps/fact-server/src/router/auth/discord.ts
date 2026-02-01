@@ -3,26 +3,20 @@ import passport from "passport";
 import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import logger from "../../logger.ts";
-import { generateJWT, verifyJWT, clearDiscordTokensForUser } from "../../auth/passport-discord.ts";
+import { 
+  generateJWT, 
+  verifyJWT,
+  revokeToken,
+  generateOAuthStateJWT,
+  verifyOAuthStateJWT,
+} from "../../auth/jwt.ts";
+import { isDevModeActive } from "../../auth/passport-dev.ts";
 
 const router = express.Router();
 
-/**
- * Robust env boolean parsing.
- * Accepts TRUE/true/1/yes/on as truthy.
- */
-function envFlag(name: string): boolean {
-  const v = process.env[name];
-  if (!v) return false;
-  return ["true", "1", "yes", "y", "on"].includes(v.trim().toLowerCase());
-}
-
-const DEV_LOGIN = envFlag("DEV_LOGIN_MODE");
-const STRATEGY = DEV_LOGIN ? "discord-dev-bypass" : "discord";
+const STRATEGY = "discord";
 
 // Scopes required to:
-// - list guilds: /users/@me/guilds (guilds)
-// - read current user's roles in a guild: /users/@me/guilds/{guild.id}/member (guilds.members.read)
 const DISCORD_SCOPE = ["identify", "guilds", "guilds.members.read"] as const;
 
 // ---------- logging helpers ----------
@@ -114,7 +108,7 @@ function ensureStrategy(req: Request, res: Response, next: NextFunction) {
   const strategy =
     typeof strategyLookup === "function" ? strategyLookup.call(passport, STRATEGY) : undefined;
 
-  if (!strategy && !DEV_LOGIN) {
+  if (!strategy && !isDevModeActive()) {
     const strategiesObj = (passport as any)._strategies as Record<string, unknown> | undefined;
     const registered = strategiesObj ? Object.keys(strategiesObj) : [];
 
@@ -130,49 +124,107 @@ function ensureStrategy(req: Request, res: Response, next: NextFunction) {
     });
   }
 
-  logger.debug(`[auth] ${ctx(req, res)} Strategy '${STRATEGY}' is available (or DEV_LOGIN active)`);
+  logger.debug(`[auth] ${ctx(req, res)} Strategy '${STRATEGY}' is available (or dev mode active)`);
   return next();
 }
 
+// ---------- OAuth 2.0 Authorization Code Grant Flow with CSRF Protection ----------
+/**
+ * This implements the OAuth 2.0 Authorization Code Grant (RFC 6749) with stateless CSRF:
+ *
+ * 1. Client (browser) initiates login → /auth/discord
+ *    - Server generates JWT-based state parameter for CSRF protection
+ *    - State is a JWT token with 10-minute expiry (stateless)
+ *    - Browser is redirected to Discord OAuth endpoint with state
+ *
+ * 2. User authorizes on Discord's server
+ *    - Discord redirects back to /auth/discord/callback with:
+ *      - code (authorization code)
+ *      - state (echoed back by Discord)
+ *
+ * 3. Server validates the state JWT (stateless CSRF check)
+ *    - Verifies JWT signature and expiry
+ *    - If state is invalid/missing/expired, abort (CSRF protection)
+ *    - Prevents attacks from malicious sites - no server database needed
+ *
+ * 4. Server exchanges code for tokens (back-channel)
+ *    - Uses client_id + client_secret (server-to-server)
+ *    - Receives access_token, refresh_token from Discord
+ *
+ * 5. Server issues JWT to client
+ *    - JWT contains encrypted Discord tokens (AES-256-GCM)
+ *    - User is redirected home with JWT in URL
+ *    - No sensitive tokens exposed in URLs or to browser directly
+ */
+
 // ---------- routes ----------
-router.get(
-  "/discord",
-  (req: Request, res: Response, next: NextFunction) => {
-    if (DEV_LOGIN) {
-      logger.info(`[auth] ${ctx(req, res)} DEV_LOGIN active; redirecting to dev-login helper`);
-      return res.redirect("/auth/discord/dev");
-    }
-    return next();
-  },
-  ensureStrategy,
-  (req: Request, res: Response, next: NextFunction) => {
-    logger.info(`[auth] ${ctx(req, res)} initiating OAuth flow strategy=${STRATEGY}`);
-    next();
-  },
-  // IMPORTANT: disable sessions for stateless JWT auth
-  passport.authenticate(STRATEGY, { scope: [...DISCORD_SCOPE], session: false }),
-);
+router.get("/discord", ensureStrategy, (req: Request, res: Response, next: NextFunction) => {
+  const stateJWT = generateOAuthStateJWT();
+  logger.info(`[auth] ${ctx(req, res)} initiating OAuth 2.0 Authorization Code Grant flow with JWT state=${stateJWT.slice(0, 8)}...`);
+  passport.authenticate(STRATEGY, { scope: [...DISCORD_SCOPE], state: stateJWT, session: false })(req, res, next);
+});
 
 router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, next: NextFunction) => {
   const q = req.query as Record<string, unknown>;
   const queryKeys = Object.keys(q ?? {});
   const hasCode = typeof q.code === "string";
   const hasError = typeof q.error === "string";
+  const hasState = typeof q.state === "string";
 
   logger.info(
-    `[auth] ${ctx(req, res)} callback received queryKeys=[${queryKeys.join(", ")}] hasCode=${hasCode} hasError=${hasError}`,
+    `[auth] ${ctx(req, res)} callback received queryKeys=[${queryKeys.join(", ")}] hasCode=${hasCode} hasError=${hasError} hasState=${hasState}`,
   );
+
+  // Validate state parameter (stateless CSRF protection for Authorization Code Grant)
+  if (!hasState) {
+    logger.warn(
+      `[auth] ${ctx(req, res)} State parameter missing from callback - possible CSRF attack or misconfiguration`,
+    );
+    const userMessage = "Authentication failed: missing state parameter (CSRF protection)";
+    const encodedUserMessage = encodeURIComponent(userMessage);
+    return res.redirect(`/login?error=csrf_failure&reasonCode=missing_state&userMessage=${encodedUserMessage}`);
+  }
+
+  const state = String(q.state);
+  const stateData = verifyOAuthStateJWT(state);
+  
+  if (!stateData) {
+    logger.warn(
+      `[auth] ${ctx(req, res)} State JWT validation failed - possible CSRF attack or expired state`,
+    );
+    const userMessage = "Authentication failed: invalid or expired state parameter";
+    const encodedUserMessage = encodeURIComponent(userMessage);
+    return res.redirect(`/login?error=csrf_failure&reasonCode=invalid_state&userMessage=${encodedUserMessage}`);
+  }
+
+  // If Discord itself returned an error (user denied, etc.)
+  if (hasError) {
+    const discordError = String(q.error ?? "unknown");
+    const discordErrorDesc = String(q.error_description ?? "");
+    logger.warn(
+      `[auth] ${ctx(req, res)} Discord rejected request error=${discordError} description=${discordErrorDesc}`,
+    );
+    const userMessage = discordErrorDesc || `Discord denied the request (${discordError})`;
+    const encodedRaw = encodeURIComponent(discordError);
+    const encodedCode = encodeURIComponent("discord_denied");
+    const encodedUserMessage = encodeURIComponent(userMessage);
+
+    return res.redirect(
+      `/login?error=discord&reason=${encodedRaw}&reasonCode=${encodedCode}&userMessage=${encodedUserMessage}`,
+    );
+  }
 
   const middleware = passport.authenticate(
     STRATEGY,
     { session: false },
     (err: unknown, user: unknown, info: unknown, status?: number) => {
       if (err) {
+        const errMsg = err && typeof err === "object" && (err as any).message ? (err as any).message : String(err);
         logger.error(
-          `[auth] ${ctx(req, res)} authenticate error status=${status ?? "n/a"} info=${JSON.stringify(
+          `[auth] ${ctx(req, res)} authenticate error status=${status ?? "n/a"} message=${errMsg} info=${JSON.stringify(
             summarizeInfo(info),
           )}`,
-          err as Error,
+          err instanceof Error ? { message: err.message, stack: err.stack } : { error: String(err) },
         );
         return next(err as Error);
       }
@@ -203,14 +255,19 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
 
         const userMessageMap: Record<string, string> = {
           missing_guild: "You are not a member of the required Discord server.",
-          missing_role: "You do not have the required role in the Discord server. Ask an admin to grant the role.",
+          missing_role: "You do not have the required role in the server. Ask an admin to grant it.",
           auth_failed: "Authentication with Discord failed. Please try again or contact an administrator.",
+          member_fetch_failed:
+            "Discord temporarily blocked the member lookup. Please wait a minute and try again.",
+          discord_error: "Discord responded with an error. Try again or contact support if it keeps failing.",
           unknown: "Sign-in failed due to an unknown issue. Please try again or contact support.",
         };
 
+        const fallbackUserMessage =
+          userMessageMap[reasonCode] || rawReason || userMessageMap.unknown;
         const encodedRaw = encodeURIComponent(rawReason);
         const encodedCode = encodeURIComponent(reasonCode);
-        const encodedUserMessage = encodeURIComponent(userMessageMap[reasonCode] || userMessageMap.unknown);
+        const encodedUserMessage = encodeURIComponent(fallbackUserMessage);
 
         return res.redirect(
           `/login?error=discord&reason=${encodedRaw}&reasonCode=${encodedCode}&userMessage=${encodedUserMessage}`,
@@ -231,49 +288,37 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
   return middleware(req, res, next);
 });
 
-router.post("/logout", (req: Request, res: Response) => {
+router.post("/logout", async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   const hasToken = Boolean(authHeader?.startsWith("Bearer "));
 
   logger.info(`[auth] ${ctx(req, res)} logout requested; token=${hasToken ? "present" : "missing"}`);
 
-  // Optional server-side cleanup of stored Discord OAuth tokens
-  if (hasToken) {
-    const token = authHeader!.slice(7);
-    const user = verifyJWT(token);
-    if (user?.id) clearDiscordTokensForUser(user.id);
-  }
+  try {
+    // Revoke JWT token and clear Discord OAuth tokens (logs user out of Discord)
+    if (hasToken) {
+      const token = authHeader!.slice(7);
+      const user = verifyJWT(token);
+      
+      if (user?.id && user?.jti) {
+        const expiryTime = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days
+        await revokeToken(user.jti, user.id, expiryTime, "logout");
+        logger.info(`[auth] ${ctx(req, res)} user ${user.id} logged out: JWT revoked and Discord tokens cleared`);
+      }
+    }
 
-  logger.info(`[auth] ${ctx(req, res)} logout successful`);
-  return res.status(204).end();
+    logger.info(`[auth] ${ctx(req, res)} logout successful`);
+    return res.status(204).end();
+  } catch (err) {
+    logger.error(`[auth] ${ctx(req, res)} logout error`, err instanceof Error ? { message: err.message, stack: err.stack } : { error: String(err) });
+    // Still return 204 to not leak information about errors
+    return res.status(204).end();
+  }
 });
 
-// Development helper: establish a fake logged-in user for local testing.
-if (DEV_LOGIN) {
-  router.get("/discord/dev", (req: Request, res: Response) => {
-    const userParam =
-      typeof req.query.user === "string" && req.query.user.trim()
-        ? req.query.user.trim()
-        : "dev-user";
-
-    const fakeUser = {
-      id: `dev-${userParam}`,
-      username: userParam,
-      avatar: null,
-      guild: null,
-      hasRole: true,
-      devBypass: true,
-    };
-
-    const token = generateJWT(fakeUser);
-    logger.info(`[auth] ${ctx(req, res)} dev-login JWT generated for ${fakeUser.username}`);
-    return res.redirect(`/?token=${encodeURIComponent(token)}`);
-  });
-}
-
-// Router-local error logger
+// Router-local error logger - redirect to login page with error details
 router.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-  logger.error(`[auth] ${ctx(req, res)} UNHANDLED ROUTER ERROR`, err as Error);
+  logger.error(`[auth] ${ctx(req, res)} UNHANDLED ROUTER ERROR`, err instanceof Error ? { message: err.message, stack: err.stack } : { error: String(err) });
 
   if (res.headersSent) return next(err as Error);
 
@@ -285,15 +330,34 @@ router.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
       ? String((err as any).stack).split("\n").slice(0, 4).join("\n")
       : undefined;
 
-  const payload: Record<string, unknown> = {
-    error: "Authentication server error",
-    requestId: res.locals.requestId,
-  };
+  // Derive a reasonCode from the error message
+  let reasonCode = "server_error";
+  let userMessage = "An error occurred during authentication. Please try again or contact support.";
 
-  if (errMsg) payload.errorMessage = errMsg;
-  if (process.env.NODE_ENV === "development" && errStack) payload.errorStack = errStack;
+  if (errMsg) {
+    if (/invalid.*code/i.test(errMsg)) {
+      reasonCode = "invalid_code";
+      userMessage = "The authorization code from Discord is invalid or has expired. Please try logging in again.";
+    } else if (/token/i.test(errMsg)) {
+      reasonCode = "token_error";
+      userMessage = "Failed to obtain a token from Discord. Please try again.";
+    } else if (/network|connection|fetch|timeout/i.test(errMsg)) {
+      reasonCode = "network_error";
+      userMessage = "Network error connecting to Discord. Please check your connection and try again.";
+    }
+  }
 
-  res.status(500).json(payload);
+  logger.warn(
+    `[auth] ${ctx(req, res)} Redirecting to login with error reasonCode=${reasonCode} message=${errMsg ?? "n/a"}`,
+  );
+
+  const encodedRaw = encodeURIComponent(errMsg || "Unknown error");
+  const encodedCode = encodeURIComponent(reasonCode);
+  const encodedUserMessage = encodeURIComponent(userMessage);
+
+  return res.redirect(
+    `/login?error=discord&reason=${encodedRaw}&reasonCode=${encodedCode}&userMessage=${encodedUserMessage}`,
+  );
 });
 
 export default router;

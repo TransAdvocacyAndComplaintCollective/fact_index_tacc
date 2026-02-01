@@ -1,0 +1,13 @@
+{
+  "name": "@factdb/db-core",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@factdb/types": "workspace:*"
+  }
+}

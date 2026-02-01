@@ -2,9 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import passport from 'passport';
 import logger from './logger.ts';
-import authRouter from './router/auth/auth.ts';
-// Ensure passport strategies are registered at startup
-import './auth/passport-discord.ts';
+// wellknownRouter is imported after DB init to avoid importing auth modules early
+import * as dbSchema from './db/schema.ts';
+// authRouter and passport strategies are imported after DB init to avoid
+// performing DB queries (token revocation checks) before the schema exists.
 
 // Set up global error handlers FIRST
 process.on('uncaughtException', (err) => {
@@ -29,20 +30,22 @@ logger.info('[serve] Discord env:', {
 let apiRouter: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let staticRouter: any = null;
-import { createSchema, initializeDb } from './db/schema.ts';
 const isDev = process.env.NODE_ENV === 'development';
 
 const app = express();
 
+// Parse incoming JSON/URL-encoded payloads so POST routes can access req.body.
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Log that the router module was initialized
 logger.info('[serve] Express router initialized');
 
-// Mount auth router early so /auth/* endpoints are available before static/Vite handling
 // Passport initialization for JWT strategy (stateless authentication)
 app.use(passport.initialize());
 // Note: No session middleware or passport.session() - we use JWT tokens instead
 
-app.use(authRouter);
+// well-known endpoints (JWKS, discovery, etc.) mounted after DB init
 
 
 
@@ -50,10 +53,29 @@ app.use(authRouter);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 
-// Start the server without waiting for DB - initialize DB in background
+// Start the server after DB initialization + schema creation
 (async () => {
   try {
     console.log('[serve] Starting initialization...');
+
+    console.log('[serve] Initializing database...');
+    await dbSchema.initializeDb();
+    console.log('[serve] Database connection ready, ensuring schema...');
+    await dbSchema.createSchema(dbSchema.getDb());
+    console.log('[serve] Schema ready');
+
+    // Now that DB and schema are ready, register passport strategies and mount auth routes
+    console.log('[serve] Registering passport strategies and auth routes...');
+    await import('./auth/passport-discord.ts');
+    // import auth router and mount it
+    const { default: authRouter } = await import('./router/auth/auth.ts');
+    app.use(authRouter);
+    console.log('[serve] Auth routes registered');
+
+    // Mount well-known endpoints (JWKS, discovery, etc.) after JWKS initialization
+    const { default: wellknown } = await import('./router/wellknown.ts');
+    app.use("/.well-known", wellknown);
+    console.log('[serve] Well-known routes registered');
 
     // Dynamically import routers now
     console.log('[serve] Importing API router...');
@@ -70,20 +92,6 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
     app.listen(PORT, () => {
       logger.info(`[serve] Fact Index server listening on port ${PORT} - mode: ${isDev ? 'development' : 'production'}`);
-      
-      // Initialize database in background after server is listening
-      console.log('[serve] Initializing database in background...');
-      initializeDb()
-        .then(async () => {
-          console.log('[serve] Database initialized, creating schema...');
-          const { getDb } = await import('./db/schema.ts');
-          await createSchema(getDb());
-          console.log('[serve] Database schema ready');
-        })
-        .catch((err) => {
-          console.error('[serve] Failed to initialize database:', err);
-          logger.error('[serve] Database initialization failed', { error: String(err) });
-        });
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);

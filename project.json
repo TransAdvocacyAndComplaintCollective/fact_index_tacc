@@ -1,3 +1,17 @@
 {
-  "name": "workspace-root"
+  "name": "workspace-root",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm knip"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Run tests with: pnpm nx test [project]'"
+      }
+    }
+  }
 }

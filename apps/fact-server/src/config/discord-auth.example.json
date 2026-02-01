@@ -1,0 +1,9 @@
+{
+  "guilds": {
+    "YOUR_GUILD_ID": {
+      "requiredRole": "ROLE_ID_OR_COMMA_SEPARATED_ROLE_IDS",
+      "name": "Optional Guild Name"
+    }
+  },
+  "adminUsers": ["DISCORD_USER_ID_OF_ADMIN"]
+}

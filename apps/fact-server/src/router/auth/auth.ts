@@ -1,25 +1,21 @@
 import express from "express";
 import passport from "passport";
 import discordRouter from "./discord.ts";
+import devRouter from "./dev.ts";
+import adminRouter from "./admin.ts";
+import magicRouter from "./magic.ts";
 import {
   validateAndRefreshSession,
-  verifyJWT,
-  refreshAccessToken,
-  generateJWT,
+  validateJWTOnly,
 } from "../../auth/passport-discord.ts";
+import { isDevModeActive } from "../../auth/passport-dev.ts";
+import {
+  verifyJWT,
+} from "../../auth/jwt.ts";
 import type { Request, Response } from "express";
 import logger from "../../logger.ts";
 
 const router = express.Router();
-
-// Robust env boolean parsing.
-function envFlag(name: string): boolean {
-  const v = process.env[name];
-  if (!v) return false;
-  return ["true", "1", "yes", "y", "on"].includes(v.trim().toLowerCase());
-}
-
-const DEV_LOGIN = envFlag("DEV_LOGIN_MODE");
 
 // Provide a stable /auth/status endpoint consumed by the frontend.
 router.get("/auth/status", validateAndRefreshSession, (req: Request, res: Response) => {
@@ -51,16 +47,34 @@ router.get("/auth/available", (_req: Request, res: Response) => {
     const strategyNames = Object.keys(strategiesObj || {});
 
     const hasDiscord = strategyNames.includes("discord");
+    const devModeActive = isDevModeActive();
 
-    // If dev login is active, we *always* expose the dev URL regardless of passport strategies.
-    const providers = [
-      {
-        name: "discord",
-        available: DEV_LOGIN ? true : hasDiscord,
-        url: DEV_LOGIN ? "/auth/discord/dev" : "/auth/discord",
-        devBypass: DEV_LOGIN,
-      },
-    ];
+    const providers = [];
+
+    // Add Discord OAuth provider
+    providers.push({
+      name: "discord",
+      available: hasDiscord,
+      url: "/auth/discord",
+    });
+
+    // Add magic-link provider if strategy registered
+    const hasMagic = strategyNames.includes("magiclink");
+    providers.push({
+      name: "magiclink",
+      available: hasMagic,
+      url: "/auth/magiclink",
+    });
+
+    // Add dev bypass provider if dev mode is active
+    if (devModeActive) {
+      providers.push({
+        name: "dev",
+        available: true,
+        url: "/auth/dev",
+        devBypass: true,
+      });
+    }
 
     const anyAvailable = providers.some((p) => p.available);
     if (!anyAvailable) {
@@ -74,8 +88,8 @@ router.get("/auth/available", (_req: Request, res: Response) => {
   }
 });
 
-// GET /auth/me - Return current auth status (validated via middleware)
-router.get("/auth/me", validateAndRefreshSession, (req: Request, res: Response) => {
+// GET /auth/me - Return current auth status (lightweight JWT validation, no Discord API calls)
+router.get("/auth/me", validateJWTOnly, (req: Request, res: Response) => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const st = (req as any).authStatus as any;
@@ -98,41 +112,19 @@ router.get("/auth/me", validateAndRefreshSession, (req: Request, res: Response) 
   }
 });
 
-// POST /auth/refresh - refresh Discord OAuth access token server-side (if possible) and rotate JWT expiry.
-router.post("/auth/refresh", async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "missing_token" });
-    }
-
-    const token = authHeader.slice(7);
-    const user = verifyJWT(token);
-    if (!user) return res.status(401).json({ error: "invalid_token" });
-
-    // Dev bypass users don't need refresh.
-    if (user.devBypass) {
-      return res.status(200).json({ accessToken: generateJWT(user) });
-    }
-
-    try {
-      await refreshAccessToken(user);
-    } catch (err) {
-      logger.warn("[auth] /auth/refresh failed:", err);
-      return res.status(401).json({ error: "token_refresh_failed" });
-    }
-
-    // Rotate JWT (extends JWT expiry; does NOT embed Discord tokens).
-    const newJwt = generateJWT(user);
-    return res.status(200).json({ accessToken: newJwt });
-  } catch (err: unknown) {
-    logger.error("[auth] /auth/refresh error", { error: err instanceof Error ? err.message : String(err) });
-    return res.status(500).json({ error: "internal_error" });
-  }
-});
-
 // Expose all other auth-related endpoints under /auth — e.g. /auth/discord, /auth/logout
 router.use("/auth", discordRouter);
+
+// Expose magic-link routes if enabled
+router.use("/auth", magicRouter);
+
+// Expose dev login endpoint if dev mode is active
+if (isDevModeActive()) {
+  router.use("/auth", devRouter);
+}
+
+// Expose admin management endpoints under /auth/admin
+router.use("/auth/admin", adminRouter);
 
 // Dev-only debug endpoint to inspect the current auth status/user state.
 router.get("/auth/debug", (req: Request, res: Response) => {

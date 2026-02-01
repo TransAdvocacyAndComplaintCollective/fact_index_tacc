@@ -1,50 +1,48 @@
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "@oauth-everything/passport-discord";
-import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
-import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
+import { getDb } from "../db/schema.ts";
+import logger from "../logger.ts";
+import type { AuthStatus, AuthUser } from "../../../../libs/types/src/index.ts";
+import {
+  initializeJWKS,
+  getPublicJWKS,
+  rotateKeysManually,
+} from "./jwks.ts";
+import {
+  log,
+  encryptToken,
+  isTokenRevoked,
+  generateJWT,
+  verifyJWT,
+  initializePassportJWTStrategy,
+  initializePassportSerialization,
+} from "./jwt.ts";
 
-type Done = (err: Error | null, user?: AuthUser | false, info?: unknown) => void;
-
+// Type definitions for Discord OAuth profile
 interface DiscordGuild {
   id: string;
+  name?: string;
+  icon?: string;
+  [key: string]: unknown;
 }
+
 interface DiscordProfile {
   id: string;
   username?: string;
-  avatar?: string | null;
+  avatar?: string;
   discriminator?: string;
+  email?: string;
+  verified?: boolean;
   guilds?: DiscordGuild[];
+  [key: string]: unknown;
 }
 
-interface AuthUser {
-  id: string;
-  username: string;
-  avatar?: string | null;
-  discriminator?: string | null;
-  guild?: string | null;
-  hasRole?: boolean;
-  devBypass?: boolean;
-}
-
-interface AuthStatusUser {
-  id: string;
-  username?: string;
-  avatar?: string | null;
-  discriminator?: string | null;
-  guild?: string | null;
-  hasRole?: boolean;
-}
-
-interface AuthStatus {
-  authenticated: boolean;
-  reason?: string;
-  user?: AuthStatusUser;
-  devBypass?: boolean;
-}
+type Done = (err: Error | null, user?: AuthUser | false, info?: unknown) => void;
 
 const {
   DISCORD_ROLE_ID,
@@ -54,32 +52,8 @@ const {
   DISCORD_CALLBACK_URL,
 } = process.env as Record<string, string | undefined>;
 
-// JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || "dev-jwt-secret-change-in-production";
-const JWT_EXPIRATION = process.env.JWT_EXPIRY || "7d";
-
-// ---------------------------------------------------------------------------
-// Server-side token vault (IN-MEMORY)
-// Replace with Redis/DB if you run multiple instances or need persistence.
-// ---------------------------------------------------------------------------
-type OAuthTokens = {
-  accessToken: string;
-  refreshToken?: string | null;
-  expiresAt?: number | null;
-  scope?: string | null;
-};
-
-const tokenVault = new Map<string, OAuthTokens>();
-
-function setTokens(userId: string, tokens: OAuthTokens) {
-  tokenVault.set(userId, tokens);
-}
-function getTokens(userId: string): OAuthTokens | null {
-  return tokenVault.get(userId) || null;
-}
-export function clearDiscordTokensForUser(userId: string) {
-  tokenVault.delete(userId);
-}
+// JWKS (JSON Web Key Set) initialization for key rotation
+initializeJWKS();
 
 // Config file location for guild <-> role mapping
 const __filename = fileURLToPath(import.meta.url);
@@ -90,14 +64,60 @@ const CONFIG_PATH = path.join(CONFIG_DIR, "discord-auth.json");
 // Ensure config dir exists
 try {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
-} catch {}
+} catch (err) {
+  console.warn(`[discord passport] Unable to create config dir ${CONFIG_DIR}:`, err);
+}
 
 // Default config
 const DEFAULT_CONFIG = {
   guilds: {
     // "123456789012345678": { "requiredRole": "1111222233334444", "name": "Project Guild" }
   },
+  userRoles: {},
+  whitelistUsers: [],
+  adminUsers: [],
 };
+
+const STATE_TTL_MS = 5 * 60_000;
+class MemoryStateStore {
+  private readonly store = new Map<string, number>();
+  private readonly ttl: number;
+
+  constructor(ttl = STATE_TTL_MS) {
+    this.ttl = ttl;
+  }
+
+  store(_req: unknown, callback: (err: Error | null, state?: string) => void) {
+    const state = crypto.randomBytes(16).toString("hex");
+    const expiresAt = Date.now() + this.ttl;
+    this.store.set(state, expiresAt);
+    setTimeout(() => this.store.delete(state), this.ttl);
+    callback(null, state);
+  }
+
+  verify(_req: unknown, state: string, callback: (err: Error | null, ok: boolean) => void) {
+    const expiresAt = this.store.get(state);
+    if (!expiresAt) {
+      callback(null, false);
+      return;
+    }
+    this.store.delete(state);
+    callback(null, expiresAt >= Date.now());
+  }
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+  }
+  if (value == null) {
+    return [];
+  }
+  return [String(value).trim()].filter(Boolean);
+}
 
 let fileConfig: any = DEFAULT_CONFIG;
 try {
@@ -112,6 +132,60 @@ try {
 } catch (err) {
   log("warn", `Could not load or create discord-auth.json (${CONFIG_PATH}); falling back to env vars`);
   fileConfig = DEFAULT_CONFIG;
+}
+
+// Normalize config: ensure `requiredRole` values are arrays of trimmed strings
+try {
+  if (fileConfig && fileConfig.guilds && typeof fileConfig.guilds === "object") {
+    for (const [gid, cfg] of Object.entries(fileConfig.guilds)) {
+      if (!cfg || typeof cfg !== "object") continue;
+      const entry: any = cfg as any;
+      const rr = entry.requiredRole;
+      if (rr == null) {
+        entry.requiredRole = null;
+        continue;
+      }
+
+      if (Array.isArray(rr)) {
+        entry.requiredRole = rr.map((r: any) => String(r).trim()).filter(Boolean);
+      } else if (typeof rr === "string") {
+        entry.requiredRole = rr
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      } else {
+        entry.requiredRole = [String(rr)];
+      }
+    }
+    log("info", `Normalized discord-auth.json guild entries (${Object.keys(fileConfig.guilds).length} guilds)`);
+  }
+  // Normalize userRoles (map of userId -> array of roles) and whitelistUsers
+  if (fileConfig && fileConfig.userRoles && typeof fileConfig.userRoles === "object") {
+    for (const [uid, val] of Object.entries(fileConfig.userRoles)) {
+      const entryAny: any = val as any;
+      if (entryAny == null) {
+        fileConfig.userRoles[uid] = [];
+        continue;
+      }
+      if (Array.isArray(entryAny)) {
+        fileConfig.userRoles[uid] = entryAny.map((r: any) => String(r).trim()).filter(Boolean);
+      } else if (typeof entryAny === "string") {
+        fileConfig.userRoles[uid] = entryAny.split(",").map((s: string) => s.trim()).filter(Boolean);
+      } else {
+        fileConfig.userRoles[uid] = [String(entryAny)];
+      }
+    }
+    log("info", `Normalized discord-auth.json userRoles entries (${Object.keys(fileConfig.userRoles).length} users)`);
+  }
+
+  if (fileConfig) {
+    fileConfig.whitelistUsers = normalizeStringList(fileConfig.whitelistUsers);
+    log("info", `Normalized discord-auth.json whitelistUsers (${fileConfig.whitelistUsers.length} entries)`);
+    fileConfig.adminUsers = normalizeStringList(fileConfig.adminUsers);
+    log("info", `Normalized discord-auth.json adminUsers (${fileConfig.adminUsers.length} entries)`);
+  }
+} catch (err) {
+  log("warn", "Failed to normalize discord-auth.json entries:", err instanceof Error ? err.message : String(err));
 }
 
 // Merge env-provided guild hints with file config (env guild ids add entries)
@@ -132,10 +206,49 @@ const REQUIRED_ROLE_IDS = (DISCORD_ROLE_ID || "")
   .map((r) => r.trim())
   .filter(Boolean);
 
+const defaultStateStore = new MemoryStateStore();
+
+function getAdminRoleIds() {
+  const rolesConfig = fileConfig?.roles && typeof fileConfig.roles === "object" ? fileConfig.roles : {};
+  const ids = new Set<string>();
+  for (const [roleId, entry] of Object.entries(rolesConfig)) {
+    if (entry && typeof entry === "object" && String(entry.type || "").toLowerCase() === "admin") {
+      ids.add(roleId);
+    }
+  }
+  return ids;
+}
+
+const ADMIN_ROLE_IDS = getAdminRoleIds();
+
+function hasAdminRole(memberRoles: string[] | undefined | null): boolean {
+  if (!memberRoles?.length) return false;
+  for (const role of memberRoles) {
+    if (ADMIN_ROLE_IDS.has(role)) return true;
+  }
+  return false;
+}
+
+function isAdminUser(userId?: string | null): boolean {
+  if (!userId) return false;
+  return Array.isArray(fileConfig.adminUsers) ? fileConfig.adminUsers.includes(String(userId)) : false;
+}
+
 // Helper to find matched guild and required role from config
 function findMatchedGuild(profile: DiscordProfile) {
   const guilds = profile.guilds || [];
   const configured = Object.keys(fileConfig.guilds || {});
+
+  // If the user is explicitly whitelisted, allow auth outside the guild
+  if (profile.id && Array.isArray(fileConfig.whitelistUsers) && fileConfig.whitelistUsers.includes(profile.id)) {
+    return { guildId: null, requiredRole: null, mode: "whitelist" } as any;
+  }
+
+  // If the user has app-assigned roles, return them as a user-level match
+  if (profile.id && fileConfig.userRoles && fileConfig.userRoles[profile.id]) {
+    return { guildId: null, requiredRole: fileConfig.userRoles[profile.id], mode: "userRoles" } as any;
+  }
+
   for (const g of guilds) {
     if (configured.includes(g.id)) {
       return { guildId: g.id, requiredRole: fileConfig.guilds[g.id]?.requiredRole ?? null };
@@ -158,144 +271,37 @@ function findMatchedGuild(profile: DiscordProfile) {
   return null;
 }
 
-function log(level: "info" | "warn" | "error", ...args: unknown[]) {
-  const ts = new Date().toISOString();
-  const fn = console[level] as unknown as (...a: unknown[]) => void;
-  fn(`[${ts}] [discord passport]`, ...args);
-}
 
-// JWT token generation helper (NO discord OAuth tokens inside JWT)
-export function generateJWT(user: AuthUser): string {
-  const payload = {
-    sub: user.id,
-    username: user.username,
-    avatar: user.avatar ?? null,
-    discriminator: user.discriminator ?? null,
-    guild: user.guild ?? null,
-    hasRole: user.hasRole ?? false,
-    devBypass: user.devBypass ?? false,
-  };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
-}
 
-// JWT token validation helper
-export function verifyJWT(token: string): AuthUser | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const id = decoded?.sub ? String(decoded.sub) : null;
-    if (!id) return null;
+const CACHE_TTL_MS = 60_000;
+const MUTATION_CACHE_TTL_MS = 30_000;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    return {
-      id,
-      username: decoded.username ? String(decoded.username) : "",
-      avatar: decoded.avatar ?? null,
-      discriminator: decoded.discriminator ?? null,
-      guild: decoded.guild ?? null,
-      hasRole: Boolean(decoded.hasRole),
-      devBypass: Boolean(decoded.devBypass),
-    };
-  } catch (err) {
-    log("warn", "JWT verification failed:", err);
-    return null;
+async function fetchWithRateLimitBackoff(
+  accessToken: string,
+  url: string,
+  opts?: { retryOn401?: boolean; retryOn429?: boolean; retryDelayMs?: number },
+): Promise<{ ok: boolean; status: number; json?: any; retryAfterMs?: number }> {
+  const initial = await discordFetchJson(accessToken, url, opts);
+  if (initial.ok) return initial;
+  if (initial.status === 429) {
+    const waitMs = Math.min(Math.max(initial.retryAfterMs ?? opts?.retryDelayMs ?? 1000, 250), 5000);
+    await wait(waitMs);
+    const retry = await discordFetchJson(accessToken, url, { ...opts, retryOn429: false });
+    return retry.ok
+      ? retry
+      : {
+          ...retry,
+          retryAfterMs: retry.retryAfterMs ?? waitMs,
+        };
   }
-}
-
-// Truthy env parsing for DEV_LOGIN_MODE
-function envFlag(name: string): boolean {
-  const v = process.env[name];
-  if (!v) return false;
-  return ["true", "1", "yes", "y", "on"].includes(String(v).trim().toLowerCase());
-}
-
-const DEV_LOGIN_MODE = envFlag("DEV_LOGIN_MODE");
-
-// ---------------------------------------------------------------------------
-// Discord token refresh (server-side, uses vault refreshToken)
-// ---------------------------------------------------------------------------
-export async function refreshAccessToken(user: AuthUser) {
-  if (user.devBypass) {
-    log("info", `[DevBypass] No refresh needed for ${user.username} (${user.id})`);
-    return { devBypass: true };
-  }
-
-  const t = getTokens(user.id);
-  if (!t?.refreshToken) throw new Error("No refresh token available (server-side)");
-
-  const params = new URLSearchParams({
-    client_id: DISCORD_CLIENT_ID || "",
-    client_secret: DISCORD_CLIENT_SECRET || "",
-    grant_type: "refresh_token",
-    refresh_token: t.refreshToken || "",
-    redirect_uri: DISCORD_CALLBACK_URL || "",
-    scope: "identify guilds guilds.members.read",
-  });
-
-  const res = await fetch("https://discord.com/api/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params,
-  });
-
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`Failed to refresh token (status ${res.status}): ${msg}`);
-  }
-
-  const json: any = await res.json();
-  const accessToken = String(json.access_token || "");
-  const refreshToken = json.refresh_token ? String(json.refresh_token) : t.refreshToken;
-  const expiresIn = typeof json.expires_in === "number" ? json.expires_in : null;
-
-  if (!accessToken) throw new Error("Refresh succeeded but access_token missing");
-
-  setTokens(user.id, {
-    accessToken,
-    refreshToken,
-    expiresAt: expiresIn ? Date.now() + expiresIn * 1000 : null,
-    scope: json.scope ? String(json.scope) : null,
-  });
-
-  log("info", `Token refreshed for ${user.username} (${user.id})`);
-  return { accessToken, refreshToken, expiresAt: expiresIn ? Date.now() + expiresIn * 1000 : null };
+  return initial;
 }
 
 // ---------------------------------------------------------------------------
-// Passport Discord strategy
+// Initialize Discord OAuth strategy if credentials are provided
 // ---------------------------------------------------------------------------
-if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_CALLBACK_URL) {
-  if (DEV_LOGIN_MODE) {
-    log("warn", "Discord env vars missing/incomplete; DEV_LOGIN_MODE active; registering dev bypass strategy");
-    passport.use(
-      "discord-dev-bypass",
-      new DiscordStrategy(
-        {
-          clientID: "dev",
-          clientSecret: "dev",
-          callbackURL: "/auth/discord/callback",
-          scope: ["identify"],
-        },
-          (_accessToken: string, _refreshToken: string, profile: DiscordProfile, done: Done) => {
-          const user: AuthUser =
-            (profile && {
-              id: profile.id,
-              username: profile.username || "dev-user",
-              avatar: profile.avatar,
-              discriminator: profile.discriminator ?? "0000",
-            }) || {
-              id: "dev",
-              username: "dev-user",
-              avatar: null,
-              discriminator: "0000",
-            };
-          user.devBypass = true;
-          return done(null, user);
-        },
-      ),
-    );
-  } else {
-    log("error", "Missing Discord OAuth env vars. Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_CALLBACK_URL");
-  }
-} else {
+if (DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && DISCORD_CALLBACK_URL) {
   try {
     passport.use(
       "discord",
@@ -305,13 +311,15 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_CALLBACK_URL) {
           clientSecret: DISCORD_CLIENT_SECRET,
           callbackURL: DISCORD_CALLBACK_URL,
           scope: ["identify", "guilds", "guilds.members.read"],
+          passReqToCallback: true,
         },
-        async (accessToken: string, refreshToken: string, profile: DiscordProfile, done: Done) => {
-          log("info", `Discord login attempt for profile: ${profile.id} ${profile.username ?? ""}`);
+        async (req: any, accessToken: string, refreshToken: string, profile: any, done: Done) => {
+          const p = profile as DiscordProfile;
+          log("info", `Discord login attempt for profile: ${p.id} ${p.username ?? ""}`);
 
           try {
             // Some OAuth libraries don't always populate guilds reliably — fetch guilds if missing.
-            if ((!profile.guilds || profile.guilds.length === 0) && accessToken) {
+            if ((!p.guilds || p.guilds.length === 0) && accessToken) {
               try {
                 const guildsRes = await fetch("https://discord.com/api/users/@me/guilds", {
                   headers: { Authorization: `Bearer ${accessToken}` },
@@ -319,31 +327,80 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_CALLBACK_URL) {
                 if (guildsRes.ok) {
                   const guildsJson = await guildsRes.json();
                   if (Array.isArray(guildsJson)) {
-                    profile.guilds = guildsJson.map((g: any) => ({ id: String(g.id) }));
-                    log("info", `Fetched ${profile.guilds.length} guilds via API for profile ${profile.id}`);
+                    p.guilds = guildsJson.map((g: any) => ({ id: String(g.id) }));
+                    log("info", `Fetched ${p.guilds.length} guilds via API for profile ${p.id}`);
                   }
                 } else {
-                  log("warn", `Fallback guild fetch failed for profile ${profile.id}; status=${guildsRes.status}`);
+                  log("warn", `Fallback guild fetch failed for profile ${p.id}; status=${guildsRes.status}`);
                 }
               } catch (fetchErr) {
-                log("warn", `Error fetching guilds for profile ${profile.id}:`, fetchErr);
+                log("warn", `Error fetching guilds for profile ${p.id}:`, fetchErr);
               }
             }
 
-            const matched = findMatchedGuild(profile);
+            const matched = findMatchedGuild(p);
             if (!matched) {
               log(
                 "warn",
-                `No configured guild matched for profile ${profile.id}; profileGuilds=${JSON.stringify(
-                  (profile.guilds || []).map((g) => g.id),
+                `No configured guild matched for profile ${p.id}; profileGuilds=${JSON.stringify(
+                  (p.guilds || []).map((g) => g.id),
                 )}`,
               );
               return done(null, false, { message: "Not in required guild", code: "missing_guild" });
             }
 
-            const { guildId, requiredRole } = matched;
+            const { guildId, requiredRole, mode } = matched as any;
+
+            // If user is whitelisted, allow access regardless of guild membership
+            if (mode === "whitelist") {
+              const cacheUpdatedAt = Date.now();
+              const cacheGuildIds = (p.guilds || []).map((g) => g.id);
+              const isAdmin = isAdminUser(p.id);
+              return done(null, {
+                id: p.id,
+                username: p.username || "",
+                avatar: p.avatar,
+                discriminator: p.discriminator ?? null,
+                guild: null,
+                hasRole: true,
+                isAdmin,
+                devBypass: false,
+                cachedGuildIds: cacheGuildIds,
+                cachedMemberRoles: [],
+                cacheUpdatedAt,
+                lastCheck: cacheUpdatedAt,
+                encryptedTokens: encryptToken(JSON.stringify({ accessToken, refreshToken })),
+                expires: Date.now() + 10 * 60 * 60 * 1000,
+                scope: "identify guilds guilds.members.read",
+              });
+            }
+
+            // If user has app-assigned roles (userRoles), treat as having role
+            if (mode === "userRoles") {
+              const cacheUpdatedAt = Date.now();
+              const cacheGuildIds = (p.guilds || []).map((g) => g.id);
+              const isAdmin = isAdminUser(p.id);
+              return done(null, {
+                id: p.id,
+                username: p.username || "",
+                avatar: p.avatar,
+                discriminator: p.discriminator ?? null,
+                guild: null,
+                hasRole: true,
+                isAdmin,
+                devBypass: false,
+                cachedGuildIds: cacheGuildIds,
+                cachedMemberRoles: fileConfig.userRoles?.[p.id] ?? [],
+                cacheUpdatedAt,
+                lastCheck: cacheUpdatedAt,
+                encryptedTokens: encryptToken(JSON.stringify({ accessToken, refreshToken })),
+                expires: Date.now() + 10 * 60 * 60 * 1000,
+                scope: "identify guilds guilds.members.read",
+              });
+            }
 
             let hasRole = true;
+            let memberRoles: string[] = [];
 
             // If a role is required, fetch member roles using OAuth endpoint:
             // GET /users/@me/guilds/{guild.id}/member (needs guilds.members.read)
@@ -368,27 +425,49 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_CALLBACK_URL) {
               const member: { roles?: string[] } = await memberRes.json();
               const roles = Array.isArray(member.roles) ? member.roles : [];
               hasRole = roles.some((r) => rolesToCheck.includes(r));
+              memberRoles = roles;
 
               if (!hasRole) return done(null, false, { message: "Missing required role", code: "missing_role" });
             }
 
-            // Store Discord OAuth tokens server-side (NOT inside JWT)
-            setTokens(profile.id, {
-              accessToken,
-              refreshToken,
-              expiresAt: null,
-              scope: "identify guilds guilds.members.read",
-            });
+          // Store Discord OAuth tokens server-side AND encrypt in JWT
+          // NOTE: Moved to JWT - no database storage needed
 
-            return done(null, {
-              id: profile.id,
-              username: profile.username || "",
-              avatar: profile.avatar,
-              discriminator: profile.discriminator ?? null,
-              guild: guildId,
-              hasRole,
-              devBypass: false,
-            });
+          // Encrypt tokens for JWT inclusion
+          let encryptedTokens: string | undefined;
+          let tokenExpiresAt: number | undefined;
+          const tokenScope = "identify guilds guilds.members.read";
+          
+          try {
+            const tokenData = JSON.stringify({ accessToken, refreshToken });
+            encryptedTokens = encryptToken(tokenData);
+            // Discord tokens typically expire in ~10 hours (36000 seconds)
+            // This is a default; ideally would come from Discord's OAuth response
+            tokenExpiresAt = Date.now() + 10 * 60 * 60 * 1000;
+          } catch (encErr) {
+            log("warn", `Failed to encrypt tokens for user ${p.id}:`, encErr);
+          }
+
+          const cacheUpdatedAt = Date.now();
+          const cacheGuildIds = (p.guilds || []).map((g) => g.id);
+          const isAdmin = isAdminUser(p.id) || hasAdminRole(memberRoles);
+          return done(null, {
+            id: p.id,
+            username: p.username || "",
+            avatar: p.avatar,
+            discriminator: p.discriminator ?? null,
+            guild: guildId,
+            hasRole,
+            isAdmin,
+            devBypass: false,
+            cachedGuildIds: cacheGuildIds,
+            cachedMemberRoles: memberRoles,
+            cacheUpdatedAt,
+            lastCheck: cacheUpdatedAt,
+            encryptedTokens,
+            expires: tokenExpiresAt,
+            scope: tokenScope,
+          });
           } catch (err) {
             log("error", "Discord strategy error:", err);
             return done(null, false, { message: "Discord auth error", code: "discord_error" });
@@ -401,64 +480,30 @@ if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_CALLBACK_URL) {
   } catch (err) {
     log("error", "Failed to initialize Discord strategy:", err);
   }
+} else {
+  log("error", "Missing Discord OAuth env vars. Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_CALLBACK_URL");
 }
 
-// ---------------------------------------------------------------------------
-// passport-jwt strategy (optional; you aren't using it directly, but safe to keep)
-// ---------------------------------------------------------------------------
-try {
-  passport.use(
-    "jwt",
-    new JwtStrategy(
-      {
-        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-        secretOrKey: JWT_SECRET,
-      },
-      async (payload: any, done: Done) => {
-        try {
-          const user: AuthUser = {
-            id: String(payload.sub),
-            username: payload.username ? String(payload.username) : "",
-            avatar: payload.avatar ?? null,
-            discriminator: payload.discriminator ?? null,
-            guild: payload.guild ?? null,
-            hasRole: Boolean(payload.hasRole),
-            devBypass: Boolean(payload.devBypass),
-          };
-          return done(null, user);
-        } catch (err) {
-          log("error", "JWT strategy error:", err);
-          return done(null, false);
-        }
-      },
-    ),
-  );
-  log("info", "JWT strategy registered successfully");
-} catch (err) {
-  log("error", "Failed to initialize JWT strategy:", err);
-}
-
-// serialize/deserialize kept for compatibility (no-op in stateless flow)
-passport.serializeUser((user: any, done: Done) => done(null, user));
-passport.deserializeUser((obj: any, done: Done) => done(null, obj));
+// Initialize JWT strategy with JWKS key resolution
+initializePassportJWTStrategy();
+initializePassportSerialization();
 
 // ---------------------------------------------------------------------------
 // Auth middleware: validate JWT + validate guild/role (auto-refresh OAuth tokens)
 // ---------------------------------------------------------------------------
 async function discordFetchJson(
-  userId: string,
+  accessToken: string,
   url: string,
   opts?: { retryOn401?: boolean; retryOn429?: boolean; retryDelayMs?: number },
-): Promise<{ ok: boolean; status: number; json?: any }> {
+): Promise<{ ok: boolean; status: number; json?: any; retryAfterMs?: number }> {
   const retryOn401 = opts?.retryOn401 ?? true;
   const retryOn429 = opts?.retryOn429 ?? true;
   const retryDelayMs = opts?.retryDelayMs;
 
-  const t = getTokens(userId);
-  if (!t?.accessToken) return { ok: false, status: 401 };
+  if (!accessToken) return { ok: false, status: 401 };
 
-  const doFetch = async (accessToken: string) => {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const doFetch = async (token: string) => {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const json = await res.json().catch(() => null);
 
     if (!res.ok) {
@@ -472,41 +517,49 @@ async function discordFetchJson(
     return { ok: true, status: res.status, json };
   };
 
-  const first = await doFetch(t.accessToken);
+  const first = await doFetch(accessToken);
   if (first.ok) return first;
 
   if (retryOn429 && first.status === 429) {
     const waitMs = Math.min(Math.max(first.retryAfterMs ?? retryDelayMs ?? 1000, 250), 5000);
     await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
-    return await doFetch(t.accessToken);
+    return await doFetch(accessToken);
   }
 
   if (retryOn401 && first.status === 401) {
-    // try refresh then retry once
-    try {
-      await refreshAccessToken({ id: userId, username: userId });
-      const nt = getTokens(userId);
-      if (!nt?.accessToken) return first;
-      return await doFetch(nt.accessToken);
-    } catch {
-      return first;
-    }
+    // Note: Token refresh should be handled by caller via JWT refresh flow
+    // Returning 401 to signal caller to refresh JWT
+    return first;
   }
 
   return first;
 }
 
-export async function validateAndRefreshSession(
+/**
+ * JWT validation middleware with automatic Discord re-validation when stale.
+ * 
+ * Behavior:
+ * - Fresh cache (< 10 min): Validates JWT only, returns cached guild/role
+ * - Stale cache (> 10 min): Re-validates guild/role via Discord API
+ * - If Discord API fails on stale cache: Falls back to cached values
+ * 
+ * Use on most endpoints for fast auth with periodic Discord re-validation.
+ */
+export async function validateJWTOnly(
   req: Request & { user?: AuthUser; authStatus?: AuthStatus; rotatedToken?: string },
   _res: Response,
   next: NextFunction,
 ) {
   req.authStatus = { authenticated: false } as AuthStatus;
+  const logValidation = (reason: string, info?: Record<string, unknown>) => {
+    logger.debug(`[auth] validateJWTOnly ${req.method} ${req.originalUrl} ${reason}`, info);
+  };
 
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       req.authStatus = { authenticated: false, reason: "no_token" };
+      logValidation("no_token");
       return next();
     }
 
@@ -515,10 +568,352 @@ export async function validateAndRefreshSession(
 
     if (!decoded) {
       req.authStatus = { authenticated: false, reason: "invalid_token" };
+      logValidation("invalid_token");
       return next();
     }
 
+    // Check if token has been revoked
+    if (decoded.jti) {
+      const isRevoked = await isTokenRevoked(decoded.jti);
+      if (isRevoked) {
+        req.authStatus = { authenticated: false, reason: "token_revoked" };
+        logValidation("token_revoked", { jti: decoded.jti.slice(0, 8) });
+        return next();
+      }
+    }
+
     req.user = decoded;
+    const computedIsAdmin =
+      decoded.devBypass ||
+      Boolean(decoded.magicLink) ||
+      isAdminUser(decoded.id) ||
+      hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
+
+    // For dev bypass, trust the JWT completely
+    if (decoded.devBypass) {
+      req.authStatus = {
+        authenticated: true,
+        user: {
+          id: decoded.id,
+          username: decoded.username,
+          avatar: decoded.avatar,
+          discriminator: decoded.discriminator ?? null,
+          guild: decoded.guild ?? null,
+          hasRole: true,
+          isAdmin: computedIsAdmin,
+        },
+        devBypass: true,
+      };
+      return next();
+    }
+
+    if (decoded.magicLink) {
+      const magicLinkHasRole = Boolean(decoded.hasRole ?? true);
+      req.authStatus = {
+        authenticated: true,
+        user: {
+          id: decoded.id,
+          username: decoded.username,
+          avatar: decoded.avatar,
+          discriminator: decoded.discriminator ?? null,
+          guild: decoded.guild ?? null,
+          hasRole: magicLinkHasRole,
+          isAdmin: computedIsAdmin,
+        },
+      };
+      logValidation("magic_link_token", { userId: decoded.id });
+      return next();
+    }
+
+    // Check cache age for Discord guild/role data
+    const now = Date.now();
+    const lastCheck =
+      typeof decoded.lastCheck === "number"
+        ? decoded.lastCheck
+        : typeof decoded.cacheUpdatedAt === "number"
+        ? decoded.cacheUpdatedAt
+        : null;
+    const cacheAge = lastCheck !== null ? now - lastCheck : null;
+    const cacheAgeMinutes = cacheAge !== null ? Math.round(cacheAge / 1000 / 60) : null;
+    const STALE_CACHE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+    const isCacheStale = cacheAge !== null && cacheAge > STALE_CACHE_THRESHOLD_MS;
+
+    if (isCacheStale && cacheAgeMinutes !== null) {
+      logValidation("cache_stale_validating_discord", { 
+        cacheAgeMinutes, 
+        userId: decoded.id, 
+        guild: decoded.guild
+      });
+
+      // Cache is stale - re-validate guild/role with Discord
+      if (decoded.accessToken) {
+        try {
+          // Fetch current guild list
+          const guildsRes = await fetchWithRateLimitBackoff(
+            decoded.accessToken,
+            "https://discord.com/api/users/@me/guilds",
+            { retryOn401: true, retryOn429: false }
+          );
+
+          if (!guildsRes.ok) {
+            logValidation("cache_stale_guild_fetch_failed", {
+              status: guildsRes.status,
+              userId: decoded.id,
+            });
+            // Fall back to cached values if Discord API fails
+            req.authStatus = {
+              authenticated: true,
+              user: {
+                id: decoded.id,
+                username: decoded.username,
+                avatar: decoded.avatar,
+                discriminator: decoded.discriminator ?? null,
+                guild: decoded.guild ?? null,
+                hasRole: decoded.hasRole ?? false,
+                isAdmin: computedIsAdmin,
+              },
+            };
+            return next();
+          }
+
+          const guilds: DiscordGuild[] = Array.isArray(guildsRes.json) ? guildsRes.json : [];
+          const configuredGuildIds = Object.keys(fileConfig.guilds || {});
+
+          let matchedGuildId: string | null = null;
+          for (const g of guilds) {
+            if (configuredGuildIds.includes(g.id)) {
+              matchedGuildId = g.id;
+              break;
+            }
+          }
+
+          // Fallback to env-provided guild ids
+          if (!matchedGuildId && DISCORD_GUILD_ID) {
+            const envIds = DISCORD_GUILD_ID.split(",").map((s) => s.trim()).filter(Boolean);
+            for (const g of guilds) {
+              if (envIds.includes(g.id)) {
+                matchedGuildId = g.id;
+                break;
+              }
+            }
+          }
+
+          if (!matchedGuildId) {
+            // Allow whitelisted users or users with app-assigned roles to authenticate
+            if (decoded.id && Array.isArray(fileConfig.whitelistUsers) && fileConfig.whitelistUsers.includes(decoded.id)) {
+              req.authStatus = {
+                authenticated: true,
+                user: {
+                  id: decoded.id,
+                  username: decoded.username,
+                  avatar: decoded.avatar,
+                  discriminator: decoded.discriminator ?? null,
+                  guild: null,
+                  hasRole: true,
+                  isAdmin: computedIsAdmin,
+                },
+              };
+              logValidation("cache_stale_whitelist_allowed", { userId: decoded.id });
+              return next();
+            }
+
+            if (decoded.id && fileConfig.userRoles && Array.isArray(fileConfig.userRoles[decoded.id]) && fileConfig.userRoles[decoded.id].length) {
+              req.authStatus = {
+                authenticated: true,
+                user: {
+                  id: decoded.id,
+                  username: decoded.username,
+                  avatar: decoded.avatar,
+                  discriminator: decoded.discriminator ?? null,
+                  guild: null,
+                  hasRole: true,
+                  isAdmin: computedIsAdmin,
+                },
+              };
+              logValidation("cache_stale_userrole_allowed", { userId: decoded.id, roles: fileConfig.userRoles[decoded.id] });
+              return next();
+            }
+
+            req.authStatus = { authenticated: false, reason: "guild_membership_revoked" };
+            logValidation("cache_stale_not_in_guild", { userId: decoded.id });
+            return next();
+          }
+
+          // Check role if required
+          let hasRole = true;
+          const requiredRoleOrRoles = fileConfig.guilds?.[matchedGuildId]?.requiredRole ?? null;
+          const requiredRolesFromConfig = requiredRoleOrRoles
+            ? Array.isArray(requiredRoleOrRoles)
+              ? requiredRoleOrRoles
+              : [requiredRoleOrRoles]
+            : [];
+          const rolesToCheck = requiredRolesFromConfig.length ? requiredRolesFromConfig : REQUIRED_ROLE_IDS;
+
+          if (rolesToCheck.length) {
+            const memberRes = await fetchWithRateLimitBackoff(
+              decoded.accessToken,
+              `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`,
+              { retryOn401: true, retryOn429: false }
+            );
+
+            if (!memberRes.ok) {
+              logValidation("cache_stale_member_fetch_failed", {
+                status: memberRes.status,
+                userId: decoded.id,
+              });
+              // Fall back to cached values
+              req.authStatus = {
+                authenticated: true,
+                user: {
+                  id: decoded.id,
+                  username: decoded.username,
+                  avatar: decoded.avatar,
+                  discriminator: decoded.discriminator ?? null,
+                  guild: decoded.guild ?? null,
+                  hasRole: decoded.hasRole ?? false,
+                  isAdmin: computedIsAdmin,
+                },
+              };
+              return next();
+            }
+
+            const member: { roles?: string[] } = memberRes.json || {};
+            const roles = Array.isArray(member.roles) ? member.roles : [];
+            hasRole = roles.some((r) => rolesToCheck.includes(r));
+
+            if (!hasRole) {
+              req.authStatus = { authenticated: false, reason: "role_revoked" };
+              logValidation("cache_stale_role_revoked", { userId: decoded.id });
+              return next();
+            }
+          }
+
+          // Guild/role validated successfully
+          req.authStatus = {
+            authenticated: true,
+            user: {
+              id: decoded.id,
+              username: decoded.username,
+              avatar: decoded.avatar,
+              discriminator: decoded.discriminator ?? null,
+              guild: matchedGuildId,
+              hasRole,
+              isAdmin: computedIsAdmin,
+            },
+          };
+          logValidation("cache_stale_revalidated", {
+            userId: decoded.id,
+            guild: matchedGuildId,
+            hasRole,
+            cacheAgeMinutes,
+          });
+          return next();
+        } catch (err) {
+          logValidation("cache_stale_validation_error", {
+            error: err instanceof Error ? err.message : String(err),
+            userId: decoded.id,
+          });
+          // Fall back to cached values on error
+          req.authStatus = {
+            authenticated: true,
+            user: {
+              id: decoded.id,
+              username: decoded.username,
+              avatar: decoded.avatar,
+              discriminator: decoded.discriminator ?? null,
+              guild: decoded.guild ?? null,
+              hasRole: decoded.hasRole ?? false,
+              isAdmin: computedIsAdmin,
+            },
+          };
+          return next();
+        }
+      }
+    } else if (cacheAgeMinutes !== null && cacheAgeMinutes > 0) {
+      logValidation("cache_age", { 
+        cacheAgeMinutes, 
+        userId: decoded.id,
+        fresh: !isCacheStale
+      });
+    }
+
+    // JWT is valid, user is authenticated. Use cached values from JWT.
+    req.authStatus = {
+      authenticated: true,
+      user: {
+        id: decoded.id,
+        username: decoded.username,
+        avatar: decoded.avatar,
+        discriminator: decoded.discriminator ?? null,
+        guild: decoded.guild ?? null,
+        hasRole: decoded.hasRole ?? false,
+        isAdmin: computedIsAdmin,
+      },
+    };
+
+    logValidation("authenticated_via_jwt", { 
+      userId: decoded.id, 
+      guild: decoded.guild, 
+      hasRole: decoded.hasRole,
+      cacheAgeMinutes
+    });
+    return next();
+  } catch (err: unknown) {
+    log("error", "[JWT Validation] Unexpected error:", err);
+    logValidation("unexpected_error", { error: err instanceof Error ? err.message : String(err) });
+    req.authStatus = { authenticated: false, reason: "unexpected_error" };
+    return next();
+  }
+}
+
+/**
+ * Full session validation with Discord guild/role re-check (CALLS DISCORD API).
+ * Use this ONLY on endpoints that absolutely need current Discord guild/role verification.
+ * Most endpoints should use validateJWTOnly instead to avoid API spam.
+ */
+export async function validateAndRefreshSession(
+  req: Request & { user?: AuthUser; authStatus?: AuthStatus; rotatedToken?: string },
+  _res: Response,
+  next: NextFunction,
+) {
+  req.authStatus = { authenticated: false } as AuthStatus;
+  const logValidation = (reason: string, info?: Record<string, unknown>) => {
+    logger.debug(`[auth] validateAndRefreshSession ${req.method} ${req.originalUrl} ${reason}`, info);
+  };
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      req.authStatus = { authenticated: false, reason: "no_token" };
+      logValidation("no_token");
+      return next();
+    }
+
+    const token = authHeader.slice(7);
+    const decoded = verifyJWT(token);
+
+    if (!decoded) {
+      req.authStatus = { authenticated: false, reason: "invalid_token" };
+      logValidation("invalid_token");
+      return next();
+    }
+
+    // Check if token has been revoked
+    if (decoded.jti) {
+      const isRevoked = await isTokenRevoked(decoded.jti);
+      if (isRevoked) {
+        req.authStatus = { authenticated: false, reason: "token_revoked" };
+        logValidation("token_revoked", { jti: decoded.jti.slice(0, 8) });
+        return next();
+      }
+    }
+
+    req.user = decoded;
+    const computedIsAdmin =
+      decoded.devBypass ||
+      Boolean(decoded.magicLink) ||
+      isAdminUser(decoded.id) ||
+      hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
 
     // Dev bypass: trust the JWT
     if (decoded.devBypass) {
@@ -531,23 +926,80 @@ export async function validateAndRefreshSession(
           discriminator: decoded.discriminator ?? null,
           guild: decoded.guild ?? null,
           hasRole: true,
+          isAdmin: computedIsAdmin,
         },
         devBypass: true,
       };
       return next();
     }
 
-    // Need server-side Discord OAuth tokens to validate guild/role
-    const tokens = getTokens(decoded.id);
-    if (!tokens?.accessToken) {
+    if (decoded.magicLink) {
+      const magicLinkHasRole = Boolean(decoded.hasRole ?? true);
+      req.authStatus = {
+        authenticated: true,
+        user: {
+          id: decoded.id,
+          username: decoded.username,
+          avatar: decoded.avatar,
+          discriminator: decoded.discriminator ?? null,
+          guild: decoded.guild ?? null,
+          hasRole: magicLinkHasRole,
+          isAdmin: computedIsAdmin,
+        },
+      };
+      logValidation("magic_link_token", { userId: decoded.id });
+      return next();
+    }
+
+    // Tokens are decrypted from JWT by verifyJWT(), use them directly
+    if (!decoded.accessToken) {
       req.authStatus = { authenticated: false, reason: "no_oauth_tokens" };
+      logValidation("no_oauth_tokens");
+      return next();
+    }
+
+    const now = Date.now();
+    const requestMethod = typeof req.method === "string" ? req.method.toUpperCase() : "";
+    const isMutatingRequest = ["POST", "PUT", "PATCH", "DELETE"].includes(requestMethod);
+    const cacheTtlMs = isMutatingRequest ? MUTATION_CACHE_TTL_MS : CACHE_TTL_MS;
+    const lastCheck =
+      typeof decoded.lastCheck === "number"
+        ? decoded.lastCheck
+        : typeof decoded.cacheUpdatedAt === "number"
+        ? decoded.cacheUpdatedAt
+        : null;
+    const cacheAge = lastCheck !== null ? now - lastCheck : null;
+    const cacheFresh =
+      cacheAge !== null && cacheAge <= cacheTtlMs && Boolean(decoded.guild) && Boolean(decoded.hasRole);
+
+    if (cacheFresh) {
+      logValidation("cache_hit", { cacheAge });
+      req.authStatus = {
+        authenticated: true,
+        user: {
+          id: decoded.id,
+          username: decoded.username,
+          avatar: decoded.avatar,
+          discriminator: decoded.discriminator ?? null,
+          guild: decoded.guild ?? null,
+          hasRole: decoded.hasRole ?? false,
+          isAdmin: computedIsAdmin,
+        },
+      };
       return next();
     }
 
     // 1) Fetch guild list (/users/@me/guilds)
-    const guildsRes = await discordFetchJson(decoded.id, "https://discord.com/api/users/@me/guilds");
+    const guildsRes = await fetchWithRateLimitBackoff(decoded.accessToken, "https://discord.com/api/users/@me/guilds", {
+      retryOn401: true,
+      retryOn429: false,
+    });
     if (!guildsRes.ok) {
       req.authStatus = { authenticated: false, reason: "guild_fetch_failed" };
+      logValidation("guild_fetch_failed", {
+        status: guildsRes.status,
+        retryAfterMs: guildsRes.retryAfterMs,
+      });
       return next();
     }
 
@@ -575,7 +1027,43 @@ export async function validateAndRefreshSession(
     }
 
     if (!matchedGuildId) {
+      // Allow whitelisted users or app-assigned userRoles to pass even if not currently in guild
+      if (decoded.id && Array.isArray(fileConfig.whitelistUsers) && fileConfig.whitelistUsers.includes(decoded.id)) {
+        req.authStatus = {
+          authenticated: true,
+          user: {
+            id: decoded.id,
+            username: decoded.username,
+            avatar: decoded.avatar,
+            discriminator: decoded.discriminator ?? null,
+            guild: null,
+            hasRole: true,
+            isAdmin: computedIsAdmin,
+          },
+        };
+        logValidation("whitelist_allowed", { userId: decoded.id });
+        return next();
+      }
+
+      if (decoded.id && fileConfig.userRoles && Array.isArray(fileConfig.userRoles[decoded.id]) && fileConfig.userRoles[decoded.id].length) {
+        req.authStatus = {
+          authenticated: true,
+          user: {
+            id: decoded.id,
+            username: decoded.username,
+            avatar: decoded.avatar,
+            discriminator: decoded.discriminator ?? null,
+            guild: null,
+            hasRole: true,
+            isAdmin: computedIsAdmin,
+          },
+        };
+        logValidation("userrole_allowed", { userId: decoded.id, roles: fileConfig.userRoles[decoded.id] });
+        return next();
+      }
+
       req.authStatus = { authenticated: false, reason: "not_in_guild" };
+      logValidation("not_in_guild");
       return next();
     }
 
@@ -590,24 +1078,31 @@ export async function validateAndRefreshSession(
     const rolesToCheck = requiredRolesFromConfig.length ? requiredRolesFromConfig : REQUIRED_ROLE_IDS;
 
     let hasRole = true;
+    let memberRoles: string[] = [];
 
     if (rolesToCheck.length) {
-      const memberRes = await discordFetchJson(
-        decoded.id,
-        `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`,
-      );
+      const memberRes = await fetchWithRateLimitBackoff(decoded.accessToken, `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`, {
+        retryOn401: true,
+        retryOn429: false,
+      });
 
       if (!memberRes.ok) {
         req.authStatus = { authenticated: false, reason: "member_fetch_failed" };
+        logValidation("member_fetch_failed", {
+          status: memberRes.status,
+          retryAfterMs: memberRes.retryAfterMs,
+        });
         return next();
       }
 
       const member: { roles?: string[] } = memberRes.json || {};
       const roles = Array.isArray(member.roles) ? member.roles : [];
       hasRole = roles.some((r) => rolesToCheck.includes(r));
+      memberRoles = roles;
 
       if (!hasRole) {
         req.authStatus = { authenticated: false, reason: "missing_role" };
+        logValidation("missing_role");
         return next();
       }
     }
@@ -625,24 +1120,64 @@ export async function validateAndRefreshSession(
         discriminator: decoded.discriminator ?? null,
         guild: computedGuild,
         hasRole: computedHasRole,
+        isAdmin: computedIsAdmin,
       },
     };
 
     // Rotate JWT if claims changed (keeps your JWT-based APIs consistent)
-    const claimsChanged = (decoded.guild ?? null) !== computedGuild || Boolean(decoded.hasRole) !== computedHasRole;
+    const claimsChanged =
+      (decoded.guild ?? null) !== computedGuild ||
+      Boolean(decoded.hasRole) !== computedHasRole ||
+      Boolean(decoded.isAdmin) !== computedIsAdmin;
+    const cacheUpdatedAt = Date.now();
+    const cachedGuildIds = guilds.map((g) => g.id);
+    const cachedMemberRoles = memberRoles;
 
-    if (claimsChanged) {
+    const shouldRotate =
+      claimsChanged ||
+      lastCheck === null ||
+      (cacheAge !== null && cacheAge > cacheTtlMs);
+
+    if (shouldRotate) {
       req.rotatedToken = generateJWT({
         ...decoded,
         guild: computedGuild,
         hasRole: computedHasRole,
+        isAdmin: computedIsAdmin,
+        cacheUpdatedAt,
+        lastCheck: cacheUpdatedAt,
+        cachedGuildIds,
+        cachedMemberRoles,
       });
     }
 
+    logValidation("authenticated", {
+      userId: decoded.id,
+      guild: computedGuild,
+      hasRole: computedHasRole,
+      cacheUpdatedAt,
+    });
     return next();
   } catch (err: unknown) {
     log("error", "[JWT Validation] Unexpected error:", err);
+    logValidation("unexpected_error", { error: err instanceof Error ? err.message : String(err) });
     req.authStatus = { authenticated: false, reason: "unexpected_error" };
     return next();
   }
 }
+
+// ---------------------------------------------------------------------------
+// JWKS endpoint for public key distribution
+// ---------------------------------------------------------------------------
+/**
+ * Get the public JWKS (JSON Web Key Set) for client-side JWT verification
+ * Supports key rotation: exposes old (deprecated), current (active), and next (upcoming) keys
+ */
+export function getJWKSEndpoint() {
+  return getPublicJWKS();
+}
+
+/**
+ * Manual key rotation trigger (for testing/admin operations)
+ */
+export const triggerKeyRotation = rotateKeysManually;
