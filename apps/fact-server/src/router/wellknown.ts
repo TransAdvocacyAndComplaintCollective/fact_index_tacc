@@ -23,7 +23,7 @@ router.get("/jwks.json", (_req, res) => {
     res.setHeader("Content-Type", "application/json");
     return res.json(jwks);
   } catch (err) {
-    logger.error("[wellknown] JWKS endpoint error:", err instanceof Error ? err : { error: String(err) });
+    logger.error("[wellknown] JWKS endpoint error:", err instanceof Error ? { message: err.message, stack: err.stack } : { error: String(err) });
     return res.status(500).json({ error: "Failed to retrieve JWKS" });
   }
 });
