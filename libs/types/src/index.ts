@@ -154,6 +154,7 @@ export interface AuthUserBase {
 
 /** Internal Discord-authenticated user details */
 export interface AuthUserDiscord extends AuthUserBase {
+  type: "discord";
   guild?: string | null;
   hasRole?: boolean;
   isAdmin?: boolean;
@@ -173,6 +174,7 @@ export interface AuthUserDiscord extends AuthUserBase {
 
 /** Token issued through the admin magic-link workflow */
 export interface AuthUserMagic extends AuthUserBase {
+  type: "magic";
   magicLink: true;
   hasRole?: boolean;
   isAdmin?: boolean;
@@ -182,6 +184,7 @@ export interface AuthUserMagic extends AuthUserBase {
 
 /** Dev bypass authentication user (development only) */
 export interface AuthUserDev extends AuthUserBase {
+  type: "dev";
   devBypass: true;
   hasRole?: boolean;
   isAdmin?: boolean;

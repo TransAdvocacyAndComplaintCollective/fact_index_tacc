@@ -585,9 +585,14 @@ export async function validateJWTOnly(
     req.user = decoded;
     const computedIsAdmin =
       decoded.devBypass ||
-      Boolean(decoded.magicLink) ||
       isAdminUser(decoded.id) ||
       hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
+
+    if (!decoded.hasRole && !decoded.devBypass) {
+      req.authStatus = { authenticated: false, reason: "missing_role" };
+      logValidation("missing_role_token");
+      return next();
+    }
 
     // For dev bypass, trust the JWT completely
     if (decoded.devBypass) {
@@ -608,7 +613,7 @@ export async function validateJWTOnly(
     }
 
     if (decoded.magicLink) {
-      const magicLinkHasRole = Boolean(decoded.hasRole ?? true);
+      const magicLinkHasRole = Boolean(decoded.hasRole ?? false);
       req.authStatus = {
         authenticated: true,
         user: {
@@ -618,7 +623,7 @@ export async function validateJWTOnly(
           discriminator: decoded.discriminator ?? null,
           guild: decoded.guild ?? null,
           hasRole: magicLinkHasRole,
-          isAdmin: computedIsAdmin,
+          isAdmin: false,
         },
       };
       logValidation("magic_link_token", { userId: decoded.id });
@@ -911,7 +916,6 @@ export async function validateAndRefreshSession(
     req.user = decoded;
     const computedIsAdmin =
       decoded.devBypass ||
-      Boolean(decoded.magicLink) ||
       isAdminUser(decoded.id) ||
       hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
 
@@ -934,7 +938,7 @@ export async function validateAndRefreshSession(
     }
 
     if (decoded.magicLink) {
-      const magicLinkHasRole = Boolean(decoded.hasRole ?? true);
+      const magicLinkHasRole = Boolean(decoded.hasRole ?? false);
       req.authStatus = {
         authenticated: true,
         user: {
@@ -944,7 +948,7 @@ export async function validateAndRefreshSession(
           discriminator: decoded.discriminator ?? null,
           guild: decoded.guild ?? null,
           hasRole: magicLinkHasRole,
-          isAdmin: computedIsAdmin,
+          isAdmin: false,
         },
       };
       logValidation("magic_link_token", { userId: decoded.id });

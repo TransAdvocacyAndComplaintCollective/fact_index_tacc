@@ -288,7 +288,7 @@ export default function FactEditRoute() {
     }
     nprogress.start();
     Promise.resolve().then(() => setLoading(true));
-    fetch(`/api/facts/${id}`)
+    fetch(`/api/facts/facts/${id}`)
       .then(res => res.ok ? res.json() : Promise.reject())
       .then(setFact)
       .catch(() => setFact(null))

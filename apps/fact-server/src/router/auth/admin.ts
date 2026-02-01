@@ -76,6 +76,9 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Apply admin guard after JWT validation so every admin route stays admin-only
+router.use(requireAdmin);
+
 /**
  * Load current config
  */
@@ -403,7 +406,7 @@ router.post("/magiclink", requireAdmin, async (req: Request, res: Response) => {
       discriminator: null,
       guild: null,
       hasRole: true,
-      isAdmin: true,
+      isAdmin: false,
       magicLink: true,
       devBypass: false,
     } as any;
