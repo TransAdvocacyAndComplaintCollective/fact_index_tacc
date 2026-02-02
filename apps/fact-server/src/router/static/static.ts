@@ -69,9 +69,11 @@ if (isDev) {
     if (hmrPort) logger.info(`[serve] Vite HMR port from env: ${hmrPort}`);
     viteServer = await createServer({
       root: reactAppRoot,
+        
       appType: 'custom',
       server: {
         middlewareMode: true,
+        allowedHosts: ['wizard.mylocal'],
         // allow overriding the HMR websocket port from env (VITE_HMR_PORT)
         hmr: hmrPort ? { port: hmrPort } : undefined,
       },
