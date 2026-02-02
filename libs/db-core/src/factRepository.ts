@@ -1,6 +1,6 @@
-import { createSchema, db } from './dbClient.js';
+import { createSchema, db } from './dbClient.ts';
 import type { Fact, NewFactInput } from '@factdb/types';
-import type { DatabaseSchema } from './dbClient.js';
+import type { DatabaseSchema } from './dbClient.ts';
 
 type NameRow = {
   id: number;

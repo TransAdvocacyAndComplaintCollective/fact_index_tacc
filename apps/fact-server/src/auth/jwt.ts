@@ -107,7 +107,14 @@ export async function revokeToken(
       .execute();
 
     log("info", `JWT token revoked: jti=${jti.slice(0, 8)}... user=${discordUserId} reason=${reason || "unspecified"}`);
-  } catch (err) {
+  } catch (err: unknown) {
+    // In dev mode without database, it's okay to skip revocation
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('Database not yet initialized') && process.env.NODE_ENV === 'development') {
+      log("warn", `Token revocation skipped in development mode (DB unavailable): jti=${jti.slice(0, 8)}...`);
+      return;
+    }
+    
     log("error", "Error revoking token:", err);
     throw err;
   }
@@ -131,7 +138,15 @@ export async function isTokenRevoked(jti: string): Promise<boolean> {
     }
 
     return false;
-  } catch (err) {
+  } catch (err: unknown) {
+    // In dev mode without database, getDb() throws but that's okay
+    // We'll skip revocation checking in development
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('Database not yet initialized') && process.env.NODE_ENV === 'development') {
+      // Silently skip revocation check in dev mode if database is not available
+      return false;
+    }
+    
     log("error", "Error checking token revocation:", err);
     // In case of DB error, fail open (don't revoke) to avoid blocking users
     return false;
@@ -162,7 +177,14 @@ export async function revokeAllUserTokens(discordUserId: string, reason?: string
     
     log("info", `All tokens revoked for user ${discordUserId} reason=${reason || "unspecified"}`);
     return 1;
-  } catch (err) {
+  } catch (err: unknown) {
+    // In dev mode without database, it's okay to skip revocation
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('Database not yet initialized') && process.env.NODE_ENV === 'development') {
+      log("warn", `User token revocation skipped in development mode (DB unavailable): ${discordUserId}`);
+      return 0;
+    }
+    
     log("error", "Error revoking user tokens:", err);
     throw err;
   }
@@ -188,7 +210,13 @@ export async function cleanupExpiredBlacklistedTokens(): Promise<number> {
     }
 
     return deleted as number;
-  } catch (err) {
+  } catch (err: unknown) {
+    // In dev mode without database, it's okay to skip cleanup
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes('Database not yet initialized') && process.env.NODE_ENV === 'development') {
+      return 0;
+    }
+    
     log("error", "Error cleaning up blacklisted tokens:", err);
     return 0;
   }

@@ -72,6 +72,8 @@ if (isDev) {
       appType: 'custom',
       server: {
         middlewareMode: true,
+        allowedHosts: ['wizard.mylocal'],
+      // NOTE:
         // allow overriding the HMR websocket port from env (VITE_HMR_PORT)
         hmr: hmrPort ? { port: hmrPort } : undefined,
       },

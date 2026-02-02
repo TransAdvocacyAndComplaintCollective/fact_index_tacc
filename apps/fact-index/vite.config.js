@@ -68,8 +68,7 @@ export default defineConfig(() => {
     server: {
       port: 4200,
       host: process.env.HOST ?? 'localhost',
-      strictPort: false,
-
+      strictPort: false,      allowedHosts: ['wizard.mylocal'],
       // NOTE:
       // - If you want Nx to control HMR via the `serve` target option, don’t force it here.
       // - If you *must* disable HMR, uncomment the next line:
@@ -94,6 +93,7 @@ export default defineConfig(() => {
     preview: {
       port: 4300,
       host: process.env.HOST ?? 'localhost',
+      allowedHosts: ['wizard.mylocal'],
       proxy: {
         '/auth': {
           target: 'http://localhost:5332',

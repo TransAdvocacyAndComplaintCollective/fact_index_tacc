@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { db, createSchema, initializeDb, findRepoRoot } from './dbClient.js';
-import { createFact } from './factRepository.js';
+import { db, createSchema, initializeDb, findRepoRoot } from './dbClient.ts';
+import { createFact } from './factRepository.ts';
 
 interface ImportFactsOptions {
   csvPath?: string;

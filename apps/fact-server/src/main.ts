@@ -61,8 +61,23 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
     console.log('[serve] Initializing database...');
     await dbSchema.initializeDb();
     console.log('[serve] Database connection ready, ensuring schema...');
-    await dbSchema.createSchema(dbSchema.getDb());
-    console.log('[serve] Schema ready');
+    
+    // Only create schema if database is available (check by trying to get db instance)
+    try {
+      const db = dbSchema.getDb();
+      if (db) {
+        await dbSchema.createSchema(db);
+        console.log('[serve] Schema ready');
+      }
+    } catch (dbErr) {
+      // In dev mode, database may not be available due to missing better-sqlite3 bindings
+      // This is okay - the server can still run and serve the frontend
+      if (isDev) {
+        console.warn('[serve] Database not available in development mode, continuing without DB');
+      } else {
+        throw dbErr;
+      }
+    }
 
     // Now that DB and schema are ready, register passport strategies and mount auth routes
     console.log('[serve] Registering passport strategies and auth routes...');
