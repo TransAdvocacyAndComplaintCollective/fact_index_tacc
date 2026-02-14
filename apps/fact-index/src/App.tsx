@@ -5,12 +5,14 @@ import NavBar from "./components/NavBar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AppShell, Container, useMantineTheme, useMantineColorScheme } from "@mantine/core";
 import { RBACProvider, useRBAC, useRBACContext } from "@impelsysinc/react-rbac";
-import AdminMagicLink from "./pages/admin/AdminMagicLink";
 import AdminConsole from "./pages/admin/AdminConsole";
 import AdminGuard from "./pages/admin/AdminGuard";
 
 import Home from "./pages/Home/Home";
 import Login from "./pages/login/login";
+import FederationLogin from "./pages/login/FederationLogin";
+import OidcAuthorization from "./pages/OidcAuthorization";
+import OidcCallback from "./pages/OidcCallback";
 import FactDatabase from "./pages/FactDatabase/FactDatabase";
 import FactDetail from "./pages/FactDatabase/FactDetail";
 import FactEdit from "./pages/FactDatabase/FactEdit";
@@ -27,16 +29,35 @@ function LoginRedirect() {
 }
 
 function RBACPermissionsSync() {
-  const { isAdmin } = useAuthContext();
+  const { user } = useAuthContext();
   const { setPermissions, clearPermissions } = useRBACContext();
 
   useEffect(() => {
-    if (isAdmin) {
-      setPermissions([{ resource: "admin.magiclink", action: "create" }]);
-    } else {
+    const granted = Array.isArray(user?.permissions) ? user.permissions : [];
+    if (!granted.length) {
       clearPermissions();
+      return;
     }
-  }, [isAdmin, setPermissions, clearPermissions]);
+
+    const normalized = granted
+      .map((permission) => {
+        const raw = String(permission || "").trim();
+        const splitAt = raw.lastIndexOf(":");
+        if (splitAt <= 0 || splitAt === raw.length - 1) return null;
+        return {
+          resource: raw.slice(0, splitAt),
+          action: raw.slice(splitAt + 1),
+        };
+      })
+      .filter((item): item is { resource: string; action: string } => Boolean(item));
+
+    if (!normalized.length) {
+      clearPermissions();
+      return;
+    }
+
+    setPermissions(normalized);
+  }, [user?.permissions, setPermissions, clearPermissions]);
 
   return null;
 }
@@ -66,6 +87,9 @@ function AppContent() {
             {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<LoginRedirect />} />
+            <Route path="/login/federation" element={<FederationLogin />} />
+            <Route path="/oidc/authorization" element={<OidcAuthorization />} />
+            <Route path="/oidc/callback" element={<OidcCallback />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
@@ -78,14 +102,6 @@ function AppContent() {
                 element={
                   <AdminGuard>
                     <AdminConsole />
-                  </AdminGuard>
-                }
-              />
-              <Route
-                path="/admin/magiclink"
-                element={
-                  <AdminGuard>
-                    <AdminMagicLink />
                   </AdminGuard>
                 }
               />

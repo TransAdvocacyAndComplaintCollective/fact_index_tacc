@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import NavBar from "./NavBar";
 import { AuthContext, type AuthContextValue } from "../context/AuthContext";
 import { AppColorSchemeProvider } from "../lib/appColorScheme";
+import { RBACProvider } from "@impelsysinc/react-rbac";
 
 const createAuthValue = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
   loading: false,
@@ -32,13 +33,15 @@ export default meta;
 type Story = StoryObj<typeof NavBar>;
 
 const Template = (authValue: AuthContextValue) => (
-  <AppColorSchemeProvider value={{ colorScheme: "dark", toggleColorScheme: () => {} }}>
-    <AuthContext.Provider value={authValue}>
-      <MemoryRouter initialEntries={["/facts"]}>
-        <NavBar />
-      </MemoryRouter>
-    </AuthContext.Provider>
-  </AppColorSchemeProvider>
+  <RBACProvider rbac={{}}>
+    <AppColorSchemeProvider value={{ colorScheme: "dark", toggleColorScheme: () => {} }}>
+      <AuthContext.Provider value={authValue}>
+        <MemoryRouter initialEntries={["/facts"]}>
+          <NavBar />
+        </MemoryRouter>
+      </AuthContext.Provider>
+    </AppColorSchemeProvider>
+  </RBACProvider>
 );
 
 export const LoggedOut: Story = {

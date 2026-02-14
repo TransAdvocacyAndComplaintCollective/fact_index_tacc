@@ -9,8 +9,21 @@ import { randomUUID } from "node:crypto";
 import logger from "../../logger.ts";
 import { generateJWT } from "../../auth/jwt.ts";
 import { isDevModeActive } from "../../auth/passport-dev.ts";
+import { redirectWithSecureToken } from "./tokenResponse.ts";
 
 const router = express.Router();
+
+// ---------- Dev admin configuration ----------
+const DEV_ADMIN_ID = process.env.DEV_ADMIN_ID || "";
+const DEV_IS_ADMIN = process.env.DEV_IS_ADMIN === "true";
+
+function isDevAdmin(userId: string): boolean {
+  // If DEV_IS_ADMIN is true, all dev users are admins
+  if (DEV_IS_ADMIN) return true;
+  // Otherwise, only the specific DEV_ADMIN_ID user is admin
+  if (!DEV_ADMIN_ID) return false;
+  return userId === DEV_ADMIN_ID;
+}
 
 // ---------- logging helpers ----------
 function requestId(req: Request, res: Response): string {
@@ -29,6 +42,18 @@ function ctx(req: Request, res: Response): string {
 /**
  * Dev login endpoint - creates a fake JWT token for local development
  * Only available when DEV_LOGIN_MODE=true
+ *
+ * Query Parameters:
+ *   ?user=username     - Custom username (default: "dev-user")
+ *   ?provider=provider - Identity provider (e.g., "tacc", "local"; default: "dev")
+ *   ?admin=true|false  - Override admin status (default: uses DEV_IS_ADMIN env var)
+ *
+ * Examples:
+ *   GET /auth/dev                    - Login as dev-user with DEV_IS_ADMIN status
+ *   GET /auth/dev?user=alice         - Login as alice with DEV_IS_ADMIN status
+ *   GET /auth/dev?provider=tacc&user=alice - Login as alice via TACC provider
+ *   GET /auth/dev?provider=tacc&user=bob&admin=true - Login as bob via TACC with admin=true
+ *   GET /auth/dev?admin=false        - Login as dev-user with admin=false (for testing casbin restrictions)
  */
 router.get("/dev", (req: Request, res: Response) => {
   if (!isDevModeActive()) {
@@ -43,21 +68,43 @@ router.get("/dev", (req: Request, res: Response) => {
       ? req.query.user.trim()
       : "dev-user";
 
+  const providerParam =
+    typeof req.query.provider === "string" && req.query.provider.trim()
+      ? req.query.provider.trim().toLowerCase()
+      : "dev";
+
+  const userId = `${providerParam}-${userParam}`;
+
+  // Allow query parameter to override admin status for testing casbin
+  // This lets you test both admin access and restrictions on the same dev endpoint
+  let isAdmin: boolean;
+  if (typeof req.query.admin === "string") {
+    const adminParam = req.query.admin.toLowerCase();
+    isAdmin = adminParam === "true" || adminParam === "1" || adminParam === "yes";
+    logger.info(`[auth] ${ctx(req, res)} Admin status overridden via query: admin=${isAdmin}`);
+  } else {
+    isAdmin = isDevAdmin(userId);
+    logger.debug(`[auth] ${ctx(req, res)} Admin status from DEV_IS_ADMIN env: admin=${isAdmin}`);
+  }
+
   const now = Date.now();
-  const fakeUser = {
-    id: `dev-${userParam}`,
+  const fakeUser: any = {
+    type: providerParam,
+    id: userId,
     username: userParam,
     avatar: null,
     guild: null,
     hasRole: true,
+    isAdmin,
     devBypass: true,
+    identityProvider: providerParam,
     cacheUpdatedAt: now,
     lastCheck: now,
   };
 
   const token = generateJWT(fakeUser);
-  logger.info(`[auth] ${ctx(req, res)} Dev login JWT generated for user=${fakeUser.username}`);
-  return res.redirect(`/?token=${encodeURIComponent(token)}`);
+  logger.info(`[auth] ${ctx(req, res)} Dev login JWT generated for user=${fakeUser.username} provider=${providerParam} isAdmin=${isAdmin}`);
+  return redirectWithSecureToken(res, token, "/");
 });
 
 export default router;

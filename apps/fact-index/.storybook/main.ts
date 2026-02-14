@@ -11,7 +11,6 @@ const config: StorybookConfig = {
     "@storybook/addon-docs",
     "@storybook/addon-themes",
 
-    // ✅ Recommended if you want Storybook-powered Vitest component tests
     "@storybook/addon-vitest",
 
     {

@@ -25,7 +25,22 @@ export function log(level: "info" | "warn" | "error", ...args: unknown[]) {
 // ---------------------------------------------------------------------------
 // Token encryption configuration
 // ---------------------------------------------------------------------------
-const TOKEN_ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY || "default-encryption-key-change-in-production";
+const TOKEN_ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY;
+
+// Validate encryption key is set in production
+if (!TOKEN_ENCRYPTION_KEY) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SECURITY: TOKEN_ENCRYPTION_KEY environment variable MUST be set in production. " +
+      "Generate a strong random key (e.g., node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\") " +
+      "and set it before starting the server."
+    );
+  }
+  // Development fallback only
+  log("warn", "TOKEN_ENCRYPTION_KEY not set; using insecure development key. DO NOT USE IN PRODUCTION.");
+}
+
+const ENCRYPTION_KEY = TOKEN_ENCRYPTION_KEY || "dev-only-insecure-key-change-immediately-in-production";
 const ALGORITHM = "aes-256-gcm";
 
 function deriveKey(secret: string): Buffer {
@@ -34,7 +49,7 @@ function deriveKey(secret: string): Buffer {
 
 export function encryptToken(token: string): string {
   try {
-    const key = deriveKey(TOKEN_ENCRYPTION_KEY);
+    const key = deriveKey(ENCRYPTION_KEY);
     const iv = randomBytes(16);
     const cipher = createCipheriv(ALGORITHM, key, iv);
     
@@ -52,7 +67,7 @@ export function encryptToken(token: string): string {
 
 export function decryptToken(encryptedData: string): string {
   try {
-    const key = deriveKey(TOKEN_ENCRYPTION_KEY);
+    const key = deriveKey(ENCRYPTION_KEY);
     const parts = encryptedData.split(".");
     if (parts.length !== 3) throw new Error("Invalid encrypted token format");
     
@@ -215,9 +230,9 @@ export function generateJWT(user: AuthUser): string {
   };
 
   const lastCheckTimestamp =
-    typeof user.lastCheck === "number"
+    user.type === "discord" && typeof user.lastCheck === "number"
       ? user.lastCheck
-      : typeof user.cacheUpdatedAt === "number"
+      : user.type === "discord" && typeof user.cacheUpdatedAt === "number"
       ? user.cacheUpdatedAt
       : undefined;
 
@@ -225,25 +240,24 @@ export function generateJWT(user: AuthUser): string {
     payload.last_check = lastCheckTimestamp;
   }
 
-  if (typeof user.cacheUpdatedAt === "number") payload.cacheUpdatedAt = user.cacheUpdatedAt;
-  if (Array.isArray(user.cachedGuildIds)) payload.cachedGuildIds = user.cachedGuildIds;
-  if (Array.isArray(user.cachedMemberRoles)) payload.cachedMemberRoles = user.cachedMemberRoles;
-  
-  // Include encrypted Discord OAuth tokens in JWT
-  if (user.encryptedTokens) {
-    payload.encryptedTokens = user.encryptedTokens;
-  }
+  // Only encode these fields for Discord users
+  if (user.type === "discord") {
+    if (typeof user.cacheUpdatedAt === "number") payload.cacheUpdatedAt = user.cacheUpdatedAt;
+    if (Array.isArray(user.cachedGuildIds)) payload.cachedGuildIds = user.cachedGuildIds;
+    if (Array.isArray(user.cachedMemberRoles)) payload.cachedMemberRoles = user.cachedMemberRoles;
+    
+    // Include encrypted Discord OAuth tokens in JWT
+    if (user.encryptedTokens) {
+      payload.encryptedTokens = user.encryptedTokens;
+    }
 
-  // Include token metadata in JWT (expiresAt and scope)
-  if (typeof user.expires === "number") {
-    payload.token_expires_at = user.expires;
-  }
-  if (typeof user.scope === "string") {
-    payload.token_scope = user.scope;
-  }
-
-  if (user.magicLink) {
-    payload.magicLink = true;
+    // Include token metadata in JWT (expiresAt and scope)
+    if (typeof user.expires === "number") {
+      payload.token_expires_at = user.expires;
+    }
+    if (typeof user.scope === "string") {
+      payload.token_scope = user.scope;
+    }
   }
 
   // Sign with current private key (RSA), include key ID (kid) in header
@@ -288,51 +302,68 @@ export function verifyJWT(token: string): AuthUser | null {
     const id = verified?.sub ? String(verified.sub) : null;
     if (!id) return null;
 
-    const user: AuthUser = {
-      id,
-      username: verified.username ? String(verified.username) : "",
-      avatar: verified.avatar ?? null,
-      discriminator: verified.discriminator ?? null,
-      guild: verified.guild ?? null,
-      hasRole: Boolean(verified.hasRole),
-      isAdmin: Boolean(verified.isAdmin),
-      devBypass: Boolean(verified.devBypass),
-      magicLink: Boolean(verified.magicLink),
-      jti: verified.jti ? String(verified.jti) : undefined,
-      cacheUpdatedAt:
-        typeof verified.cacheUpdatedAt === "number" ? verified.cacheUpdatedAt : undefined,
-      lastCheck:
-        typeof verified.last_check === "number"
-          ? verified.last_check
-          : typeof verified.cacheUpdatedAt === "number"
-          ? verified.cacheUpdatedAt
-          : undefined,
-      cachedGuildIds: Array.isArray(verified.cachedGuildIds)
-        ? verified.cachedGuildIds.map((g: unknown) => String(g))
-        : undefined,
-      cachedMemberRoles: Array.isArray(verified.cachedMemberRoles)
-        ? verified.cachedMemberRoles.map((r: unknown) => String(r))
-        : undefined,
-    };
+    // Determine if this is a dev bypass user or Discord-authenticated user
+    const isDevBypass = Boolean(verified.devBypass);
+    
+    const user: AuthUser = isDevBypass
+      ? {
+          type: "dev",
+          id,
+          username: verified.username ? String(verified.username) : "",
+          avatar: verified.avatar ?? null,
+          discriminator: verified.discriminator ?? null,
+          guild: verified.guild ?? null,
+          hasRole: Boolean(verified.hasRole),
+          isAdmin: Boolean(verified.isAdmin),
+          devBypass: true,
+        }
+      : {
+          type: "discord",
+          id,
+          username: verified.username ? String(verified.username) : "",
+          avatar: verified.avatar ?? null,
+          discriminator: verified.discriminator ?? null,
+          guild: verified.guild ?? null,
+          hasRole: Boolean(verified.hasRole),
+          isAdmin: Boolean(verified.isAdmin),
+          devBypass: false,
+          jti: verified.jti ? String(verified.jti) : undefined,
+          cacheUpdatedAt:
+            typeof verified.cacheUpdatedAt === "number" ? verified.cacheUpdatedAt : undefined,
+          lastCheck:
+            typeof verified.last_check === "number"
+              ? verified.last_check
+              : typeof verified.cacheUpdatedAt === "number"
+              ? verified.cacheUpdatedAt
+              : undefined,
+          cachedGuildIds: Array.isArray(verified.cachedGuildIds)
+            ? verified.cachedGuildIds.map((g: unknown) => String(g))
+            : undefined,
+          cachedMemberRoles: Array.isArray(verified.cachedMemberRoles)
+            ? verified.cachedMemberRoles.map((r: unknown) => String(r))
+            : undefined,
+        };
 
-    // Decrypt OAuth tokens from JWT if present
-    if (verified.encryptedTokens && typeof verified.encryptedTokens === "string") {
+    // Decrypt OAuth tokens from JWT if present (Discord users only)
+    if (!isDevBypass && verified.encryptedTokens && typeof verified.encryptedTokens === "string") {
       try {
         const decryptedJson = decryptToken(verified.encryptedTokens);
         const tokens = JSON.parse(decryptedJson);
-        user.accessToken = tokens.accessToken;
-        user.refreshToken = tokens.refreshToken ?? null;
+        (user as any).accessToken = tokens.accessToken;
+        (user as any).refreshToken = tokens.refreshToken ?? null;
       } catch (decryptErr) {
         log("warn", "Failed to decrypt tokens from JWT:", decryptErr);
       }
     }
 
-    // Extract token metadata from JWT (expiresAt and scope)
-    if (typeof verified.token_expires_at === "number") {
-      user.expires = verified.token_expires_at;
-    }
-    if (typeof verified.token_scope === "string") {
-      user.scope = verified.token_scope;
+    // Extract token metadata from JWT (expiresAt and scope) - Discord users only
+    if (!isDevBypass) {
+      if (typeof verified.token_expires_at === "number") {
+        (user as any).expires = verified.token_expires_at;
+      }
+      if (typeof verified.token_scope === "string") {
+        (user as any).scope = verified.token_scope;
+      }
     }
 
     return user;
@@ -351,9 +382,13 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || "";
 const DISCORD_CALLBACK_URL = process.env.DISCORD_CALLBACK_URL || "";
 
 export async function refreshAccessToken(user: AuthUser) {
-  if (user.devBypass) {
+  if (user.type === "dev") {
     log("info", `[DevBypass] No refresh needed for ${user.username} (${user.id})`);
     return { devBypass: true };
+  }
+
+  if (user.type !== "discord") {
+    throw new Error("Invalid user type for token refresh");
   }
 
   if (!user.refreshToken) throw new Error("No refresh token available (from JWT)");
@@ -547,15 +582,30 @@ export function initializePassportJWTStrategy() {
         },
         async (payload: any, done: Done) => {
           try {
-            const user: AuthUser = {
-              id: String(payload.sub),
-              username: payload.username ? String(payload.username) : "",
-              avatar: payload.avatar ?? null,
-              discriminator: payload.discriminator ?? null,
-              guild: payload.guild ?? null,
-              hasRole: Boolean(payload.hasRole),
-              devBypass: Boolean(payload.devBypass),
-            };
+            const isDevBypass = Boolean(payload.devBypass);
+            const user: AuthUser = isDevBypass
+              ? {
+                  type: "dev",
+                  id: String(payload.sub),
+                  username: payload.username ? String(payload.username) : "",
+                  avatar: payload.avatar ?? null,
+                  discriminator: payload.discriminator ?? null,
+                  guild: payload.guild ?? null,
+                  hasRole: Boolean(payload.hasRole),
+                  isAdmin: Boolean(payload.isAdmin),
+                  devBypass: true,
+                }
+              : {
+                  type: "discord",
+                  id: String(payload.sub),
+                  username: payload.username ? String(payload.username) : "",
+                  avatar: payload.avatar ?? null,
+                  discriminator: payload.discriminator ?? null,
+                  guild: payload.guild ?? null,
+                  hasRole: Boolean(payload.hasRole),
+                  isAdmin: Boolean(payload.isAdmin),
+                  devBypass: false,
+                };
             return done(null, user);
           } catch (err) {
             log("error", "JWT strategy error:", err);

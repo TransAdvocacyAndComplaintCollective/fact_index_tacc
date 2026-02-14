@@ -70,42 +70,15 @@ export default defineConfig(() => {
       host: process.env.HOST ?? 'localhost',
       strictPort: false,
 
-      // NOTE:
-      // - If you want Nx to control HMR via the `serve` target option, don’t force it here.
-      // - If you *must* disable HMR, uncomment the next line:
-      // hmr: false,
-
-      proxy: {
-        '/auth': {
-          target: 'http://localhost:5332',
-          changeOrigin: true,
-          secure: false,
-        },
-        '/api': {
-          target: 'http://localhost:5332',
-          changeOrigin: true,
-          secure: false,
-        },
-      },
+      // NOTE: Vite runs in middleware mode via Express (see static.ts)
+      // No proxy needed - Express backend serves both Vite dev server and API routes
+      // All requests stay within the same origin (localhost:5332)
     },
 
     // Optional, but handy if you use `vite preview`
-    // (Vite preview can also use proxy rules.)
     preview: {
       port: 4300,
       host: process.env.HOST ?? 'localhost',
-      proxy: {
-        '/auth': {
-          target: 'http://localhost:5332',
-          changeOrigin: true,
-          secure: false,
-        },
-        '/api': {
-          target: 'http://localhost:5332',
-          changeOrigin: true,
-          secure: false,
-        },
-      },
     },
   };
 });

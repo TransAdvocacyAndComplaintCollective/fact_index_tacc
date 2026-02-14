@@ -8,6 +8,7 @@ import { notifications } from "@mantine/notifications";
 import { nprogress } from "@mantine/nprogress";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { FaPencilAlt, FaPlus, FaSave, FaCheckCircle } from "react-icons/fa";
+import { apiGet } from "../../utils/apiClient";
 import type { FactRecord } from "./types";
 
 interface FactFormValues {
@@ -76,18 +77,18 @@ function FactEdit({ fact, mode, onSave, onCancel }: FactEditProps) {
     }
 
     nprogress.start();
-      const factId = fact?.id;
-      if (isEdit && !factId) {
-        notifications.show({
-          title: "Missing fact",
-          message: "Cannot update a fact that is not loaded.",
-          color: "red",
-        });
-        return;
-      }
+    const factId = fact?.id;
+    if (isEdit && !factId) {
+      notifications.show({
+        title: "Missing fact",
+        message: "Cannot update a fact that is not loaded.",
+        color: "red",
+      });
+      return;
+    }
 
-      try {
-        if (isEdit) {
+    try {
+      if (isEdit) {
         await axios.put(`/api/facts/facts/${factId}`, {
           changes: {
             fact_text: values.fact_text,
@@ -287,9 +288,8 @@ export default function FactEditRoute() {
       return;
     }
     nprogress.start();
-    Promise.resolve().then(() => setLoading(true));
-    fetch(`/api/facts/facts/${id}`)
-      .then(res => res.ok ? res.json() : Promise.reject())
+    setLoading(true);
+    apiGet<FactRecord>(`/api/facts/facts/${id}`)
       .then(setFact)
       .catch(() => setFact(null))
       .finally(() => {

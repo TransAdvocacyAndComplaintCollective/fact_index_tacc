@@ -8,6 +8,11 @@
     "start": "nx serve fact-server",
     "dev": "pnpm --filter fact-server run dev",
     "build": "nx build fact-server",
+    "build:frontend": "nx build fact-index",
+    "serve:dev": "nx serve fact-index",
+    "preview": "nx preview fact-index",
+    "storybook": "nx storybook fact-index",
+    "build:storybook": "nx run fact-index:storybook-build",
     "test": "nx test",
     "test-storybook": "pnpm --filter fact-index run test-storybook",
     "knip": "knip"
@@ -21,7 +26,6 @@
   "description": "",
   "dependencies": {
     "@oauth-everything/passport-discord": "^1.0.0",
-    "@types/express": "^5.0.6",
     "axios": "^1.10.0",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^17.0.1",
@@ -40,19 +44,23 @@
     "@nx/js": "22.4.2",
     "@nx/react": "22.4.2",
     "@nx/vite": "22.4.2",
+    "@nx/workspace": "22.4.2",
     "@nx/webpack": "22.4.2",
     "@storybook/addon-mcp": "^0.2.2",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
-    "typescript-eslint": "^8.19.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.19.9",
+    "@types/passport": "^1.0.17",
     "@types/react": "^19.2.9",
     "@vitejs/plugin-react": "^4.0.0",
+    "casbin": "^5.48.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^27.4.0",
     "knip": "^5.82.1",
+    "nodemon": "^3.1.11",
     "nx": "22.4.2",
     "postcss-scss": "^4.0.9",
     "sass": "^1.89.2",
@@ -62,7 +70,9 @@
     "stylelint-scss": "^4.7.0",
     "tsconfig-paths": "^4.2.0",
     "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.19.0",
     "vite": "^7.3.1"
   },
   "pnpm": {
@@ -73,5 +83,8 @@
   },
   "nx": {
     "defaultProject": "fact-server"
+  },
+  "peerDependencies": {
+    "casbin": "^5.48.0"
   }
 }

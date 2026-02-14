@@ -75,12 +75,15 @@ function generateNewKeyPair(): { privateKey: KeyObject; publicKey: KeyObject; ki
 }
 
 /**
- * Save keys to disk for persistence
+ * Save keys to disk for persistence using atomic writes
  */
 function saveKeysToDisk(): void {
   try {
     if (!fs.existsSync(KEYS_DIR)) {
-      fs.mkdirSync(KEYS_DIR, { recursive: true });
+      fs.mkdirSync(KEYS_DIR, { recursive: true, mode: 0o700 });
+    } else {
+      // Ensure directory has secure permissions (owner read/write/execute only)
+      fs.chmodSync(KEYS_DIR, 0o700);
     }
 
     const keysData = {
@@ -89,26 +92,34 @@ function saveKeysToDisk(): void {
       next: keySet.next ? { kid: keySet.next.kid, iat: keySet.next.iat } : null,
     };
 
-    fs.writeFileSync(path.join(KEYS_DIR, "keys.json"), JSON.stringify(keysData, null, 2));
+    // Atomic write: write to temp file, then rename to ensure no partial writes
+    const keysPath = path.join(KEYS_DIR, "keys.json");
+    const tempPath = path.join(KEYS_DIR, "keys.json.tmp");
+    fs.writeFileSync(tempPath, JSON.stringify(keysData, null, 2), { mode: 0o600 });
+    fs.renameSync(tempPath, keysPath);
+    fs.chmodSync(keysPath, 0o600);
 
-    // Save private keys (encrypted in production)
+    // Save private keys with secure permissions (owner read-only)
     if (keySet.old) {
-      fs.writeFileSync(
-        path.join(KEYS_DIR, `${keySet.old.kid}.pem`),
-        keySet.old.keyObject.export({ format: "pem", type: "pkcs8" })
-      );
+      const oldKeyPath = path.join(KEYS_DIR, `${keySet.old.kid}.pem`);
+      const oldKeyTemp = path.join(KEYS_DIR, `${keySet.old.kid}.pem.tmp`);
+      fs.writeFileSync(oldKeyTemp, keySet.old.keyObject.export({ format: "pem", type: "pkcs8" }), { mode: 0o600 });
+      fs.renameSync(oldKeyTemp, oldKeyPath);
+      fs.chmodSync(oldKeyPath, 0o600);
     }
 
-    fs.writeFileSync(
-      path.join(KEYS_DIR, `${keySet.current.kid}.pem`),
-      keySet.current.keyObject.export({ format: "pem", type: "pkcs8" })
-    );
+    const currentKeyPath = path.join(KEYS_DIR, `${keySet.current.kid}.pem`);
+    const currentKeyTemp = path.join(KEYS_DIR, `${keySet.current.kid}.pem.tmp`);
+    fs.writeFileSync(currentKeyTemp, keySet.current.keyObject.export({ format: "pem", type: "pkcs8" }), { mode: 0o600 });
+    fs.renameSync(currentKeyTemp, currentKeyPath);
+    fs.chmodSync(currentKeyPath, 0o600);
 
     if (keySet.next) {
-      fs.writeFileSync(
-        path.join(KEYS_DIR, `${keySet.next.kid}.pem`),
-        keySet.next.keyObject.export({ format: "pem", type: "pkcs8" })
-      );
+      const nextKeyPath = path.join(KEYS_DIR, `${keySet.next.kid}.pem`);
+      const nextKeyTemp = path.join(KEYS_DIR, `${keySet.next.kid}.pem.tmp`);
+      fs.writeFileSync(nextKeyTemp, keySet.next.keyObject.export({ format: "pem", type: "pkcs8" }), { mode: 0o600 });
+      fs.renameSync(nextKeyTemp, nextKeyPath);
+      fs.chmodSync(nextKeyPath, 0o600);
     }
 
     logger.info("[jwks] Keys persisted to disk", {
@@ -133,6 +144,20 @@ function loadKeysFromDisk(): boolean {
     const keysPath = path.join(KEYS_DIR, "keys.json");
     if (!fs.existsSync(keysPath)) {
       return false;
+    }
+
+    // Verify directory permissions are secure (owner only)
+    const dirStats = fs.statSync(KEYS_DIR);
+    if ((dirStats.mode & 0o077) !== 0) {
+      logger.warn(`[jwks] KEYS_DIR has unsafe permissions: ${(dirStats.mode & 0o777).toString(8)}, securing to 0700`);
+      fs.chmodSync(KEYS_DIR, 0o700);
+    }
+
+    // Verify keys.json permissions are secure (owner only)
+    const keysStats = fs.statSync(keysPath);
+    if ((keysStats.mode & 0o077) !== 0) {
+      logger.warn(`[jwks] keys.json has unsafe permissions: ${(keysStats.mode & 0o777).toString(8)}, securing to 0600`);
+      fs.chmodSync(keysPath, 0o600);
     }
 
     const keysData = JSON.parse(fs.readFileSync(keysPath, "utf-8")) as {

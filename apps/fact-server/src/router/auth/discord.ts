@@ -11,6 +11,7 @@ import {
   verifyOAuthStateJWT,
 } from "../../auth/jwt.ts";
 import { isDevModeActive } from "../../auth/passport-dev.ts";
+import { redirectWithSecureToken } from "./tokenResponse.ts";
 
 const router = express.Router();
 
@@ -280,8 +281,8 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
       const authUser = user as any;
       const token = generateJWT(authUser);
 
-      logger.info(`[auth] ${ctx(req, res)} JWT generated for user ${authUser.id}; redirecting to home with token`);
-      return res.redirect(`/?token=${encodeURIComponent(token)}`);
+      logger.info(`[auth] ${ctx(req, res)} JWT generated for user ${authUser.id}; redirecting to home with secure token cookie`);
+      return redirectWithSecureToken(res, token, "/");
     },
   );
 
@@ -300,7 +301,7 @@ router.post("/logout", async (req: Request, res: Response) => {
       const token = authHeader!.slice(7);
       const user = verifyJWT(token);
       
-      if (user?.id && user?.jti) {
+      if (user?.id && user?.type === "discord" && user?.jti) {
         const expiryTime = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days
         await revokeToken(user.jti, user.id, expiryTime, "logout");
         logger.info(`[auth] ${ctx(req, res)} user ${user.id} logged out: JWT revoked and Discord tokens cleared`);

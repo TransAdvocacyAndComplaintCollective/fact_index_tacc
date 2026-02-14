@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Group, Anchor, Button, Avatar, Text, Box, useMantineTheme, useMantineColorScheme } from '@mantine/core';
 import ThemeToggle from './ThemeToggle';
 import { useAuthContext } from '../context/AuthContext';
-import { FaChartBar, FaHome, FaFolderOpen, FaMagic, FaDiscord } from 'react-icons/fa';
+import { FaChartBar, FaHome, FaFolderOpen, FaDiscord } from 'react-icons/fa';
 import { useRBACContext } from '@impelsysinc/react-rbac';
 
 function getDiscordAvatarUrl(
@@ -24,7 +24,7 @@ function getDiscordAvatarUrl(
 }
 
 function NavBar() {
-  const { user, logout, loading, login, isAdmin } = useAuthContext();
+  const { user, logout, loading, isAdmin } = useAuthContext();
   const { canAccess } = useRBACContext();
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
@@ -68,10 +68,10 @@ function NavBar() {
                 <span>Database</span>
               </Group>
             </Anchor>
-            {isAuthenticated && (Boolean(isAdmin) || canAccess({ resource: "admin.magiclink", action: "create" })) && (
+            {isAuthenticated && Boolean(isAdmin) && (
               <Anchor component={NavLink} to="/admin" fw={500} c={linkColor}>
                 <Group gap="xs" align="center">
-                  <FaMagic aria-hidden="true" />
+                  <FaDiscord aria-hidden="true" />
                   <span>Admin</span>
                 </Group>
               </Anchor>
@@ -102,8 +102,15 @@ function NavBar() {
               </Button>
             </Group>
           ) : (
-            <Button onClick={() => login()} variant="filled" color="indigo" size="sm" leftSection={<FaDiscord aria-hidden="true" size={16} />}>
-              Login with Discord
+            <Button
+              onClick={() => {
+                window.location.href = '/login/';
+              }}
+              variant="filled"
+              color="indigo"
+              size="sm"
+            >
+              Login
             </Button>
           )}
         </Group>

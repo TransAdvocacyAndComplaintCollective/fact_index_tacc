@@ -7,6 +7,7 @@ import { AuthContext, type AuthContextValue } from "../context/AuthContext";
 const createAuthValue = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
   loading: false,
   authenticated: false,
+  isAdmin: false,
   user: null,
   reason: "network_error",
   login: async () => {},

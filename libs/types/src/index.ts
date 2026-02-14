@@ -159,7 +159,6 @@ export interface AuthUserDiscord extends AuthUserBase {
   hasRole?: boolean;
   isAdmin?: boolean;
   devBypass?: boolean;
-  magicLink?: false;
   cacheUpdatedAt?: number;
   lastCheck?: number;
   cachedGuildIds?: string[];
@@ -172,16 +171,6 @@ export interface AuthUserDiscord extends AuthUserBase {
   jti?: string;
 }
 
-/** Token issued through the admin magic-link workflow */
-export interface AuthUserMagic extends AuthUserBase {
-  type: "magic";
-  magicLink: true;
-  hasRole?: boolean;
-  isAdmin?: boolean;
-  devBypass?: false;
-  guild?: string | null;
-}
-
 /** Dev bypass authentication user (development only) */
 export interface AuthUserDev extends AuthUserBase {
   type: "dev";
@@ -189,16 +178,17 @@ export interface AuthUserDev extends AuthUserBase {
   hasRole?: boolean;
   isAdmin?: boolean;
   guild?: string | null;
-  magicLink?: false;
 }
 
 /** Full authenticated user details (internal) */
-export type AuthUser = AuthUserDiscord | AuthUserMagic | AuthUserDev;
+export type AuthUser = AuthUserDiscord | AuthUserDev;
 
 /** User info returned by /auth/status endpoint */
 export interface AuthStatusUser extends UserProfile {
   guild?: string | null;
   hasRole?: boolean;
+  cachedMemberRoles?: string[];
+  permissions?: string[];
 }
 
 /** Authentication status response */

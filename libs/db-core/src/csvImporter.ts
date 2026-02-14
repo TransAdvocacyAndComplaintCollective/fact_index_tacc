@@ -86,6 +86,13 @@ export async function importFactsFromCsv(options: ImportFactsOptions = {}): Prom
     throw new Error(`CSV not found at ${csvPath}`);
   }
 
+  // Check file size to prevent DoS attacks (limit to 100MB)
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+  const stats = fs.statSync(csvPath);
+  if (stats.size > MAX_FILE_SIZE) {
+    throw new Error(`CSV file too large (${Math.round(stats.size / 1024 / 1024)}MB). Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+  }
+
   await initializeDb();
   await createSchema(db);
 

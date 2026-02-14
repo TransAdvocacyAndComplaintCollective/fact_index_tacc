@@ -1,31 +1,36 @@
-import React from "react";
-import { Container, Paper, Title, Alert, Button, Stack, Group, Text, Collapse, List, useMantineTheme } from "@mantine/core";
-import { IconAlertCircle, IconBrandDiscord, IconTerminal } from "@tabler/icons-react";
+import React, { useState } from "react";
+import { Container, Paper, Title, Alert, Button, Stack, Group, Text, Collapse, List, Modal } from "@mantine/core";
+import { IconAlertCircle, IconBrandDiscord, IconTerminal, IconShield } from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../context/AuthContext";
+import LocalIdentityLogin from "./LocalIdentityLogin";
 
-function getProviderIcon(name?: string) {
+const FEDERATION_LOGIN_LABEL = "Login with United Fedratiob of Trans Organizaions";
+
+function getProviderIcon(provider: any) {
+  const name = provider?.displayName || provider?.name;
   if (!name) return null;
-  switch (name.toLowerCase()) {
-    case "discord":
-      return <IconBrandDiscord size={24} aria-hidden="true" />;
-    case "dev":
-      return <IconTerminal size={24} aria-hidden="true" />;
-    default:
-      return null;
-  }
+  const lower = name.toLowerCase();
+  if (lower.includes("discord")) return <IconBrandDiscord size={24} aria-hidden="true" />;
+  if (lower.includes("federation") || lower.includes("united") || lower.includes("tacc")) return <IconShield size={24} aria-hidden="true" />;
+  if (provider?.name === "dev") return <IconTerminal size={24} aria-hidden="true" />;
+  return null;
 }
 
-function formatProviderLabel(name?: string) {
+function formatProviderLabel(provider: any) {
+  const name = provider?.displayName || provider?.name;
   if (!name) {
     return "provider";
   }
   return name
     .split(/[\s_-]+/)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .map((segment: string) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
     .join(" ");
 }
 
 export default function Login() {
+  const navigate = useNavigate();
+  const [showLocalIdentityModal, setShowLocalIdentityModal] = useState(false);
   const {
     authAvailable,
     providerOptions,
@@ -35,7 +40,40 @@ export default function Login() {
     showHelp,
     helpToggle,
   } = useAuthContext();
-  const theme = useMantineTheme();
+
+  const handleProviderLogin = (provider: any) => {
+    const isFederation = provider.name === "federation" || provider.type === "federation";
+    const isDev = provider.name === "dev";
+    
+    // For dev login, show the local identity provider modal instead of direct redirect
+    if (isDev) {
+      setShowLocalIdentityModal(true);
+      return;
+    }
+    
+    // For federation, offer option to use dedicated federation login page or direct login
+    if (isFederation) {
+      // Check for a query param to control behavior
+      const params = new URLSearchParams(window.location.search);
+      const useDedicatedPage = params.get('federation_page') !== 'false';
+      
+      if (useDedicatedPage) {
+        // Navigate to the dedicated federation login page
+        const entityId = provider?.entityId ? String(provider.entityId) : "";
+        if (entityId) {
+          navigate(`/login/federation?provider=${encodeURIComponent(entityId)}`);
+        } else {
+          navigate('/login/federation');
+        }
+        return;
+      }
+    }
+
+    // Direct login for all other providers and federation if disabled
+    if (provider.url) {
+      window.location.href = provider.url;
+    }
+  };
 
   return (
     <Container size="xs" pt="xl" role="main" aria-labelledby="login-title">
@@ -58,7 +96,7 @@ export default function Login() {
 
             {(userMessage || reasonCode) && (
               <Button
-                variant="subtle"
+                variant="default"
                 onClick={helpToggle}
                 mb="sm"
                 size="md"
@@ -66,33 +104,42 @@ export default function Login() {
                 aria-expanded={showHelp}
                 aria-controls="login-help"
               >
-                How to join the Discord server or contact an admin
+                How to get access or contact an admin
               </Button>
             )}
 
             <Collapse in={showHelp} id="login-help" role="region" aria-label="Login help">
               <Paper withBorder p="sm" radius="sm" mb="md">
                 <Text mb="xs">
-                  If you see a message about not being in the required server or missing a role:
+                  If you see a message about access denied or authorization issues:
                 </Text>
                 <List withPadding type="ordered">
-                  <List.Item>Confirm you're logged into the correct Discord account (the one you used to sign up).</List.Item>
-                  <List.Item>Ask the server owner or an administrator to invite your account to the server.</List.Item>
-                  <List.Item>If you're in the server but missing a role, request that an admin grant the required role.</List.Item>
+                  <List.Item>
+                    <Text span fw={500}>Federation Login:</Text> Contact a United Federation administrator 
+                    to verify your account is authorized for this federation.
+                  </List.Item>
+                  <List.Item>
+                    <Text span fw={500}>Discord Login:</Text> Ensure you're in the correct Discord server 
+                    and have the required role assigned.
+                  </List.Item>
+                  <List.Item>
+                    If you're unsure which method to use, try the Federation login first as it provides 
+                    broader access across multiple services.
+                  </List.Item>
                 </List>
                 <Text mt="sm">
-                  If you don't know who to contact, reach out to the project administrator and provide the message you saw here so they can help:
+                  If you continue to have issues, contact the project administrator with this error message:
                   <Text span fw={600}> {decodeURIComponent(userMessage || errorReason || '')}</Text>
                 </Text>
                 {(reasonCode || errorReason) && (
                   <Text mt="sm" size="xs" c="gray.6">
-                    Discord said{reasonCode ? ` (code: ${decodeURIComponent(reasonCode)})` : ""}:{" "}
+                    Error details{reasonCode ? ` (code: ${decodeURIComponent(reasonCode)})` : ""}:{" "}
                     {decodeURIComponent(errorReason || userMessage || "")}
                   </Text>
                 )}
                 <Group mt="sm">
                   <Button
-                    variant="light"
+                    variant="default"
                     onClick={() => (window.location.href = '/')}
                     aria-label="Back to home"
                   >
@@ -104,17 +151,24 @@ export default function Login() {
 
             <Stack>
               {providerOptions.map((provider, index) => {
-                const isDev = provider.name?.toLowerCase() === "dev";
+                const isDev = provider.name === "dev";
+                const isFederation = provider.name === "federation" || provider.type === "federation";
+                
                 return (
                   <Button
-                    key={provider.url ?? provider.name ?? index}
-                    leftSection={getProviderIcon(provider.name)}
-                    onClick={() => provider.url && (window.location.href = provider.url)}
-                    aria-label={`Login with ${formatProviderLabel(provider.name)}`}
-                    variant={isDev ? "light" : "filled"}
-                    color={isDev ? "gray" : undefined}
+                    key={provider.url ?? provider.entityId ?? provider.name ?? index}
+                    leftSection={getProviderIcon(provider)}
+                    onClick={() => handleProviderLogin(provider)}
+                    aria-label={isFederation ? FEDERATION_LOGIN_LABEL : `Login with ${formatProviderLabel(provider)}`}
+                    variant="light"
+                    color={
+                      isDev ? "gray" : 
+                      isFederation ? "blue" : 
+                      "violet"
+                    }
+                    size="md"
                   >
-                    Login with {formatProviderLabel(provider.name)}
+                    {isFederation ? FEDERATION_LOGIN_LABEL : `Login with ${formatProviderLabel(provider)}`}
                   </Button>
                 );
               })}
@@ -122,6 +176,19 @@ export default function Login() {
           </>
         )}
       </Paper>
+
+      {/* Local Identity Provider Modal */}
+      <Modal
+        opened={showLocalIdentityModal}
+        onClose={() => setShowLocalIdentityModal(false)}
+        title="Local Identity Login"
+        size="sm"
+        centered
+      >
+        <LocalIdentityLogin
+          onBack={() => setShowLocalIdentityModal(false)}
+        />
+      </Modal>
     </Container>
   );
 }

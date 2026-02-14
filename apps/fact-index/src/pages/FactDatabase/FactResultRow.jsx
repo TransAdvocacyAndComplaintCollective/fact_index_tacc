@@ -85,11 +85,8 @@ export default function FactResultRow({
                 <Badge
                   size="sm"
                   variant="filled"
-                  color="dark"
-                  style={{
-                    backgroundColor: badgeBackground,
-                    color: badgeTextColor,
-                  }}
+                  color="gray"
+                  autoContrast
                 >
                   {fact.type}
                 </Badge>
@@ -98,11 +95,8 @@ export default function FactResultRow({
                 <Badge
                   size="sm"
                   variant="filled"
-                  color="dark"
-                  style={{
-                    backgroundColor: badgeBackground,
-                    color: badgeTextColor,
-                  }}
+                  color="gray"
+                  autoContrast
                 >
                   {fact.subject}
                 </Badge>
@@ -111,11 +105,8 @@ export default function FactResultRow({
                 <Badge
                   size="sm"
                   variant="filled"
-                  color="dark"
-                  style={{
-                    backgroundColor: badgeBackground,
-                    color: badgeTextColor,
-                  }}
+                  color="gray"
+                  autoContrast
                 >
                   {fact.audience}
                 </Badge>

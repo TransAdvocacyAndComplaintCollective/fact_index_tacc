@@ -9,15 +9,180 @@
     }
   },
   "roles": {
-    "1305989446146981908": {
-      "name": "SOE",
-      "type": "user",
-      "description": "Discord role for SOE (user app role)"
+    "playwright-role": {
+      "name": "Playwright Role",
+      "type": "permission",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:4234443232": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:playwright-user-1001": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:1274380260321792153": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:12743802603217921533": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:hfgh": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:dggdfdg": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:432423423432": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:2423423": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:map-list-user-01": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:dropdown-user-2001": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:edit-del-discord-1": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:edit-del-discord-1-upd": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
     }
   },
   "userRoles": {
-    "701037283582672936": ["French"]
+    "701037283582672936": [
+      "French"
+    ]
   },
-  "whitelistUsers": []
-
+  "whitelistUsers": [],
+  "adminUsers": [],
+  "federationPolicy": {
+    "namingConstraints": [],
+    "allowSubdomains": true,
+    "allowedEntityTypes": [
+      "openid_relying_party",
+      "oauth_client"
+    ],
+    "maxPathLength": 2,
+    "trustAnchorEntityId": "https://superior.example.org",
+    "defaultAuthorizationDetails": []
+  },
+  "trustMarkPolicy": {
+    "requiredTrustMarks": [],
+    "claimChecks": []
+  },
+  "discordMappings": [
+    {
+      "id": "19012bb6-fb2c-4164-b6e9-2ade3e978a16",
+      "discordRoleId": "432423423432",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:04.779Z"
+    },
+    {
+      "id": "345b614d-6a65-427a-be03-3dc5b48de417",
+      "discordRoleId": "2423423",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:07.449Z"
+    },
+    {
+      "id": "8fb22798-781c-4c6d-959a-fe488fa20d44",
+      "discordUserId": "map-list-user-01",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:18.439Z"
+    },
+    {
+      "id": "fd73b21a-cbf5-4008-adb3-f9d90d35951a",
+      "discordUserId": "dropdown-user-2001",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:20:28.833Z"
+    }
+  ],
+  "openidMappings": [
+    {
+      "id": "d31aa46e-8319-48e7-af77-302e9e1f991e",
+      "idType": "issuer_domain_user_id",
+      "domain": "issuer.example.org",
+      "userId": "oid-user-1",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:31:00.591Z"
+    },
+    {
+      "id": "0ee6643b-dde0-48d3-b7cf-c0bf2ef45c8c",
+      "idType": "trust_domain",
+      "domain": "ecaple.com",
+      "numHops": 0,
+      "targetType": "role",
+      "targetValue": "facts-read:1274380260321792153",
+      "createdAt": "2026-02-14T15:38:09.614Z"
+    }
+  ]
 }

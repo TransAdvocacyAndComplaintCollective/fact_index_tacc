@@ -1,8 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
-import { Kysely, SqliteDialect, sql } from 'kysely';
+import { Kysely, SqliteDialect, MysqlDialect, sql } from 'kysely';
 import Database from 'better-sqlite3';
+import * as mysql2Promise from 'mysql2/promise';
+import { createIdentityAndFederationSchema, type UserTable, type IdentityTable } from './identitySchema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +13,7 @@ type UsersTable = {
   id: number;
   discord_name: string | null;
   email: string | null;
+  is_admin: boolean | null;
 };
 
 type FactsTable = {
@@ -65,15 +68,82 @@ type JwtTokenBlacklistTable = {
   reason: string | null;
 };
 
+type CasbinRuleTable = {
+  id: number;
+  ptype: string;
+  v0: string | null;
+  v1: string | null;
+  v2: string | null;
+  v3: string | null;
+  v4: string | null;
+  v5: string | null;
+};
+
+type DiscordGuildMemberTable = {
+  discord_user_id: string;
+  guild_id: string;
+  roles_json: string | null;  // JSON array of Discord role IDs
+  last_synced_at: string;
+};
+
+type LocalRoleTable = {
+  role_key: string;  // e.g., 'admin', 'mod', 'viewer'
+  description: string | null;
+};
+
+type UserLocalRoleTable = {
+  discord_user_id: string;
+  role_key: string;
+  guild_id: string | null;  // NULL = global role, otherwise guild-scoped
+};
+
+type DiscordRoleMapTable = {
+  guild_id: string;
+  discord_role_id: string;
+  role_key: string;  // Maps to local_role.role_key
+};
+
+type AdminDiscordMappingTable = {
+  id: string;
+  discord_id_type: string; // user | role | guild
+  discord_id: string;
+  target_type: string; // action | role
+  target_value: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type AdminOpenIdMappingTable = {
+  id: string;
+  id_type: string; // trust_mark | provider_domain | trust_domain | issuer_domain_user_id | anyone
+  domain: string | null;
+  num_hops: number | null;
+  user_id: string | null;
+  target_type: string; // action | role
+  target_value: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type DatabaseSchema = {
   users: UsersTable;
   facts: FactsTable;
   discord_oauth_tokens: DiscordOAuthTokensTable;
   jwt_token_blacklist: JwtTokenBlacklistTable;
+  casbin_rule: CasbinRuleTable;
+  discord_guild_member: DiscordGuildMemberTable;
+  local_role: LocalRoleTable;
+  user_local_role: UserLocalRoleTable;
+  discord_role_map: DiscordRoleMapTable;
+  admin_discord_mapping: AdminDiscordMappingTable;
+  admin_openid_mapping: AdminOpenIdMappingTable;
   subjects: SubjectsTable;
   audiences: AudiencesTable;
   fact_subjects: FactSubjectsTable;
   fact_audiences: FactAudiencesTable;
+  // Identity and federation tables
+  user: UserTable;
+  identity: IdentityTable;
 };
 
 // Determine repository root by walking up until we find workspace indicators
@@ -92,21 +162,19 @@ export function findRepoRoot(startDir = __dirname): string {
   return process.cwd();
 }
 
-const repoRoot = findRepoRoot();
-const repoRootDbPath = path.join(repoRoot, 'db', 'dev.sqlite3');
+export type DatabaseType = 'sqlite' | 'mysql';
 
-// Force the DB to live at <repo_root>/db/dev.sqlite3. This ensures a predictable
-// location across dev environments.
-const dbPath = repoRootDbPath;
-console.info('[db] repoRoot:', repoRoot);
-console.info('[db] sqlite path:', dbPath);
-
-// Ensure the parent directory exists so sqlite can create the file there.
-try {
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-} catch {
-  // ignore directory creation errors — sqlite will error later if needed
+export function getDatabaseType(): DatabaseType {
+  const type = (process.env.DB_TYPE || 'sqlite').toLowerCase() as DatabaseType;
+  if (!['sqlite', 'mysql'].includes(type)) {
+    console.warn(`[db] Invalid DB_TYPE: ${type}, defaulting to sqlite`);
+    return 'sqlite';
+  }
+  return type;
 }
+
+const repoRoot = findRepoRoot();
+const dbType = getDatabaseType();
 
 // Create a stub database that will be initialized later
 // For now, we'll just create a deferred initialization
@@ -130,19 +198,20 @@ export async function initializeDb(): Promise<void> {
     return;
   }
 
-  console.log('[db] Initializing database connection...');
+  console.log(`[db] Initializing ${dbType.toUpperCase()} database connection...`);
+  
   try {
-    const sqlite = new Database(dbPath);
-    db = new Kysely<DatabaseSchema>({
-      dialect: new SqliteDialect({ database: sqlite }),
-    });
-
+    if (dbType === 'sqlite') {
+      await initializeSqlite();
+    } else if (dbType === 'mysql') {
+      await initializeMysql();
+    }
     console.log('[db] Database connection established');
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     
-    // Check if this is a native binding error
-    if (errorMessage.includes('Could not locate the bindings file') || errorMessage.includes('better_sqlite3.node')) {
+    // Check if this is a native binding error (SQLite specific)
+    if (dbType === 'sqlite' && (errorMessage.includes('Could not locate the bindings file') || errorMessage.includes('better_sqlite3.node'))) {
       console.warn('[db] WARNING: better-sqlite3 native bindings not available');
       console.warn('[db] To fix this, run: pnpm rebuild better-sqlite3 --build-from-source');
       console.warn('[db] For now, database operations will be limited to dev mode');
@@ -160,19 +229,67 @@ export async function initializeDb(): Promise<void> {
   }
 }
 
+async function initializeSqlite(): Promise<void> {
+  const dbPath = path.join(repoRoot, process.env.SQLITE_DB || 'db/dev.sqlite3');
+  console.info('[db] SQLite path:', dbPath);
+
+  // Ensure the parent directory exists so sqlite can create the file there.
+  try {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  } catch {
+    // ignore directory creation errors — sqlite will error later if needed
+  }
+
+  const sqlite = new Database(dbPath);
+  db = new Kysely<DatabaseSchema>({
+    dialect: new SqliteDialect({ database: sqlite }),
+  });
+}
+
+async function initializeMysql(): Promise<void> {
+  const host = process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DB_PORT || '3306', 10);
+  const database = process.env.DB_NAME || 'fact_index';
+  const user = process.env.DB_USER || 'root';
+  const password = process.env.DB_PASSWORD || '';
+
+  console.info('[db] MySQL connection to:', `${user}@${host}:${port}/${database}`);
+
+  const pool = mysql2Promise.createPool({
+    host,
+    port,
+    database,
+    user,
+    password,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+  db = new Kysely<DatabaseSchema>({
+    dialect: new MysqlDialect({ pool }),
+  });
+}
+
 export { db };
 
 export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
   try {
     console.log('[schema] Starting schema creation...');
+    
     // users
     console.log('[schema] Creating users table...');
     await kdb.schema
       .createTable('users')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (col) => 
+        dbType === 'sqlite' 
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
       .addColumn('discord_name', 'text')
       .addColumn('email', 'text')
+      .addColumn('is_admin', 'boolean', (col) => col.notNull().defaultTo(false))
       .execute();
     console.log('[schema] Users table created');
 
@@ -180,7 +297,11 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
     await kdb.schema
       .createTable('subjects')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (col) => 
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
       .addColumn('name', 'text', (col) => col.notNull().unique())
       .execute();
 
@@ -188,7 +309,11 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
     await kdb.schema
       .createTable('audiences')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (col) =>
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
       .addColumn('name', 'text', (col) => col.notNull().unique())
       .execute();
 
@@ -197,8 +322,16 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
     await kdb.schema
       .createTable('facts')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('timestamp', 'timestamp', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+      .addColumn('id', 'integer', (col) =>
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
+      .addColumn('timestamp', 'timestamp', (col) => 
+        dbType === 'sqlite'
+          ? col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+          : col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
       .addColumn('fact_text', 'text', (col) => col.notNull())
       .addColumn('source', 'text')
       .addColumn('type', 'text')
@@ -214,14 +347,26 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
     await kdb.schema
       .createTable('discord_oauth_tokens')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (col) =>
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
       .addColumn('discord_user_id', 'text', (col) => col.notNull().unique())
       .addColumn('access_token', 'text', (col) => col.notNull())
       .addColumn('refresh_token', 'text')
       .addColumn('expires_at', 'integer')
       .addColumn('scope', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
-      .addColumn('updated_at', 'timestamp', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+      .addColumn('created_at', 'timestamp', (col) => 
+        dbType === 'sqlite'
+          ? col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+          : col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
+      .addColumn('updated_at', 'timestamp', (col) =>
+        dbType === 'sqlite'
+          ? col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+          : col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
       .execute();
     console.log('[schema] Discord OAuth tokens table created');
 
@@ -230,10 +375,18 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
     await kdb.schema
       .createTable('jwt_token_blacklist')
       .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (col) =>
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
       .addColumn('token_jti', 'text', (col) => col.notNull().unique())
       .addColumn('discord_user_id', 'text', (col) => col.notNull())
-      .addColumn('revoked_at', 'timestamp', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+      .addColumn('revoked_at', 'timestamp', (col) =>
+        dbType === 'sqlite'
+          ? col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+          : col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
       .addColumn('expires_at', 'integer', (col) => col.notNull())
       .addColumn('reason', 'text')
       .execute();
@@ -325,7 +478,245 @@ export async function createSchema(kdb: Kysely<DatabaseSchema>): Promise<void> {
       .catch((err) => console.warn('[schema] idx_fact_audiences_unique creation failed:', err));
     console.log('[schema] fact_audiences table created');
 
-    console.info('Schema created or already exists. DB path:', dbPath);
+    // casbin_rule - stores Casbin RBAC policies
+    console.log('[schema] Creating casbin_rule table...');
+    await kdb.schema
+      .createTable('casbin_rule')
+      .ifNotExists()
+      .addColumn('id', 'integer', (col) =>
+        dbType === 'sqlite'
+          ? col.primaryKey().autoIncrement()
+          : col.primaryKey().autoIncrement()
+      )
+      .addColumn('ptype', 'varchar(16)', (col) => col.notNull())
+      .addColumn('v0', 'varchar(255)')
+      .addColumn('v1', 'varchar(255)')
+      .addColumn('v2', 'varchar(255)')
+      .addColumn('v3', 'varchar(255)')
+      .addColumn('v4', 'varchar(255)')
+      .addColumn('v5', 'varchar(255)')
+      .execute();
+    
+    // Unique index to prevent duplicate rules
+    try {
+      await kdb.schema
+        .createIndex('idx_casbin_rule_uniq')
+        .ifNotExists()
+        .on('casbin_rule')
+        .unique()
+        .columns(['ptype', 'v0', 'v1', 'v2', 'v3', 'v4', 'v5'])
+        .execute();
+    } catch {
+      // ignore index creation errors
+    }
+
+    // Index for fast lookups by ptype and v0
+    try {
+      await kdb.schema
+        .createIndex('idx_casbin_rule_ptype_v0')
+        .ifNotExists()
+        .on('casbin_rule')
+        .columns(['ptype', 'v0'])
+        .execute();
+    } catch {
+      // ignore index creation errors
+    }
+
+    console.log('[schema] casbin_rule table created');
+
+    // discord_guild_member - store guild membership and synced Discord roles
+    console.log('[schema] Creating discord_guild_member table...');
+    await kdb.schema
+      .createTable('discord_guild_member')
+      .ifNotExists()
+      .addColumn('discord_user_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('guild_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('roles_json', 'text')  // JSON array of Discord role IDs
+      .addColumn('last_synced_at', 'timestamp', (col) =>
+        dbType === 'sqlite'
+          ? col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+          : col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
+      .execute();
+    
+    // Composite primary key: (discord_user_id, guild_id)
+    try {
+      await kdb.schema
+        .createIndex('idx_discord_guild_member_pk')
+        .ifNotExists()
+        .on('discord_guild_member')
+        .unique()
+        .columns(['discord_user_id', 'guild_id'])
+        .execute();
+    } catch {
+      // ignore if already exists
+    }
+
+    console.log('[schema] discord_guild_member table created');
+
+    // local_role - custom roles defined for authorization
+    console.log('[schema] Creating local_role table...');
+    await kdb.schema
+      .createTable('local_role')
+      .ifNotExists()
+      .addColumn('role_key', 'varchar(255)', (col) => col.primaryKey())
+      .addColumn('description', 'text')
+      .execute();
+
+    // Seed default local roles
+    try {
+      const existingRoles = await kdb
+        .selectFrom('local_role')
+        .select('role_key')
+        .execute();
+      
+      const existingKeys = new Set(existingRoles.map(r => r.role_key));
+      const defaultRoles = [
+        { role_key: 'admin', description: 'Full administrative access' },
+        { role_key: 'mod', description: 'Moderation and management access' },
+        { role_key: 'member', description: 'Standard member access' },
+      ];
+
+      for (const role of defaultRoles) {
+        if (!existingKeys.has(role.role_key)) {
+          await kdb
+            .insertInto('local_role')
+            .values(role)
+            .execute();
+        }
+      }
+    } catch (err) {
+      // If table is empty or error, try to insert anyway
+      console.log('[schema] Seeding local_role table...');
+    }
+
+    console.log('[schema] local_role table created');
+
+    // user_local_role - assign custom roles to users (global or guild-scoped)
+    console.log('[schema] Creating user_local_role table...');
+    await kdb.schema
+      .createTable('user_local_role')
+      .ifNotExists()
+      .addColumn('discord_user_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('role_key', 'varchar(255)', (col) => col.notNull().references('local_role.role_key').onDelete('cascade'))
+      .addColumn('guild_id', 'varchar(255)')  // NULL = global role, otherwise guild-scoped
+      .execute();
+
+    // Composite primary key: (discord_user_id, role_key, guild_id)
+    try {
+      await kdb.schema
+        .createIndex('idx_user_local_role_pk')
+        .ifNotExists()
+        .on('user_local_role')
+        .unique()
+        .columns(['discord_user_id', 'role_key', 'guild_id'])
+        .execute();
+    } catch {
+      // ignore if already exists
+    }
+
+    console.log('[schema] user_local_role table created');
+
+    // discord_role_map - map Discord role IDs to local roles (guild-scoped)
+    console.log('[schema] Creating discord_role_map table...');
+    await kdb.schema
+      .createTable('discord_role_map')
+      .ifNotExists()
+      .addColumn('guild_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('discord_role_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('role_key', 'varchar(255)', (col) => col.notNull().references('local_role.role_key').onDelete('cascade'))
+      .execute();
+
+    // Composite primary key: (guild_id, discord_role_id)
+    try {
+      await kdb.schema
+        .createIndex('idx_discord_role_map_pk')
+        .ifNotExists()
+        .on('discord_role_map')
+        .unique()
+        .columns(['guild_id', 'discord_role_id'])
+        .execute();
+    } catch {
+      // ignore if already exists
+    }
+
+    try {
+      await kdb.schema
+        .createIndex('idx_discord_role_map_guild')
+        .ifNotExists()
+        .on('discord_role_map')
+        .columns(['guild_id'])
+        .execute();
+    } catch {
+      // ignore
+    }
+
+    console.log('[schema] discord_role_map table created');
+
+    // admin_discord_mapping - admin UI-managed Discord mappings
+    console.log('[schema] Creating admin_discord_mapping table...');
+    await kdb.schema
+      .createTable('admin_discord_mapping')
+      .ifNotExists()
+      .addColumn('id', 'varchar(255)', (col) => col.primaryKey())
+      .addColumn('discord_id_type', 'varchar(32)', (col) => col.notNull())
+      .addColumn('discord_id', 'varchar(255)', (col) => col.notNull())
+      .addColumn('target_type', 'varchar(32)', (col) => col.notNull())
+      .addColumn('target_value', 'varchar(255)', (col) => col.notNull())
+      .addColumn('created_at', 'varchar(255)', (col) => col.notNull())
+      .addColumn('updated_at', 'varchar(255)', (col) => col.notNull())
+      .execute();
+
+    try {
+      await kdb.schema
+        .createIndex('idx_admin_discord_mapping_scope')
+        .ifNotExists()
+        .on('admin_discord_mapping')
+        .unique()
+        .columns(['discord_id_type', 'discord_id', 'target_type'])
+        .execute();
+    } catch {
+      // ignore
+    }
+
+    console.log('[schema] admin_discord_mapping table created');
+
+    // admin_openid_mapping - admin UI-managed OpenID mappings
+    console.log('[schema] Creating admin_openid_mapping table...');
+    await kdb.schema
+      .createTable('admin_openid_mapping')
+      .ifNotExists()
+      .addColumn('id', 'varchar(255)', (col) => col.primaryKey())
+      .addColumn('id_type', 'varchar(64)', (col) => col.notNull())
+      .addColumn('domain', 'varchar(255)')
+      .addColumn('num_hops', 'integer')
+      .addColumn('user_id', 'varchar(255)')
+      .addColumn('target_type', 'varchar(32)', (col) => col.notNull())
+      .addColumn('target_value', 'varchar(255)', (col) => col.notNull())
+      .addColumn('created_at', 'varchar(255)', (col) => col.notNull())
+      .addColumn('updated_at', 'varchar(255)', (col) => col.notNull())
+      .execute();
+
+    try {
+      await kdb.schema
+        .createIndex('idx_admin_openid_mapping_scope')
+        .ifNotExists()
+        .on('admin_openid_mapping')
+        .unique()
+        .columns(['id_type', 'domain', 'user_id', 'target_type'])
+        .execute();
+    } catch {
+      // ignore
+    }
+
+    console.log('[schema] admin_openid_mapping table created');
+
+    // Create identity and federation schema tables
+    console.log('[schema] Creating identity and federation tables...');
+    await createIdentityAndFederationSchema(kdb);
+    console.log('[schema] Identity and federation tables created');
+
+    console.info(`[schema] Schema created or already exists. Using ${dbType.toUpperCase()} database`);
   } catch (err) {
     console.error('[schema] Error creating schema:', err);
     throw err;

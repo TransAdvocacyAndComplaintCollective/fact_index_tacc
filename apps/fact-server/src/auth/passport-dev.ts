@@ -30,6 +30,34 @@ function envFlag(name: string): boolean {
 }
 
 const DEV_LOGIN_MODE = envFlag("DEV_LOGIN_MODE");
+const DEV_ADMIN_ID = process.env.DEV_ADMIN_ID || "";
+const DEV_IS_ADMIN = envFlag("DEV_IS_ADMIN");
+
+/**
+ * Check if a user ID should be an admin in dev mode
+ */
+function isDevAdmin(userId: string): boolean {
+  // If DEV_IS_ADMIN is true, all dev users are admins
+  if (DEV_IS_ADMIN) return true;
+  // Otherwise, only the specific DEV_ADMIN_ID user is admin
+  if (!DEV_ADMIN_ID) return false;
+  return userId === DEV_ADMIN_ID;
+}
+
+function buildDevUser(profile: DiscordProfile | null): AuthUser {
+  const userId = profile?.id || "dev";
+  const isAdmin = isDevAdmin(userId);
+  return {
+    type: "dev",
+    id: userId,
+    username: profile?.username || "dev-user",
+    avatar: profile?.avatar ?? null,
+    discriminator: profile?.discriminator ?? "0000",
+    devBypass: true,
+    hasRole: true,
+    isAdmin,
+  };
+}
 
 /**
  * Initialize dev bypass strategy for development without Discord OAuth credentials
@@ -50,20 +78,8 @@ export function initializeDevStrategy(): void {
           scope: ["identify"],
         },
         (_accessToken: string, _refreshToken: string, profile: any, done: Done) => {
-          const p = profile as DiscordProfile;
-          const user: AuthUser =
-            (p && {
-              id: p.id,
-              username: p.username || "dev-user",
-              avatar: p.avatar,
-              discriminator: p.discriminator ?? "0000",
-            }) || {
-              id: "dev",
-              username: "dev-user",
-              avatar: null,
-              discriminator: "0000",
-            };
-          user.devBypass = true;
+          const p = profile as DiscordProfile | null;
+          const user = buildDevUser(p);
           return done(null, user);
         },
       ),

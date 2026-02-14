@@ -10,7 +10,7 @@
     "build-reload": "node scripts/run-nx-root.js run fact-index:build-reload",
     "build:watch": "node scripts/run-nx-root.js run fact-index:build --watch",
     "preview": "vite preview --config vite.config.js",
-    "storybook": "storybook dev -p ${STORYBOOK_PORT:-6006} -c .storybook",
+    "storybook": "STORYBOOK_CONFIG_DIR=\"$(cd .storybook && pwd)\" storybook dev -p ${STORYBOOK_PORT:-6006} -c .storybook",
     "build:storybook": "storybook build -c .storybook",
     "test": "node scripts/run-nx-root.js run fact-index:test",
     "lint": "node scripts/run-nx-root.js lint fact-index && pnpm lint:ts && pnpm lint:style",
@@ -40,6 +40,7 @@
     "msw": "^2.12.7",
     "msw-storybook-addon": "^2.0.6",
     "pngjs": "^7.0.0",
+    "react-authz": "^0.0.0",
     "react-icons": "^5.5.0"
   },
   "devDependencies": {

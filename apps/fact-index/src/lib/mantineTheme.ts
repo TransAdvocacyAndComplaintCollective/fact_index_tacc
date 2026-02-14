@@ -24,15 +24,16 @@ export const mantineTheme: MantineThemeOverride = {
     Button: {
       defaultProps: {
         radius: 'sm',
+        autoContrast: true,
       },
       styles: (theme: MantineTheme) => ({
         root: {
           transition: 'all 150ms ease',
           borderRadius: theme.radius.sm,
 
-          // No theme.colorScheme in v7 — use light-dark() + CSS vars
-          backgroundColor: 'light-dark(var(--mantine-color-blue-9), var(--mantine-color-blue-6))',
-          color: 'var(--mantine-color-white)',
+          // Light mode: use blue-7 (darker) for better contrast; Dark mode: use blue-4 (lighter) 
+          backgroundColor: 'light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-4))',
+          color: 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-9))',
 
           '&[dataVariant="subtle"]': {
             backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
@@ -41,6 +42,11 @@ export const mantineTheme: MantineThemeOverride = {
 
           '&[dataVariant="light"]': {
             backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4))',
+            color: 'light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0))',
+          },
+
+          '&[dataVariant="default"]': {
+            backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
             color: 'light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0))',
           },
         },

@@ -5,9 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
-import { getDb } from "../db/schema.ts";
 import logger from "../logger.ts";
-import type { AuthStatus, AuthUser } from "../../../../libs/types/src/index.ts";
+import type { AuthStatus, AuthStatusUser, AuthUser } from "../../../../libs/types/src/index.ts";
 import {
   initializeJWKS,
   getPublicJWKS,
@@ -22,6 +21,7 @@ import {
   initializePassportJWTStrategy,
   initializePassportSerialization,
 } from "./jwt.ts";
+import { syncDiscordRolesForUser } from "./casbin.ts";
 
 // Type definitions for Discord OAuth profile
 interface DiscordGuild {
@@ -43,6 +43,7 @@ interface DiscordProfile {
 }
 
 type Done = (err: Error | null, user?: AuthUser | false, info?: unknown) => void;
+type AuthRequest = Request & { user?: AuthUser; authStatus?: AuthStatus; rotatedToken?: string };
 
 const {
   DISCORD_ROLE_ID,
@@ -65,7 +66,7 @@ const CONFIG_PATH = path.join(CONFIG_DIR, "discord-auth.json");
 try {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
 } catch (err) {
-  console.warn(`[discord passport] Unable to create config dir ${CONFIG_DIR}:`, err);
+  log("warn", `Unable to create config dir ${CONFIG_DIR}: ${err instanceof Error ? err.message : String(err)}`);
 }
 
 // Default config
@@ -80,7 +81,7 @@ const DEFAULT_CONFIG = {
 
 const STATE_TTL_MS = 5 * 60_000;
 class MemoryStateStore {
-  private readonly store = new Map<string, number>();
+  private readonly _stateMap = new Map<string, number>();
   private readonly ttl: number;
 
   constructor(ttl = STATE_TTL_MS) {
@@ -90,18 +91,18 @@ class MemoryStateStore {
   store(_req: unknown, callback: (err: Error | null, state?: string) => void) {
     const state = crypto.randomBytes(16).toString("hex");
     const expiresAt = Date.now() + this.ttl;
-    this.store.set(state, expiresAt);
-    setTimeout(() => this.store.delete(state), this.ttl);
+    this._stateMap.set(state, expiresAt);
+    setTimeout(() => this._stateMap.delete(state), this.ttl);
     callback(null, state);
   }
 
   verify(_req: unknown, state: string, callback: (err: Error | null, ok: boolean) => void) {
-    const expiresAt = this.store.get(state);
+    const expiresAt = this._stateMap.get(state);
     if (!expiresAt) {
       callback(null, false);
       return;
     }
-    this.store.delete(state);
+    this._stateMap.delete(state);
     callback(null, expiresAt >= Date.now());
   }
 }
@@ -122,9 +123,22 @@ function normalizeStringList(value: unknown): string[] {
 let fileConfig: any = DEFAULT_CONFIG;
 try {
   if (!fs.existsSync(CONFIG_PATH)) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2), { encoding: "utf8" });
+    // Create config with restricted permissions (0o600 = owner read/write only)
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2), { encoding: "utf8", mode: 0o600 });
     log("info", `Created default discord-auth.json at ${CONFIG_PATH}`);
   } else {
+    // Verify file permissions are restricted
+    const stats = fs.statSync(CONFIG_PATH);
+    if ((stats.mode & 0o077) !== 0) {
+      log("warn", `Config file has overly permissive permissions: ${(stats.mode & parseInt('777', 8)).toString(8)}. Should be 600.`);
+      // Attempt to fix permissions
+      try {
+        fs.chmodSync(CONFIG_PATH, 0o600);
+        log("info", "Fixed config file permissions to 0o600");
+      } catch (chmodErr) {
+        log("warn", `Could not fix config file permissions: ${chmodErr instanceof Error ? chmodErr.message : String(chmodErr)}`);
+      }
+    }
     const raw = fs.readFileSync(CONFIG_PATH, { encoding: "utf8" });
     fileConfig = JSON.parse(raw || "{}");
     log("info", `Loaded discord-auth.json from ${CONFIG_PATH}`);
@@ -212,7 +226,7 @@ function getAdminRoleIds() {
   const rolesConfig = fileConfig?.roles && typeof fileConfig.roles === "object" ? fileConfig.roles : {};
   const ids = new Set<string>();
   for (const [roleId, entry] of Object.entries(rolesConfig)) {
-    if (entry && typeof entry === "object" && String(entry.type || "").toLowerCase() === "admin") {
+    if (entry && typeof entry === "object" && String((entry as any).type || "").toLowerCase() === "admin") {
       ids.add(roleId);
     }
   }
@@ -340,11 +354,10 @@ if (DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && DISCORD_CALLBACK_URL) {
 
             const matched = findMatchedGuild(p);
             if (!matched) {
+              // Log user ID only, don't expose guild IDs in logs
               log(
                 "warn",
-                `No configured guild matched for profile ${p.id}; profileGuilds=${JSON.stringify(
-                  (p.guilds || []).map((g) => g.id),
-                )}`,
+                `No configured guild matched for profile ${p.id}`,
               );
               return done(null, false, { message: "Not in required guild", code: "missing_guild" });
             }
@@ -357,6 +370,7 @@ if (DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && DISCORD_CALLBACK_URL) {
               const cacheGuildIds = (p.guilds || []).map((g) => g.id);
               const isAdmin = isAdminUser(p.id);
               return done(null, {
+                type: "discord",
                 id: p.id,
                 username: p.username || "",
                 avatar: p.avatar,
@@ -381,6 +395,7 @@ if (DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && DISCORD_CALLBACK_URL) {
               const cacheGuildIds = (p.guilds || []).map((g) => g.id);
               const isAdmin = isAdminUser(p.id);
               return done(null, {
+                type: "discord",
                 id: p.id,
                 username: p.username || "",
                 avatar: p.avatar,
@@ -452,6 +467,7 @@ if (DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET && DISCORD_CALLBACK_URL) {
           const cacheGuildIds = (p.guilds || []).map((g) => g.id);
           const isAdmin = isAdminUser(p.id) || hasAdminRole(memberRoles);
           return done(null, {
+            type: "discord",
             id: p.id,
             username: p.username || "",
             avatar: p.avatar,
@@ -535,6 +551,81 @@ async function discordFetchJson(
   return first;
 }
 
+function extractRequestToken(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+  if (req.cookies?.auth_token) {
+    return req.cookies.auth_token;
+  }
+  return undefined;
+}
+
+function getCachedMemberRoles(user: AuthUser): string[] | undefined {
+  return user.type === "discord" ? user.cachedMemberRoles : undefined;
+}
+
+function buildAuthStatusUser(
+  user: AuthUser,
+  computedIsAdmin: boolean,
+  overrides: Partial<AuthStatusUser> = {},
+): AuthStatusUser {
+  const out: AuthStatusUser = {
+    id: user.id,
+    username: user.username,
+    avatar: user.avatar ?? null,
+    discriminator: user.discriminator ?? null,
+    guild: user.guild ?? null,
+    hasRole: user.hasRole ?? false,
+    isAdmin: computedIsAdmin,
+    ...overrides,
+  };
+  const cachedMemberRoles = getCachedMemberRoles(user);
+  if (Array.isArray(cachedMemberRoles)) {
+    out.cachedMemberRoles = cachedMemberRoles;
+  }
+  return out;
+}
+
+function setAuthenticatedStatus(
+  req: AuthRequest,
+  user: AuthUser,
+  computedIsAdmin: boolean,
+  overrides: Partial<AuthStatusUser> = {},
+  devBypass = false,
+) {
+  req.authStatus = {
+    authenticated: true,
+    user: buildAuthStatusUser(user, computedIsAdmin, overrides),
+    ...(devBypass ? { devBypass: true } : {}),
+  };
+}
+
+function getTokenLastCheck(user: AuthUser): number | null {
+  if (user.type !== "discord") {
+    return null;
+  }
+  if (typeof user.lastCheck === "number") {
+    return user.lastCheck;
+  }
+  if (typeof user.cacheUpdatedAt === "number") {
+    return user.cacheUpdatedAt;
+  }
+  return null;
+}
+
+function getTokenJti(user: AuthUser): string | undefined {
+  return user.type === "discord" ? user.jti : undefined;
+}
+
+function getDiscordAccessToken(user: AuthUser): string | undefined {
+  if (user.type !== "discord") {
+    return undefined;
+  }
+  return user.accessToken ?? undefined;
+}
+
 /**
  * JWT validation middleware with automatic Discord re-validation when stale.
  * 
@@ -546,7 +637,7 @@ async function discordFetchJson(
  * Use on most endpoints for fast auth with periodic Discord re-validation.
  */
 export async function validateJWTOnly(
-  req: Request & { user?: AuthUser; authStatus?: AuthStatus; rotatedToken?: string },
+  req: AuthRequest,
   _res: Response,
   next: NextFunction,
 ) {
@@ -556,14 +647,14 @@ export async function validateJWTOnly(
   };
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const token = extractRequestToken(req);
+
+    if (!token) {
       req.authStatus = { authenticated: false, reason: "no_token" };
       logValidation("no_token");
       return next();
     }
 
-    const token = authHeader.slice(7);
     const decoded = verifyJWT(token);
 
     if (!decoded) {
@@ -573,22 +664,24 @@ export async function validateJWTOnly(
     }
 
     // Check if token has been revoked
-    if (decoded.jti) {
-      const isRevoked = await isTokenRevoked(decoded.jti);
+    const tokenJti = getTokenJti(decoded);
+    if (tokenJti) {
+      const isRevoked = await isTokenRevoked(tokenJti);
       if (isRevoked) {
         req.authStatus = { authenticated: false, reason: "token_revoked" };
-        logValidation("token_revoked", { jti: decoded.jti.slice(0, 8) });
+        logValidation("token_revoked", { jti: tokenJti.slice(0, 8) });
         return next();
       }
     }
 
     req.user = decoded;
+    const cachedRolesFromToken = getCachedMemberRoles(decoded);
     const computedIsAdmin =
       decoded.devBypass ||
       isAdminUser(decoded.id) ||
-      hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
+      hasAdminRole(cachedRolesFromToken);
 
-    if (!decoded.hasRole && !decoded.devBypass) {
+    if (!decoded.hasRole && !(decoded as any).devBypass) {
       req.authStatus = { authenticated: false, reason: "missing_role" };
       logValidation("missing_role_token");
       return next();
@@ -596,48 +689,13 @@ export async function validateJWTOnly(
 
     // For dev bypass, trust the JWT completely
     if (decoded.devBypass) {
-      req.authStatus = {
-        authenticated: true,
-        user: {
-          id: decoded.id,
-          username: decoded.username,
-          avatar: decoded.avatar,
-          discriminator: decoded.discriminator ?? null,
-          guild: decoded.guild ?? null,
-          hasRole: true,
-          isAdmin: computedIsAdmin,
-        },
-        devBypass: true,
-      };
-      return next();
-    }
-
-    if (decoded.magicLink) {
-      const magicLinkHasRole = Boolean(decoded.hasRole ?? false);
-      req.authStatus = {
-        authenticated: true,
-        user: {
-          id: decoded.id,
-          username: decoded.username,
-          avatar: decoded.avatar,
-          discriminator: decoded.discriminator ?? null,
-          guild: decoded.guild ?? null,
-          hasRole: magicLinkHasRole,
-          isAdmin: false,
-        },
-      };
-      logValidation("magic_link_token", { userId: decoded.id });
+      setAuthenticatedStatus(req, decoded, computedIsAdmin, { hasRole: true }, true);
       return next();
     }
 
     // Check cache age for Discord guild/role data
     const now = Date.now();
-    const lastCheck =
-      typeof decoded.lastCheck === "number"
-        ? decoded.lastCheck
-        : typeof decoded.cacheUpdatedAt === "number"
-        ? decoded.cacheUpdatedAt
-        : null;
+    const lastCheck = getTokenLastCheck(decoded);
     const cacheAge = lastCheck !== null ? now - lastCheck : null;
     const cacheAgeMinutes = cacheAge !== null ? Math.round(cacheAge / 1000 / 60) : null;
     const STALE_CACHE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
@@ -651,11 +709,12 @@ export async function validateJWTOnly(
       });
 
       // Cache is stale - re-validate guild/role with Discord
-      if (decoded.accessToken) {
+      const accessToken = getDiscordAccessToken(decoded);
+      if (accessToken) {
         try {
           // Fetch current guild list
           const guildsRes = await fetchWithRateLimitBackoff(
-            decoded.accessToken,
+            accessToken,
             "https://discord.com/api/users/@me/guilds",
             { retryOn401: true, retryOn429: false }
           );
@@ -666,18 +725,7 @@ export async function validateJWTOnly(
               userId: decoded.id,
             });
             // Fall back to cached values if Discord API fails
-            req.authStatus = {
-              authenticated: true,
-              user: {
-                id: decoded.id,
-                username: decoded.username,
-                avatar: decoded.avatar,
-                discriminator: decoded.discriminator ?? null,
-                guild: decoded.guild ?? null,
-                hasRole: decoded.hasRole ?? false,
-                isAdmin: computedIsAdmin,
-              },
-            };
+            setAuthenticatedStatus(req, decoded, computedIsAdmin);
             return next();
           }
 
@@ -706,35 +754,13 @@ export async function validateJWTOnly(
           if (!matchedGuildId) {
             // Allow whitelisted users or users with app-assigned roles to authenticate
             if (decoded.id && Array.isArray(fileConfig.whitelistUsers) && fileConfig.whitelistUsers.includes(decoded.id)) {
-              req.authStatus = {
-                authenticated: true,
-                user: {
-                  id: decoded.id,
-                  username: decoded.username,
-                  avatar: decoded.avatar,
-                  discriminator: decoded.discriminator ?? null,
-                  guild: null,
-                  hasRole: true,
-                  isAdmin: computedIsAdmin,
-                },
-              };
+              setAuthenticatedStatus(req, decoded, computedIsAdmin, { guild: null, hasRole: true });
               logValidation("cache_stale_whitelist_allowed", { userId: decoded.id });
               return next();
             }
 
             if (decoded.id && fileConfig.userRoles && Array.isArray(fileConfig.userRoles[decoded.id]) && fileConfig.userRoles[decoded.id].length) {
-              req.authStatus = {
-                authenticated: true,
-                user: {
-                  id: decoded.id,
-                  username: decoded.username,
-                  avatar: decoded.avatar,
-                  discriminator: decoded.discriminator ?? null,
-                  guild: null,
-                  hasRole: true,
-                  isAdmin: computedIsAdmin,
-                },
-              };
+              setAuthenticatedStatus(req, decoded, computedIsAdmin, { guild: null, hasRole: true });
               logValidation("cache_stale_userrole_allowed", { userId: decoded.id, roles: fileConfig.userRoles[decoded.id] });
               return next();
             }
@@ -756,7 +782,7 @@ export async function validateJWTOnly(
 
           if (rolesToCheck.length) {
             const memberRes = await fetchWithRateLimitBackoff(
-              decoded.accessToken,
+              accessToken,
               `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`,
               { retryOn401: true, retryOn429: false }
             );
@@ -767,18 +793,7 @@ export async function validateJWTOnly(
                 userId: decoded.id,
               });
               // Fall back to cached values
-              req.authStatus = {
-                authenticated: true,
-                user: {
-                  id: decoded.id,
-                  username: decoded.username,
-                  avatar: decoded.avatar,
-                  discriminator: decoded.discriminator ?? null,
-                  guild: decoded.guild ?? null,
-                  hasRole: decoded.hasRole ?? false,
-                  isAdmin: computedIsAdmin,
-                },
-              };
+              setAuthenticatedStatus(req, decoded, computedIsAdmin);
               return next();
             }
 
@@ -794,18 +809,10 @@ export async function validateJWTOnly(
           }
 
           // Guild/role validated successfully
-          req.authStatus = {
-            authenticated: true,
-            user: {
-              id: decoded.id,
-              username: decoded.username,
-              avatar: decoded.avatar,
-              discriminator: decoded.discriminator ?? null,
-              guild: matchedGuildId,
-              hasRole,
-              isAdmin: computedIsAdmin,
-            },
-          };
+          setAuthenticatedStatus(req, decoded, computedIsAdmin, {
+            guild: matchedGuildId,
+            hasRole,
+          });
           logValidation("cache_stale_revalidated", {
             userId: decoded.id,
             guild: matchedGuildId,
@@ -819,18 +826,7 @@ export async function validateJWTOnly(
             userId: decoded.id,
           });
           // Fall back to cached values on error
-          req.authStatus = {
-            authenticated: true,
-            user: {
-              id: decoded.id,
-              username: decoded.username,
-              avatar: decoded.avatar,
-              discriminator: decoded.discriminator ?? null,
-              guild: decoded.guild ?? null,
-              hasRole: decoded.hasRole ?? false,
-              isAdmin: computedIsAdmin,
-            },
-          };
+          setAuthenticatedStatus(req, decoded, computedIsAdmin);
           return next();
         }
       }
@@ -843,18 +839,7 @@ export async function validateJWTOnly(
     }
 
     // JWT is valid, user is authenticated. Use cached values from JWT.
-    req.authStatus = {
-      authenticated: true,
-      user: {
-        id: decoded.id,
-        username: decoded.username,
-        avatar: decoded.avatar,
-        discriminator: decoded.discriminator ?? null,
-        guild: decoded.guild ?? null,
-        hasRole: decoded.hasRole ?? false,
-        isAdmin: computedIsAdmin,
-      },
-    };
+    setAuthenticatedStatus(req, decoded, computedIsAdmin);
 
     logValidation("authenticated_via_jwt", { 
       userId: decoded.id, 
@@ -877,7 +862,7 @@ export async function validateJWTOnly(
  * Most endpoints should use validateJWTOnly instead to avoid API spam.
  */
 export async function validateAndRefreshSession(
-  req: Request & { user?: AuthUser; authStatus?: AuthStatus; rotatedToken?: string },
+  req: AuthRequest,
   _res: Response,
   next: NextFunction,
 ) {
@@ -887,14 +872,14 @@ export async function validateAndRefreshSession(
   };
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const token = extractRequestToken(req);
+
+    if (!token) {
       req.authStatus = { authenticated: false, reason: "no_token" };
       logValidation("no_token");
       return next();
     }
 
-    const token = authHeader.slice(7);
     const decoded = verifyJWT(token);
 
     if (!decoded) {
@@ -904,59 +889,32 @@ export async function validateAndRefreshSession(
     }
 
     // Check if token has been revoked
-    if (decoded.jti) {
-      const isRevoked = await isTokenRevoked(decoded.jti);
+    const tokenJti = getTokenJti(decoded);
+    if (tokenJti) {
+      const isRevoked = await isTokenRevoked(tokenJti);
       if (isRevoked) {
         req.authStatus = { authenticated: false, reason: "token_revoked" };
-        logValidation("token_revoked", { jti: decoded.jti.slice(0, 8) });
+        logValidation("token_revoked", { jti: tokenJti.slice(0, 8) });
         return next();
       }
     }
 
     req.user = decoded;
+    const cachedRolesFromToken = getCachedMemberRoles(decoded);
     const computedIsAdmin =
       decoded.devBypass ||
       isAdminUser(decoded.id) ||
-      hasAdminRole(decoded.cachedMemberRoles as string[] | undefined);
+      hasAdminRole(cachedRolesFromToken);
 
     // Dev bypass: trust the JWT
     if (decoded.devBypass) {
-      req.authStatus = {
-        authenticated: true,
-        user: {
-          id: decoded.id,
-          username: decoded.username,
-          avatar: decoded.avatar,
-          discriminator: decoded.discriminator ?? null,
-          guild: decoded.guild ?? null,
-          hasRole: true,
-          isAdmin: computedIsAdmin,
-        },
-        devBypass: true,
-      };
-      return next();
-    }
-
-    if (decoded.magicLink) {
-      const magicLinkHasRole = Boolean(decoded.hasRole ?? false);
-      req.authStatus = {
-        authenticated: true,
-        user: {
-          id: decoded.id,
-          username: decoded.username,
-          avatar: decoded.avatar,
-          discriminator: decoded.discriminator ?? null,
-          guild: decoded.guild ?? null,
-          hasRole: magicLinkHasRole,
-          isAdmin: false,
-        },
-      };
-      logValidation("magic_link_token", { userId: decoded.id });
+      setAuthenticatedStatus(req, decoded, computedIsAdmin, { hasRole: true }, true);
       return next();
     }
 
     // Tokens are decrypted from JWT by verifyJWT(), use them directly
-    if (!decoded.accessToken) {
+    const accessToken = getDiscordAccessToken(decoded);
+    if (!accessToken) {
       req.authStatus = { authenticated: false, reason: "no_oauth_tokens" };
       logValidation("no_oauth_tokens");
       return next();
@@ -966,35 +924,19 @@ export async function validateAndRefreshSession(
     const requestMethod = typeof req.method === "string" ? req.method.toUpperCase() : "";
     const isMutatingRequest = ["POST", "PUT", "PATCH", "DELETE"].includes(requestMethod);
     const cacheTtlMs = isMutatingRequest ? MUTATION_CACHE_TTL_MS : CACHE_TTL_MS;
-    const lastCheck =
-      typeof decoded.lastCheck === "number"
-        ? decoded.lastCheck
-        : typeof decoded.cacheUpdatedAt === "number"
-        ? decoded.cacheUpdatedAt
-        : null;
+    const lastCheck = getTokenLastCheck(decoded);
     const cacheAge = lastCheck !== null ? now - lastCheck : null;
     const cacheFresh =
       cacheAge !== null && cacheAge <= cacheTtlMs && Boolean(decoded.guild) && Boolean(decoded.hasRole);
 
     if (cacheFresh) {
       logValidation("cache_hit", { cacheAge });
-      req.authStatus = {
-        authenticated: true,
-        user: {
-          id: decoded.id,
-          username: decoded.username,
-          avatar: decoded.avatar,
-          discriminator: decoded.discriminator ?? null,
-          guild: decoded.guild ?? null,
-          hasRole: decoded.hasRole ?? false,
-          isAdmin: computedIsAdmin,
-        },
-      };
+      setAuthenticatedStatus(req, decoded, computedIsAdmin);
       return next();
     }
 
     // 1) Fetch guild list (/users/@me/guilds)
-    const guildsRes = await fetchWithRateLimitBackoff(decoded.accessToken, "https://discord.com/api/users/@me/guilds", {
+    const guildsRes = await fetchWithRateLimitBackoff(accessToken, "https://discord.com/api/users/@me/guilds", {
       retryOn401: true,
       retryOn429: false,
     });
@@ -1033,35 +975,13 @@ export async function validateAndRefreshSession(
     if (!matchedGuildId) {
       // Allow whitelisted users or app-assigned userRoles to pass even if not currently in guild
       if (decoded.id && Array.isArray(fileConfig.whitelistUsers) && fileConfig.whitelistUsers.includes(decoded.id)) {
-        req.authStatus = {
-          authenticated: true,
-          user: {
-            id: decoded.id,
-            username: decoded.username,
-            avatar: decoded.avatar,
-            discriminator: decoded.discriminator ?? null,
-            guild: null,
-            hasRole: true,
-            isAdmin: computedIsAdmin,
-          },
-        };
+        setAuthenticatedStatus(req, decoded, computedIsAdmin, { guild: null, hasRole: true });
         logValidation("whitelist_allowed", { userId: decoded.id });
         return next();
       }
 
       if (decoded.id && fileConfig.userRoles && Array.isArray(fileConfig.userRoles[decoded.id]) && fileConfig.userRoles[decoded.id].length) {
-        req.authStatus = {
-          authenticated: true,
-          user: {
-            id: decoded.id,
-            username: decoded.username,
-            avatar: decoded.avatar,
-            discriminator: decoded.discriminator ?? null,
-            guild: null,
-            hasRole: true,
-            isAdmin: computedIsAdmin,
-          },
-        };
+        setAuthenticatedStatus(req, decoded, computedIsAdmin, { guild: null, hasRole: true });
         logValidation("userrole_allowed", { userId: decoded.id, roles: fileConfig.userRoles[decoded.id] });
         return next();
       }
@@ -1085,7 +1005,7 @@ export async function validateAndRefreshSession(
     let memberRoles: string[] = [];
 
     if (rolesToCheck.length) {
-      const memberRes = await fetchWithRateLimitBackoff(decoded.accessToken, `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`, {
+      const memberRes = await fetchWithRateLimitBackoff(accessToken, `https://discord.com/api/users/@me/guilds/${matchedGuildId}/member`, {
         retryOn401: true,
         retryOn429: false,
       });
@@ -1115,18 +1035,11 @@ export async function validateAndRefreshSession(
     const computedGuild = matchedGuildId;
     const computedHasRole = hasRole;
 
-    req.authStatus = {
-      authenticated: true,
-      user: {
-        id: decoded.id,
-        username: decoded.username,
-        avatar: decoded.avatar,
-        discriminator: decoded.discriminator ?? null,
-        guild: computedGuild,
-        hasRole: computedHasRole,
-        isAdmin: computedIsAdmin,
-      },
-    };
+    setAuthenticatedStatus(req, decoded, computedIsAdmin, {
+      guild: computedGuild,
+      hasRole: computedHasRole,
+      cachedMemberRoles: memberRoles,
+    });
 
     // Rotate JWT if claims changed (keeps your JWT-based APIs consistent)
     const claimsChanged =
@@ -1137,6 +1050,21 @@ export async function validateAndRefreshSession(
     const cachedGuildIds = guilds.map((g) => g.id);
     const cachedMemberRoles = memberRoles;
 
+    // Sync Discord roles to Casbin policies (groups them for authorization checks)
+    try {
+      const rolesByGuild = new Map<string, string[]>();
+      rolesByGuild.set(matchedGuildId, memberRoles);
+      await syncDiscordRolesForUser(
+        decoded.id,
+        [{ id: matchedGuildId }],
+        rolesByGuild,
+        computedIsAdmin
+      );
+    } catch (syncErr) {
+      log("warn", "[JWT Validation] Failed to sync Discord roles to Casbin:", syncErr);
+      // Continue anyway - sync failure shouldn't block the request
+    }
+
     const shouldRotate =
       claimsChanged ||
       lastCheck === null ||
@@ -1144,7 +1072,7 @@ export async function validateAndRefreshSession(
 
     if (shouldRotate) {
       req.rotatedToken = generateJWT({
-        ...decoded,
+        ...(decoded as any),
         guild: computedGuild,
         hasRole: computedHasRole,
         isAdmin: computedIsAdmin,

@@ -1,0 +1,307 @@
+- generic [ref=e3]:
+  - banner "Storybook" [ref=e6]:
+    - heading "Storybook" [level=1] [ref=e7]
+    - img
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - link "Skip to content" [ref=e14] [cursor=pointer]:
+              - /url: "#storybook-preview-wrapper"
+            - link "Storybook" [ref=e16] [cursor=pointer]:
+              - /url: ./
+              - img "Storybook" [ref=e17]
+            - switch "Settings" [ref=e22] [cursor=pointer]:
+              - img [ref=e23]
+          - generic [ref=e28]:
+            - generic [ref=e30] [cursor=pointer]:
+              - button "Open onboarding guide" [ref=e34]:
+                - img [ref=e36]
+                - strong [ref=e38]: Level up
+              - generic [ref=e39]:
+                - button "Collapse onboarding checklist" [expanded] [ref=e40]:
+                  - img [ref=e41]
+                - button "59% completed" [ref=e43]:
+                  - generic [ref=e44]:
+                    - img [ref=e45]
+                    - img [ref=e47]
+                  - generic [ref=e50]: 59%
+            - list [ref=e52]:
+              - listitem [ref=e53]:
+                - button "Open onboarding guide for Change a story with Controls" [ref=e54] [cursor=pointer]:
+                  - img [ref=e56]
+                  - generic [ref=e59]: Change a story with Controls
+              - listitem [ref=e60]:
+                - button "Open onboarding guide for Run accessibility tests" [ref=e61] [cursor=pointer]:
+                  - img [ref=e63]
+                  - generic [ref=e66]: Run accessibility tests
+              - listitem [ref=e67]:
+                - button "Open onboarding guide for Publish your Storybook to share" [ref=e68] [cursor=pointer]:
+                  - img [ref=e70]
+                  - generic [ref=e73]: Publish your Storybook to share
+        - generic [ref=e74]: Search for components
+        - search [ref=e75]:
+          - combobox "Search for components" [ref=e76]:
+            - generic:
+              - img
+            - searchbox "Search for components" [ref=e77]
+            - code: ⌃ K
+            - button "Tag filters" [ref=e79] [cursor=pointer]:
+              - img [ref=e80]
+          - button "Create a new story" [ref=e82] [cursor=pointer]:
+            - img [ref=e83]
+        - navigation "Stories" [ref=e86]:
+          - heading "Stories" [level=2] [ref=e87]
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - button "Collapse" [expanded] [ref=e91] [cursor=pointer]:
+                - img [ref=e93]
+                - text: test
+              - button "Expand all" [ref=e95] [cursor=pointer]:
+                - img [ref=e96]
+            - button "ThemeContract" [ref=e99] [cursor=pointer]:
+              - generic [ref=e100]:
+                - img [ref=e102]
+                - img [ref=e104]
+              - text: ThemeContract
+            - generic [ref=e106]:
+              - button "Collapse" [expanded] [ref=e107] [cursor=pointer]:
+                - img [ref=e109]
+                - text: Components
+              - button "Expand all" [ref=e111] [cursor=pointer]:
+                - img [ref=e112]
+            - button "NavBar" [ref=e115] [cursor=pointer]:
+              - generic [ref=e116]:
+                - img [ref=e118]
+                - img [ref=e120]
+              - text: NavBar
+            - button "ProtectedRoute" [ref=e123] [cursor=pointer]:
+              - generic [ref=e124]:
+                - img [ref=e126]
+                - img [ref=e128]
+              - text: ProtectedRoute
+            - button "ThemeToggle" [ref=e131] [cursor=pointer]:
+              - generic [ref=e132]:
+                - img [ref=e134]
+                - img [ref=e136]
+              - text: ThemeToggle
+            - generic [ref=e138]:
+              - button "Collapse" [expanded] [ref=e139] [cursor=pointer]:
+                - img [ref=e141]
+                - text: Pages
+              - button "Expand all" [ref=e143] [cursor=pointer]:
+                - img [ref=e144]
+            - button "FactDatabase" [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]:
+                - img [ref=e150]
+                - img [ref=e152]
+              - text: FactDatabase
+            - button "FactDetail" [ref=e155] [cursor=pointer]:
+              - generic [ref=e156]:
+                - img [ref=e158]
+                - img [ref=e160]
+              - text: FactDetail
+            - button "FactEdit" [ref=e163] [cursor=pointer]:
+              - generic [ref=e164]:
+                - img [ref=e166]
+                - img [ref=e168]
+              - text: FactEdit
+            - button "Home" [ref=e171] [cursor=pointer]:
+              - generic [ref=e172]:
+                - img [ref=e174]
+                - img [ref=e176]
+              - text: Home
+            - button "Federation Login" [ref=e179] [cursor=pointer]:
+              - generic [ref=e180]:
+                - img [ref=e182]
+                - img [ref=e184]
+              - text: Federation Login
+            - button "Local Identity Login" [expanded] [ref=e187] [cursor=pointer]:
+              - generic [ref=e188]:
+                - img [ref=e190]
+                - img [ref=e192]
+              - text: Local Identity Login
+            - link "Docs" [ref=e195] [cursor=pointer]:
+              - /url: /?path=/docs/pages-local-identity-login--docs
+              - img [ref=e197]
+              - text: Docs
+            - link "Default" [ref=e200] [cursor=pointer]:
+              - /url: /?path=/story/pages-local-identity-login--default
+              - img [ref=e202]
+              - text: Default
+            - generic [ref=e204]:
+              - link "With Back Button" [ref=e205] [cursor=pointer]:
+                - /url: /?path=/story/pages-local-identity-login--with-back-button
+                - img [ref=e207]
+                - text: With Back Button
+              - link "Skip to content" [ref=e209] [cursor=pointer]:
+                - /url: "#storybook-preview-wrapper"
+            - button "Login" [ref=e211] [cursor=pointer]:
+              - generic [ref=e212]:
+                - img [ref=e214]
+                - img [ref=e216]
+              - text: Login
+            - generic [ref=e218]:
+              - button "Collapse" [expanded] [ref=e219] [cursor=pointer]:
+                - img [ref=e221]
+                - text: Fact Database
+              - button "Expand all" [ref=e223] [cursor=pointer]:
+                - img [ref=e224]
+            - button "FactResultRow" [ref=e227] [cursor=pointer]:
+              - generic [ref=e228]:
+                - img [ref=e230]
+                - img [ref=e232]
+              - text: FactResultRow
+            - button "FactResultsTable" [ref=e235] [cursor=pointer]:
+              - generic [ref=e236]:
+                - img [ref=e238]
+                - img [ref=e240]
+              - text: FactResultsTable
+            - button "SidebarFilters" [ref=e243] [cursor=pointer]:
+              - generic [ref=e244]:
+                - img [ref=e246]
+                - img [ref=e248]
+              - text: SidebarFilters
+      - region "Component tests" [ref=e251]:
+        - generic [ref=e252]:
+          - heading "Component tests" [level=2] [ref=e253]
+          - generic [ref=e254] [cursor=pointer]:
+            - button "Run tests" [ref=e258]:
+              - img [ref=e260]
+              - text: Run tests
+            - button "Expand testing module" [ref=e264]:
+              - img [ref=e265]
+          - generic [ref=e269]:
+            - generic [ref=e270]:
+              - generic [ref=e271]:
+                - generic [ref=e272]: Run component tests
+                - generic [ref=e273]: Not run
+              - generic [ref=e274]:
+                - switch "Watch mode" [ref=e275] [cursor=pointer]:
+                  - img [ref=e276]
+                - button "Start test run" [ref=e279] [cursor=pointer]:
+                  - img [ref=e280]
+            - list [ref=e282]:
+              - listitem [ref=e283]:
+                - generic [ref=e284]:
+                  - checkbox "Interactions" [checked] [disabled] [ref=e286]
+                  - generic [ref=e287]: Interactions
+                - button "Run tests to see results" [disabled] [ref=e288]
+              - listitem [ref=e290]:
+                - generic [ref=e291] [cursor=pointer]:
+                  - checkbox "Coverage" [checked] [ref=e293]
+                  - generic [ref=e294]: Coverage
+                - button "Coverage unavailable, run tests first" [disabled] [ref=e295]
+              - listitem [ref=e297]:
+                - generic [ref=e298] [cursor=pointer]:
+                  - checkbox "Accessibility" [checked] [ref=e300]
+                  - generic [ref=e301]: Accessibility
+                - button "Run tests to see accessibility results" [disabled] [ref=e302]
+  - generic [ref=e305]:
+    - region "Toolbar" [ref=e306]:
+      - heading "Toolbar" [level=2] [ref=e307]
+      - toolbar [ref=e308]:
+        - generic [ref=e309]:
+          - button "Reload story" [ref=e310] [cursor=pointer]:
+            - img [ref=e311]
+          - switch "Grid visibility" [ref=e397] [cursor=pointer]:
+            - img [ref=e398]
+          - button "Preview background" [ref=e400] [cursor=pointer]:
+            - img [ref=e401]
+          - switch "Measure tool" [ref=e313] [cursor=pointer]:
+            - img [ref=e314]
+          - switch "Outline tool" [ref=e317] [cursor=pointer]:
+            - img [ref=e318]
+          - button "Viewport size" [ref=e320] [cursor=pointer]:
+            - img [ref=e321]
+          - button "Vision filter" [ref=e325] [cursor=pointer]:
+            - img [ref=e326]
+          - button "Theme" [ref=e330] [cursor=pointer]:
+            - img [ref=e331]
+            - text: dark theme
+          - button "Global theme for Mantine Dark" [ref=e405] [cursor=pointer]:
+            - img [ref=e406]
+            - text: Dark
+        - generic [ref=e333]:
+          - button "Change zoom level" [ref=e334] [cursor=pointer]: 100%
+          - button "Enter full screen" [ref=e335] [cursor=pointer]:
+            - img [ref=e336]
+          - button "Share" [ref=e338] [cursor=pointer]:
+            - img [ref=e339]
+          - button "Open in editor" [ref=e342] [cursor=pointer]:
+            - img [ref=e343]
+    - main "Main preview area" [ref=e346]:
+      - heading "Main preview area" [level=2] [ref=e347]
+      - generic [ref=e351]:
+        - link "Skip to sidebar" [ref=e352] [cursor=pointer]:
+          - /url: "#pages-local-identity-login--with-back-button"
+        - iframe [ref=e356]:
+          - generic [ref=f1e4]:
+            - heading "You cannot render a <Router> inside another <Router>. You should never have more than one in your app." [level=1] [ref=f1e5]
+            - paragraph [ref=f1e6]: "The component failed to render properly, likely due to a configuration issue in Storybook. Here are some common causes and how you can address them:"
+            - list [ref=f1e7]:
+              - listitem [ref=f1e8]:
+                - strong [ref=f1e9]: Missing Context/Providers
+                - text: ": You can use decorators to supply specific contexts or providers, which are sometimes necessary for components to render correctly. For detailed instructions on using decorators, please visit the"
+                - link "Decorators documentation" [ref=f1e10] [cursor=pointer]:
+                  - /url: https://storybook.js.org/docs/writing-stories/decorators
+                - text: .
+              - listitem [ref=f1e11]:
+                - strong [ref=f1e12]: Misconfigured Webpack or Vite
+                - text: ": Verify that Storybook picks up all necessary settings for loaders, plugins, and other relevant parameters. You can find step-by-step guides for configuring"
+                - link "Webpack" [ref=f1e13] [cursor=pointer]:
+                  - /url: https://storybook.js.org/docs/builders/webpack
+                - text: or
+                - link "Vite" [ref=f1e14] [cursor=pointer]:
+                  - /url: https://storybook.js.org/docs/builders/vite
+                - text: with Storybook.
+              - listitem [ref=f1e15]:
+                - strong [ref=f1e16]: Missing Environment Variables
+                - text: ": Your Storybook may require specific environment variables to function as intended. You can set up custom environment variables as outlined in the"
+                - link "Environment Variables documentation" [ref=f1e17] [cursor=pointer]:
+                  - /url: https://storybook.js.org/docs/configure/environment-variables
+                - text: .
+            - code [ref=f1e19]: "Error: You cannot render a <Router> inside another <Router>. You should never have more than one in your app. at invariant (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/react-router-dom.js?v=55e9806f:209:11) at Router (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/react-router-dom.js?v=55e9806f:4551:35) at Object.react_stack_bottom_frame (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:18509:20) at renderWithHooks (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:5654:24) at updateFunctionComponent (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:7475:21) at beginWork (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:8525:20) at runWithFiberInDEV (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:997:72) at performUnitOfWork (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:12561:98) at workLoopSync (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:12424:43) at renderRootSync (http://localhost:6006/node_modules/.cache/storybook/01e16fc80ff7ff8bca50dfc6afba45702253b8215da6fd30319675aac2fe8c07/sb-vite/deps/chunk-HO32FSUL.js?v=dcbcc2c4:12408:13)"
+  - region "Addon panel" [ref=e359]:
+    - heading "Addon panel" [level=2] [ref=e360]
+    - generic [ref=e361]:
+      - generic [ref=e362]:
+        - generic [ref=e363]:
+          - button "Move addon panel to bottom" [ref=e364] [cursor=pointer]:
+            - img [ref=e365]
+          - button "Hide addon panel" [ref=e368] [cursor=pointer]:
+            - img [ref=e369]
+        - generic [ref=e372]:
+          - button "Scroll backward" [disabled] [ref=e374]:
+            - img [ref=e375]
+          - tablist "Available addons" [ref=e378]:
+            - tab "Controls" [selected] [ref=e379] [cursor=pointer]:
+              - generic [ref=e381]: Controls
+            - tab "Actions" [ref=e382] [cursor=pointer]:
+              - generic [ref=e384]: Actions
+            - tab "Interactions" [ref=e385] [cursor=pointer]:
+              - generic [ref=e386]:
+                - generic [ref=e387]: Interactions
+                - img [ref=e408]
+            - tab "Accessibility" [ref=e388] [cursor=pointer]:
+              - generic [ref=e390]: Accessibility
+          - button "Scroll forward" [ref=e393] [cursor=pointer]:
+            - img [ref=e394]
+      - tabpanel "Controls" [ref=e396]:
+        - generic [ref=e416]:
+          - button "Reset controls" [ref=e418] [cursor=pointer]:
+            - img [ref=e419]
+          - table [ref=e421]:
+            - rowgroup [ref=e422]:
+              - row "Name Description Default Control" [ref=e423]:
+                - columnheader "Name" [ref=e424]
+                - columnheader "Description" [ref=e425]
+                - columnheader "Default" [ref=e426]
+                - columnheader "Control" [ref=e427]
+            - rowgroup [ref=e428]:
+              - row "onBack () => void - -" [ref=e429]:
+                - cell "onBack" [ref=e430]
+                - cell "() => void" [ref=e431]:
+                  - generic [ref=e432]: () => void
+                - cell "-" [ref=e433]
+                - cell "-" [ref=e434]

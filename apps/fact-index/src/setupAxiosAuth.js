@@ -1,29 +1,20 @@
 import axios from "axios";
 
 /**
- * Setup global Axios interceptor to automatically include JWT token from localStorage.
+ * Setup global Axios interceptor for cookie-based authentication.
  * 
- * This runs on app startup to ensure all Axios requests include authentication.
- * Token is read from localStorage key "auth_jwt_token".
+ * Auth tokens are now stored in secure HttpOnly cookies set by the server.
+ * No manual token management needed - the browser automatically includes cookies
+ * in cross-origin requests when credentials: 'include' is used.
  * 
- * @see src/context/AuthContext.tsx - Where auth tokens are stored and managed
+ * This interceptor configures Axios to send credentials with all requests.
  */
 
-// Request interceptor: Add JWT token to Authorization header
+// Request interceptor: Enable credentials for cookie-based auth
 axios.interceptors.request.use(
   (config) => {
-    let token = null;
-    try {
-      token = localStorage.getItem("auth_jwt_token");
-    } catch (error) {
-      // localStorage may be unavailable in some environments
-      console.warn("[setupAxiosAuth] Unable to read from localStorage:", error);
-    }
-
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Enable sending cookies with requests
+    config.withCredentials = true;
     return config;
   },
   (error) => {

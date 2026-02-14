@@ -11,17 +11,20 @@ import {
   useQueryClient,
   type QueryObserverResult,
 } from "@tanstack/react-query";
-import type { AuthReason, AuthStatus, UserProfile } from "@factdb/types";
+import type { AuthReason, AuthStatus, AuthStatusUser } from "@factdb/types";
 
 interface ProviderOption {
   name?: string;
+  displayName?: string;
   url?: string;
   available?: boolean;
+  devBypass?: boolean;
+  type?: string;
+  entityId?: string;
 }
 
 interface AuthStatusResponse {
   discord: AuthStatus;
-  token?: string;
 }
 
 export type LoginProviderPayload = ProviderOption;
@@ -30,6 +33,13 @@ const defaultProviders: LoginProviderPayload[] = [
   {
     name: "Discord",
     url: "/auth/discord",
+    available: true,
+  },
+  {
+    name: "federation",
+    displayName: "TACC",
+    type: "federation",
+    url: "/login/federation",
     available: true,
   },
 ];
@@ -41,58 +51,6 @@ function filterProviders(providers?: LoginProviderPayload[]): LoginProviderPaylo
 }
 
 const AUTH_STATUS_KEY = ["auth", "status"];
-const JWT_TOKEN_KEY = "auth_jwt_token";
-
-function readStoredToken(): string | null {
-  try {
-    return localStorage.getItem(JWT_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function storeToken(token: string | null): void {
-  try {
-    if (!token) return;
-    localStorage.setItem(JWT_TOKEN_KEY, token);
-  } catch {
-    // ignore
-  }
-}
-
-function clearStoredToken(): void {
-  try {
-    localStorage.removeItem(JWT_TOKEN_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-function getJWTToken(): string | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const url = new URL(window.location.href);
-    const urlToken = url.searchParams.get("token");
-
-    if (urlToken) {
-      storeToken(urlToken);
-      url.searchParams.delete("token");
-
-      const next =
-        url.pathname +
-        (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "") +
-        (url.hash || "");
-
-      window.history.replaceState({}, document.title, next);
-      return urlToken;
-    }
-  } catch {
-    // ignore URL parsing errors
-  }
-
-  return readStoredToken();
-}
 
 async function fetchAuthStatus({
   signal,
@@ -100,15 +58,10 @@ async function fetchAuthStatus({
   signal?: AbortSignal;
 }): Promise<AuthStatusResponse> {
   try {
-    const token = getJWTToken();
-    const headers: Record<string, string> = { Accept: "application/json" };
-
-    if (token) headers.Authorization = `Bearer ${token}`;
-
     const res = await fetch("/auth/status", {
       credentials: "include",
       signal,
-      headers,
+      headers: { Accept: "application/json" },
     });
 
     let json: unknown = null;
@@ -116,13 +69,6 @@ async function fetchAuthStatus({
       json = await res.json();
     } catch {
       json = null;
-    }
-
-    if (json && typeof json === "object") {
-      const tokenValue = (json as { token?: string }).token;
-      if (tokenValue && tokenValue !== readStoredToken()) {
-        storeToken(tokenValue);
-      }
     }
 
     if (!json || typeof json !== "object") {
@@ -138,24 +84,16 @@ async function fetchAuthStatus({
   }
 }
 
-function getAuthHeaders(
-  additionalHeaders: Record<string, string> = {}
-): Record<string, string> {
-  const token = getJWTToken();
-  const headers: Record<string, string> = { ...additionalHeaders };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
-
 export function getAuthToken(): string | null {
-  return getJWTToken();
+  // Token is now in HttpOnly cookie, not accessible via JavaScript
+  return null;
 }
 
 export interface AuthContextValue {
   loading: boolean;
   authenticated: boolean;
   isAdmin: boolean;
-  user: UserProfile | null;
+  user: AuthStatusUser | null;
   reason: AuthReason | string | null;
   login: (fallbackUrl?: string) => Promise<void>;
   refresh: () => Promise<QueryObserverResult<AuthStatusResponse>>;
@@ -246,9 +184,7 @@ export function useAuth(): AuthContextValue {
 
   useEffect(() => {
     const reason = statusQuery.data?.discord?.reason;
-    const token = readStoredToken();
-    if (token && (reason === "invalid_token" || reason === "jwt_invalid" || reason === "jwt_expired")) {
-      clearStoredToken();
+    if (reason === "invalid_token" || reason === "jwt_invalid" || reason === "jwt_expired") {
       queryClient.setQueryData(AUTH_STATUS_KEY, {
         discord: { authenticated: false, user: null, reason: "invalid_token" },
       });
@@ -257,13 +193,9 @@ export function useAuth(): AuthContextValue {
 
   const checkAvailable = useCallback(async () => {
     try {
-      const token = getJWTToken();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-
       const res = await fetch("/auth/available", {
         credentials: "include",
-        headers,
+        headers: { Accept: "application/json" },
       });
 
       if (!res.ok) return { available: false };
@@ -274,35 +206,49 @@ export function useAuth(): AuthContextValue {
   }, []);
 
   const loginWithCheck = useCallback(
-    async (fallbackUrl = "/auth/discord") => {
+    async (fallbackUrl = "/auth/discord", providerName?: string) => {
       const avail = await checkAvailable();
 
       const provider =
+        (providerName && avail?.providers?.find((p) => p?.name === providerName && p?.available)) ||
         avail?.providers?.find((p) => p?.name === "discord" && p?.available) ||
         avail?.providers?.find((p) => p?.available);
 
       const ok = Boolean(avail?.available) && Boolean(provider?.url || fallbackUrl);
       if (!ok) throw new Error("Login currently unavailable");
 
-      window.location.href = provider?.url || fallbackUrl;
+      const providerUrl = provider?.url || fallbackUrl;
+      const isOidc = provider?.name?.toLowerCase().includes("federation");
+
+      if (isOidc) {
+        // OIDC authorization code flow
+        const clientId = (import.meta as any).env.VITE_OIDC_CLIENT_ID || "fact-index-frontend";
+        const redirectUri = (import.meta as any).env.VITE_OIDC_REDIRECT_URI || window.location.origin + "/oidc/callback";
+        
+        const params = new URLSearchParams({
+          client_id: clientId,
+          response_type: "code",
+          scope: "openid email profile",
+          redirect_uri: redirectUri,
+        });
+
+        window.location.href = `/oidc/authorization?${params.toString()}`;
+      } else {
+        // Traditional redirects (Discord, etc.)
+        window.location.href = providerUrl;
+      }
     },
     [checkAvailable]
   );
 
   const logoutMutation = useMutation<void, Error>({
     mutationFn: async () => {
-      const token = getJWTToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers.Authorization = `Bearer ${token}`;
-
       const res = await fetch("/auth/logout", {
         method: "POST",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) throw new Error("Logout failed");
-
-      clearStoredToken();
     },
     onSettled: () => {
       const desired = { discord: { authenticated: false, user: null, reason: null } };
@@ -320,7 +266,7 @@ export function useAuth(): AuthContextValue {
   const discord: AuthStatus =
     statusQuery.data?.discord ?? { authenticated: false, user: null, reason: null };
   const authenticated = Boolean(discord.authenticated);
-  const user = (discord.user ?? null) as UserProfile | null;
+  const user = (discord.user ?? null) as AuthStatusUser | null;
   const reason = discord.reason ?? null;
   const isAdmin = Boolean(discord.user?.isAdmin);
 
@@ -342,8 +288,15 @@ export function useAuth(): AuthContextValue {
       refresh,
       logout: logoutFn,
       checkAvailable,
+      authAvailable,
+      providerOptions,
+      errorReason,
+      reasonCode,
+      userMessage,
+      showHelp,
+      helpToggle,
     }),
-    [statusQuery.isFetching, statusQuery.isInitialLoading, authenticated, isAdmin, user, reason, loginWithCheck, refresh, logoutFn, checkAvailable]
+    [statusQuery.isFetching, statusQuery.isInitialLoading, authenticated, isAdmin, user, reason, loginWithCheck, refresh, logoutFn, checkAvailable, authAvailable, providerOptions, errorReason, reasonCode, userMessage, showHelp, helpToggle]
   );
 
   return useMemo<AuthContextValue>(
@@ -361,4 +314,4 @@ export function useAuth(): AuthContextValue {
   );
 }
 
-export type { AuthStatusResponse };
+export type { AuthStatusResponse, ProviderOption };

@@ -166,7 +166,7 @@
       "command": "npx",
       "args": [ "storybook-mcp@latest"],
       "env": {
-        "STORYBOOK_URL": "http://localhost:6006/index.json"
+        "STORYBOOK_URL": "http://localhost:6007/index.json"
       }
     },
    "storybook": {

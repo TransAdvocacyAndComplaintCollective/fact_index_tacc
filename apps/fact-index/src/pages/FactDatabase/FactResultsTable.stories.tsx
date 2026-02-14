@@ -65,7 +65,7 @@ export const Default: Story = {
       disable: false,
     },
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas }: { canvas: any }) => {
     const firstTitle = await canvas.getByText(sampleFacts[0].title);
     await expect(firstTitle).toBeVisible();
   },
@@ -78,7 +78,7 @@ export const Empty: Story = {
       disable: false,
     },
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas }: { canvas: any }) => {
     const hasAny = await canvas.queryByRole("row");
     await expect(hasAny).toBeNull();
   },
@@ -91,7 +91,7 @@ export const RowClick: Story = {
       disable: false,
     },
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas }: { canvas: any }) => {
     const secondTitle = await canvas.getByText(sampleFacts[1].title);
     await expect(secondTitle).toBeVisible();
   },
@@ -103,7 +103,7 @@ export const RowClick: Story = {
 export const OnRowClickCallbackTest: Story = {
   args: {
     facts: sampleFacts,
-    onRowClick: (fact) => {
+    onRowClick: (fact: FactRecord) => {
       console.log(`✓ onRowClick called with fact id: ${fact.id}, title: ${fact.title || fact.fact_text || 'Untitled'}`);
     },
   },
@@ -112,7 +112,7 @@ export const OnRowClickCallbackTest: Story = {
       disable: false,
     },
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas }: { canvas: any }) => {
     // Verify all rows are clickable
     for (const fact of sampleFacts) {
       const rowElement = await canvas.getByText(fact.title);
@@ -128,7 +128,7 @@ export const MultipleRowClicksTest: Story = {
   args: {
     facts: sampleFacts,
     selectedFact: sampleFacts[0],
-    onRowClick: (fact) => {
+    onRowClick: (fact: FactRecord) => {
       console.log(
         `✓ onRowClick called - ID: ${fact.id}, Title: ${fact.title}, Type: ${fact.type}`
       );
@@ -139,7 +139,7 @@ export const MultipleRowClicksTest: Story = {
       disable: false,
     },
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas }: { canvas: any }) => {
     // Verify row selection state via selectedFact prop
     const selectedRowTitle = await canvas.getByText(sampleFacts[0].title);
     await expect(selectedRowTitle).toBeVisible();

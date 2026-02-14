@@ -121,7 +121,7 @@ export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
                   </Text>
                   <Group gap="xs">
                     {fact.subjects?.map((subject) => (
-                      <Badge key={subject}>{subject}</Badge>
+                      <Badge key={subject} autoContrast>{subject}</Badge>
                     ))}
                   </Group>
                 </div>
@@ -135,7 +135,7 @@ export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
               </Text>
                   <Group gap="xs">
                     {fact.audiences?.map((audience) => (
-                      <Badge key={audience}>{audience}</Badge>
+                      <Badge key={audience} autoContrast>{audience}</Badge>
                     ))}
                   </Group>
                 </div>
@@ -147,7 +147,7 @@ export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
                 <Text fw={500} size="sm" c={detailTextColor}>
                   Type
                 </Text>
-                  <Badge>{fact.type}</Badge>
+                  <Badge autoContrast>{fact.type}</Badge>
                 </div>
               )}
 

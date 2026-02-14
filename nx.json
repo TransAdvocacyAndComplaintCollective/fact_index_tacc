@@ -26,6 +26,15 @@
       "plugin": "@nx/eslint"
     },
     {
+      "plugin": "@nx/vite",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "testTargetName": "test"
+      }
+    },
+    {
       "plugin": "@nx/webpack",
       "options": {
         "buildTargetName": "build",
@@ -57,6 +66,22 @@
       "library": {
         "style": "scss",
         "linter": "none"
+      }
+    }
+  },
+  "environments": {
+    "dev": {
+      "name": "Development",
+      "description": "Local development with Vite proxy to backend",
+      "variables": {
+        "API_ENDPOINT": "http://localhost:5332"
+      }
+    },
+    "production": {
+      "name": "Production",
+      "description": "Production build without proxy, direct API calls",
+      "variables": {
+        "API_ENDPOINT": "https://api.example.com"
       }
     }
   }
