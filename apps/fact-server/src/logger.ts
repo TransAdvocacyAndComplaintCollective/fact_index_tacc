@@ -58,6 +58,36 @@ function debug(message: string, meta?: Meta) {
   writeToFiles(line, false);
 }
 
+function toLogString(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.stack || value.message;
+  if (value === null || value === undefined) return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+// Backward-compatible logger used by auth modules that pass varargs.
+export function log(level: 'info' | 'warn' | 'error' | 'debug', ...args: unknown[]) {
+  if (!args.length) {
+    if (level === 'info') return info('');
+    if (level === 'warn') return warn('');
+    if (level === 'error') return error('');
+    return debug('');
+  }
+
+  const message = toLogString(args[0]);
+  const rest = args.slice(1);
+  const detail = rest.length ? { details: rest.map((arg) => toLogString(arg)) } : undefined;
+
+  if (level === 'info') return info(message, detail);
+  if (level === 'warn') return warn(message, detail);
+  if (level === 'error') return error(message, detail);
+  return debug(message, detail);
+}
+
 // Express request logger middleware
 function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
@@ -84,4 +114,4 @@ function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunc
   next();
 }
 
-export default { info, warn, error, debug, requestLogger, errorHandler };
+export default { info, warn, error, debug, log, requestLogger, errorHandler };

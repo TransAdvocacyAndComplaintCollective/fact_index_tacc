@@ -16,6 +16,8 @@ import {
   useMantineTheme,
   useMantineColorScheme,
   Box,
+  Modal,
+  Tabs,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { nprogress } from "@mantine/nprogress";
@@ -25,12 +27,15 @@ import FactResultsTable from "./FactResultsTable";
 import { useAuthContext } from "../../context/AuthContext";
 import { useFact } from "../../hooks/useFact";
 import { FaChartBar, FaPlus, FaInfoCircle, FaStar } from "react-icons/fa";
+import { useRBACContext } from "@impelsysinc/react-rbac";
 import type { FactRecord, TagOption } from "./types";
+import { safeCanAccess } from "../../utils/safeCanAccess";
 
 const PAGE_SIZE = 10;
 
 export default function FactDatabase() {
-  const { authenticated, loading: authLoading } = useAuthContext();
+  const { authenticated, loading: authLoading, hasSuperuser } = useAuthContext();
+  const { canAccess } = useRBACContext();
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -45,53 +50,51 @@ export default function FactDatabase() {
   } = useFact({ pageSize: PAGE_SIZE });
   const [subjects, setSubjects] = useState<TagOption[]>([]);
   const [audiences, setAudiences] = useState<TagOption[]>([]);
+  const canCreateFact = hasSuperuser || safeCanAccess(canAccess, "fact:write") || safeCanAccess(canAccess, "fact:pubwrite");
+  const canManageTags = hasSuperuser || safeCanAccess(canAccess, "taxonomy:write");
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagTab, setTagTab] = useState<string | null>("subject");
+  const [newSubject, setNewSubject] = useState("");
+  const [newAudience, setNewAudience] = useState("");
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagError, setTagError] = useState<string | null>(null);
 
   const goLink = (fact: FactRecord) => navigate(`/facts/${fact.id}`);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!authenticated) {
-      Promise.resolve().then(() => setSubjects([]));
-      return;
-    }
-    nprogress.start();
-    axios
-      .get("/api/facts/subjects")
-      .then((res) => {
-        const data = res.data?.subjects ?? res.data ?? [];
-        const mapped: TagOption[] = Array.isArray(data)
-          ? data.map((s, i) =>
-              typeof s === "string" ? { id: `${i}-${s}`, name: s } : s
-            )
-          : [];
-        setSubjects(mapped);
-      })
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      .catch(() => {})
-      .finally(() => nprogress.increment());
-  }, [authenticated, authLoading]);
+  const fetchSubjects = async () => {
+    const res = await axios.get("/api/facts/subjects/all");
+    const data = res.data?.subjects ?? res.data ?? [];
+    const mapped: TagOption[] = Array.isArray(data)
+      ? data.map((s, i) => (typeof s === "string" ? { id: `${i}-${s}`, name: s } : s))
+      : [];
+    setSubjects(mapped);
+  };
+
+  const fetchAudiences = async () => {
+    const res = await axios.get("/api/facts/audiences/all");
+    const data = res.data?.audiences ?? res.data ?? [];
+    const mapped: TagOption[] = Array.isArray(data)
+      ? data.map((s, i) => (typeof s === "string" ? { id: `${i}-${s}`, name: s } : s))
+      : [];
+    setAudiences(mapped);
+  };
 
   useEffect(() => {
     if (authLoading) return;
-    if (!authenticated) {
-      Promise.resolve().then(() => setAudiences([]));
-      return;
-    }
-    axios
-      .get("/api/facts/audiences")
-      .then((res) => {
-        const data = res.data?.audiences ?? res.data ?? [];
-        const mapped: TagOption[] = Array.isArray(data)
-          ? data.map((s, i) =>
-              typeof s === "string" ? { id: `${i}-${s}`, name: s } : s
-            )
-          : [];
-        setAudiences(mapped);
-      })
+    nprogress.start();
+    fetchSubjects()
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      .catch(() => {})
+      .finally(() => nprogress.increment());
+  }, [authLoading]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    fetchAudiences()
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       .catch(() => {})
       .finally(() => nprogress.complete());
-  }, [authenticated, authLoading]);
+  }, [authLoading]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !hasMore || loading || loadingMore)
@@ -125,6 +128,95 @@ export default function FactDatabase() {
       }}
       py="lg"
     >
+      <Modal
+        opened={tagModalOpen}
+        onClose={() => {
+          setTagModalOpen(false);
+          setTagError(null);
+        }}
+        title="Create new tag"
+        centered
+      >
+        <Stack gap="md">
+          {tagError && (
+            <Alert color="red" title="Error">
+              {tagError}
+            </Alert>
+          )}
+
+          <Tabs value={tagTab} onChange={setTagTab}>
+            <Tabs.List>
+              <Tabs.Tab value="subject">Subject</Tabs.Tab>
+              <Tabs.Tab value="audience">Audience</Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="subject" pt="md">
+              <Group align="flex-end" wrap="nowrap">
+                <TextInput
+                  label="Subject"
+                  placeholder="e.g. Law"
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.currentTarget.value)}
+                  disabled={tagSaving}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  loading={tagSaving}
+                  disabled={!newSubject.trim() || tagSaving}
+                  onClick={async () => {
+                    setTagError(null);
+                    setTagSaving(true);
+                    try {
+                      await axios.post("/api/facts/subjects", { name: newSubject.trim() });
+                      setNewSubject("");
+                      await fetchSubjects();
+                    } catch (err: any) {
+                      setTagError(err?.response?.data?.message || err?.message || "Failed to create subject");
+                    } finally {
+                      setTagSaving(false);
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </Group>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="audience" pt="md">
+              <Group align="flex-end" wrap="nowrap">
+                <TextInput
+                  label="Audience"
+                  placeholder="e.g. Students"
+                  value={newAudience}
+                  onChange={(e) => setNewAudience(e.currentTarget.value)}
+                  disabled={tagSaving}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  loading={tagSaving}
+                  disabled={!newAudience.trim() || tagSaving}
+                  onClick={async () => {
+                    setTagError(null);
+                    setTagSaving(true);
+                    try {
+                      await axios.post("/api/facts/audiences", { name: newAudience.trim() });
+                      setNewAudience("");
+                      await fetchAudiences();
+                    } catch (err: any) {
+                      setTagError(err?.response?.data?.message || err?.message || "Failed to create audience");
+                    } finally {
+                      setTagSaving(false);
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </Group>
+            </Tabs.Panel>
+          </Tabs>
+        </Stack>
+      </Modal>
+
       <Container fluid px={0} py="lg">
         <Stack gap="lg">
           {/* Header */}
@@ -135,16 +227,35 @@ export default function FactDatabase() {
               <span>TACC Fact Database</span>
             </Group>
           </Title>
-          <Button
-            onClick={() => navigate("/facts/new/")}
-            variant="filled"
-            color="green"
-            size="md"
-            leftSection={<FaPlus aria-hidden="true" size={16} />}
-            fw={600}
-          >
-            Add Fact
-          </Button>
+          {(authenticated && (canCreateFact || canManageTags)) && (
+            <Group gap="sm">
+              {canCreateFact && (
+                <Button
+                  onClick={() => navigate("/facts/new/")}
+                  variant="filled"
+                  color="green"
+                  size="md"
+                  leftSection={<FaPlus aria-hidden="true" size={16} />}
+                  fw={600}
+                >
+                  Add Fact
+                </Button>
+              )}
+              {canManageTags && (
+                <Button
+                  variant="default"
+                  size="md"
+                  fw={600}
+                  onClick={() => {
+                    setTagTab("subject");
+                    setTagModalOpen(true);
+                  }}
+                >
+                  New Tag
+                </Button>
+              )}
+            </Group>
+          )}
         </Group>
 
         {/* Keyword Search */}

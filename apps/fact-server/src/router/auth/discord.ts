@@ -5,13 +5,19 @@ import { randomUUID } from "node:crypto";
 import logger from "../../logger.ts";
 import { 
   generateJWT, 
-  verifyJWT,
+  verifyJWTAsync,
   revokeToken,
   generateOAuthStateJWT,
   verifyOAuthStateJWT,
+  registerOAuthStateToken,
+  consumeOAuthStateToken,
 } from "../../auth/jwt.ts";
 import { isDevModeActive } from "../../auth/passport-dev.ts";
 import { redirectWithSecureToken } from "./tokenResponse.ts";
+import {
+  discordAccessTokenCookieOptions,
+  discordRefreshTokenCookieOptions,
+} from "../../config/securityConfig.ts";
 
 const router = express.Router();
 
@@ -75,6 +81,34 @@ function summarizeInfo(info: unknown): Record<string, unknown> | string | undefi
   }
 
   return { type: typeof info } as any;
+}
+
+function queryValues(input: unknown): string[] {
+  if (Array.isArray(input)) {
+    return input
+      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+      .filter(Boolean);
+  }
+  if (typeof input !== "string") return [];
+  const trimmed = input.trim();
+  return trimmed ? [trimmed] : [];
+}
+
+function singleQueryValue(input: unknown): string | null {
+  const values = queryValues(input);
+  return values.length ? values[0] : null;
+}
+
+function findRepeatedQueryParam(
+  query: Record<string, unknown>,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    if (queryValues(query[key]).length > 1) {
+      return key;
+    }
+  }
+  return null;
 }
 
 // Log every request that hits this router, plus response outcome.
@@ -160,21 +194,48 @@ function ensureStrategy(req: Request, res: Response, next: NextFunction) {
 
 // ---------- routes ----------
 router.get("/discord", ensureStrategy, (req: Request, res: Response, next: NextFunction) => {
-  const stateJWT = generateOAuthStateJWT();
-  logger.info(`[auth] ${ctx(req, res)} initiating OAuth 2.0 Authorization Code Grant flow with JWT state=${stateJWT.slice(0, 8)}...`);
-  passport.authenticate(STRATEGY, { scope: [...DISCORD_SCOPE], state: stateJWT, session: false })(req, res, next);
+  void (async () => {
+    const stateJWT = await generateOAuthStateJWT();
+    registerOAuthStateToken(stateJWT);
+    logger.info(`[auth] ${ctx(req, res)} initiating OAuth 2.0 Authorization Code Grant flow with JWT state=${stateJWT.slice(0, 8)}...`);
+    passport.authenticate(STRATEGY, { scope: [...DISCORD_SCOPE], state: stateJWT, session: false })(req, res, next);
+  })().catch((err) => next(err));
 });
 
 router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, next: NextFunction) => {
+  void (async () => {
   const q = req.query as Record<string, unknown>;
   const queryKeys = Object.keys(q ?? {});
-  const hasCode = typeof q.code === "string";
-  const hasError = typeof q.error === "string";
-  const hasState = typeof q.state === "string";
+  const codeParam = singleQueryValue(q.code);
+  const errorParam = singleQueryValue(q.error);
+  const errorDescriptionParam = singleQueryValue(q.error_description);
+  const stateParam = singleQueryValue(q.state);
+  const hasCode = Boolean(codeParam);
+  const hasError = Boolean(errorParam);
+  const hasState = Boolean(stateParam);
 
   logger.info(
     `[auth] ${ctx(req, res)} callback received queryKeys=[${queryKeys.join(", ")}] hasCode=${hasCode} hasError=${hasError} hasState=${hasState}`,
   );
+
+  const repeatedParam = findRepeatedQueryParam(q, ["state", "code", "error", "error_description"]);
+  if (repeatedParam) {
+    logger.warn(
+      `[auth] ${ctx(req, res)} Rejected callback due to duplicated query parameter "${repeatedParam}"`,
+    );
+    const userMessage = `Authentication failed: duplicated "${repeatedParam}" query parameter`;
+    const encodedUserMessage = encodeURIComponent(userMessage);
+    return res.redirect(`/login?error=csrf_failure&reasonCode=invalid_request&userMessage=${encodedUserMessage}`);
+  }
+
+  if (hasCode && hasError) {
+    logger.warn(
+      `[auth] ${ctx(req, res)} Rejected callback containing both code and error parameters`,
+    );
+    const userMessage = "Authentication failed: callback cannot include both code and error";
+    const encodedUserMessage = encodeURIComponent(userMessage);
+    return res.redirect(`/login?error=csrf_failure&reasonCode=invalid_request&userMessage=${encodedUserMessage}`);
+  }
 
   // Validate state parameter (stateless CSRF protection for Authorization Code Grant)
   if (!hasState) {
@@ -186,8 +247,8 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
     return res.redirect(`/login?error=csrf_failure&reasonCode=missing_state&userMessage=${encodedUserMessage}`);
   }
 
-  const state = String(q.state);
-  const stateData = verifyOAuthStateJWT(state);
+  const state = String(stateParam);
+  const stateData = await verifyOAuthStateJWT(state);
   
   if (!stateData) {
     logger.warn(
@@ -198,10 +259,18 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
     return res.redirect(`/login?error=csrf_failure&reasonCode=invalid_state&userMessage=${encodedUserMessage}`);
   }
 
+  // Enforce one-time use (replay protection) without requiring any session cookie.
+  if (!consumeOAuthStateToken(state)) {
+    logger.warn(`[auth] ${ctx(req, res)} State replay/missing - rejecting callback`);
+    const userMessage = "Authentication failed: invalid or replayed state parameter";
+    const encodedUserMessage = encodeURIComponent(userMessage);
+    return res.redirect(`/login?error=csrf_failure&reasonCode=invalid_state&userMessage=${encodedUserMessage}`);
+  }
+
   // If Discord itself returned an error (user denied, etc.)
   if (hasError) {
-    const discordError = String(q.error ?? "unknown");
-    const discordErrorDesc = String(q.error_description ?? "");
+    const discordError = String(errorParam ?? "unknown");
+    const discordErrorDesc = String(errorDescriptionParam ?? "");
     logger.warn(
       `[auth] ${ctx(req, res)} Discord rejected request error=${discordError} description=${discordErrorDesc}`,
     );
@@ -218,7 +287,7 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
   const middleware = passport.authenticate(
     STRATEGY,
     { session: false },
-    (err: unknown, user: unknown, info: unknown, status?: number) => {
+    async (err: unknown, user: unknown, info: unknown, status?: number) => {
       if (err) {
         const errMsg = err && typeof err === "object" && (err as any).message ? (err as any).message : String(err);
         logger.error(
@@ -277,9 +346,26 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
 
       logger.info(`[auth] ${ctx(req, res)} authentication OK user=${JSON.stringify(summarizeUser(user))}`);
 
-      // Issue JWT (contains NO Discord OAuth tokens)
       const authUser = user as any;
-      const token = generateJWT(authUser);
+
+      // Persist Discord tokens as HttpOnly cookies for server-side use.
+      if (authUser?.type === "discord") {
+        if (typeof authUser.accessToken === "string" && authUser.accessToken.trim()) {
+          res.cookie("discord_access_token", authUser.accessToken, discordAccessTokenCookieOptions);
+        }
+        if (typeof authUser.refreshToken === "string" && authUser.refreshToken.trim()) {
+          res.cookie("discord_refresh_token", authUser.refreshToken, discordRefreshTokenCookieOptions);
+        }
+      }
+
+      // Don't embed OAuth tokens in JWT.
+      if (authUser && typeof authUser === "object") {
+        delete authUser.accessToken;
+        delete authUser.refreshToken;
+        delete authUser.encryptedTokens;
+      }
+
+      const token = await generateJWT(authUser);
 
       logger.info(`[auth] ${ctx(req, res)} JWT generated for user ${authUser.id}; redirecting to home with secure token cookie`);
       return redirectWithSecureToken(res, token, "/");
@@ -287,19 +373,25 @@ router.get("/discord/callback", ensureStrategy, (req: Request, res: Response, ne
   );
 
   return middleware(req, res, next);
+  })().catch((err) => next(err));
 });
 
 router.post("/logout", async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
-  const hasToken = Boolean(authHeader?.startsWith("Bearer "));
+  const headerToken =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+  const cookieToken = typeof req.cookies?.auth_token === "string" ? req.cookies.auth_token.trim() : "";
+  const token = headerToken || cookieToken;
+  const tokenSource = headerToken ? "header" : cookieToken ? "cookie" : "missing";
 
-  logger.info(`[auth] ${ctx(req, res)} logout requested; token=${hasToken ? "present" : "missing"}`);
+  logger.info(`[auth] ${ctx(req, res)} logout requested; token=${token ? "present" : "missing"} source=${tokenSource}`);
 
   try {
     // Revoke JWT token and clear Discord OAuth tokens (logs user out of Discord)
-    if (hasToken) {
-      const token = authHeader!.slice(7);
-      const user = verifyJWT(token);
+    if (token) {
+      const user = token ? await verifyJWTAsync(token) : null;
       
       if (user?.id && user?.type === "discord" && user?.jti) {
         const expiryTime = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days
@@ -308,10 +400,27 @@ router.post("/logout", async (req: Request, res: Response) => {
       }
     }
 
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+    res.clearCookie("discord_access_token", { path: "/" });
+    res.clearCookie("discord_refresh_token", { path: "/" });
+
     logger.info(`[auth] ${ctx(req, res)} logout successful`);
     return res.status(204).end();
   } catch (err) {
     logger.error(`[auth] ${ctx(req, res)} logout error`, err instanceof Error ? { message: err.message, stack: err.stack } : { error: String(err) });
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+    res.clearCookie("discord_access_token", { path: "/" });
+    res.clearCookie("discord_refresh_token", { path: "/" });
     // Still return 204 to not leak information about errors
     return res.status(204).end();
   }

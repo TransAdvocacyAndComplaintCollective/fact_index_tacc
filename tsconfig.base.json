@@ -16,7 +16,9 @@
     "baseUrl": ".",
     "paths": {
       "@factdb/types": ["libs/types/src/index.ts"],
-      "@factdb/db-core": ["libs/db-core/src/index.ts"]
+      "@factdb/db-core": ["libs/db-core/src/index.ts"],
+      "@factdb/oidc-federation": ["libs/oidc-federation/src/index.ts"],
+      "@factdb/oidc-federation/*": ["libs/oidc-federation/src/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]

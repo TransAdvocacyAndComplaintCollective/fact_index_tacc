@@ -37,6 +37,8 @@ export interface FactRecord {
   source?: string | null;
   type?: string | null;
   context?: string | null;
+  is_public?: boolean;
+  user_id?: number | null;
   user?: string;
   timestamp?: string;
   date?: string;
@@ -54,6 +56,7 @@ export interface Fact extends FactRecord {
   source: string | null;
   type: string | null;
   context: string | null;
+  is_public: boolean;
   user_id: number | null;
   suppressed: boolean;
   year: number | null;
@@ -71,6 +74,7 @@ export interface NewFactInput
       | "context"
       | "year"
       | "user_id"
+      | "is_public"
       | "suppressed"
       | "subjects"
       | "audiences"
@@ -178,6 +182,10 @@ export interface AuthUserDev extends AuthUserBase {
   hasRole?: boolean;
   isAdmin?: boolean;
   guild?: string | null;
+  /** Optional dev-only roles for Casbin subject derivation (treated like Discord role IDs) */
+  cachedMemberRoles?: string[];
+  /** Optional dev-only permission overrides for UI/RBAC (bypasses DB-derived permissions) */
+  devPermissions?: string[];
 }
 
 /** Full authenticated user details (internal) */

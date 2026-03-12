@@ -1,6 +1,6 @@
-import { createSchema, db } from './dbClient.js';
+import { createSchema, db } from './dbClient.ts';
 import type { Fact, NewFactInput } from '@factdb/types';
-import type { DatabaseSchema } from './dbClient.js';
+import type { DatabaseSchema } from './dbClient.ts';
 
 type NameRow = {
   id: number;
@@ -143,11 +143,14 @@ const toFactWithRelations = async (rows: (DatabaseSchema['facts'] & { suppressed
   });
 };
 
-export async function findFacts(opts: { keyword?: string } = {}): Promise<Fact[]> {
-  const { keyword } = opts;
+export async function findFacts(opts: { keyword?: string; includeNonPublic?: boolean } = {}): Promise<Fact[]> {
+  const { keyword, includeNonPublic = true } = opts;
   try {
     let q = db.selectFrom('facts').selectAll().orderBy('timestamp', 'desc').limit(100);
     q = q.where('suppressed', '=', falseValue);
+    if (!includeNonPublic) {
+      q = q.where('is_public', '=', trueValue as any);
+    }
     if (keyword) {
       const like = `%${keyword}%`;
       q = q.where((eb) =>
@@ -170,15 +173,25 @@ export async function findFacts(opts: { keyword?: string } = {}): Promise<Fact[]
 }
 
 export async function getFactById(id: number): Promise<Fact | undefined> {
+  return getFactByIdInternal(id, true);
+}
+
+export async function getPublicFactById(id: number): Promise<Fact | undefined> {
+  return getFactByIdInternal(id, false);
+}
+
+async function getFactByIdInternal(id: number, includeNonPublic: boolean): Promise<Fact | undefined> {
   try {
-    const row = await db.selectFrom('facts').selectAll().where('id', '=', id).executeTakeFirst();
+    let q = db.selectFrom('facts').selectAll().where('id', '=', id);
+    if (!includeNonPublic) q = q.where('is_public', '=', trueValue as any);
+    const row = await q.executeTakeFirst();
     if (!row) return undefined;
     const [fact] = await toFactWithRelations([row]);
     return fact;
   } catch (err: unknown) {
     if (isSqliteMissingTable(err)) {
       await ensureSchemaOnce();
-      return getFactById(id);
+      return getFactByIdInternal(id, includeNonPublic);
     }
     throw err;
   }
@@ -192,16 +205,92 @@ export async function createFact(input: NewFactInput): Promise<Fact> {
     context: input.context ?? null,
     year: input.year ?? null,
     user_id: input.user_id ?? null,
+    is_public: toDbBoolean(input.is_public ?? false),
     suppressed: toDbBoolean(input.suppressed ?? false),
   };
   try {
-    const insertResult = await db.insertInto('facts').values(insert).executeTakeFirst();
-    const factId = insertResult?.insertId;
-    if (!factId) throw new Error('Could not insert fact');
-    const insertedId = Number(factId);
-    await attachFactLookup(insertedId, input.subjects ?? [], 'subjects', 'fact_subjects', 'subject_id');
-    await attachFactLookup(insertedId, input.audiences ?? [], 'audiences', 'fact_audiences', 'audience_id');
-    const created = await getFactById(insertedId);
+    // Wrap all operations in a transaction for atomicity
+    const result = await db.transaction().execute(async (trx) => {
+      // Insert fact row
+      const insertResult = await trx
+        .insertInto('facts')
+        .values(insert)
+        .executeTakeFirst();
+      
+      const factId = insertResult?.insertId;
+      if (!factId) throw new Error('Could not insert fact');
+      const insertedId = Number(factId);
+
+      // Link subjects within transaction
+      if (Array.isArray(input.subjects) && input.subjects.length > 0) {
+        const uniqueSubjects = normalizeValues(input.subjects);
+        if (uniqueSubjects.length > 0) {
+          await trx
+            .insertInto('subjects')
+            .values(uniqueSubjects.map((name) => ({ name })))
+            .onConflict((oc) => oc.column('name').doNothing())
+            .execute();
+          
+          const subjects = await trx
+            .selectFrom('subjects')
+            .select(['id', 'name'])
+            .where('name', 'in', uniqueSubjects)
+            .execute();
+          
+          if (subjects.length > 0) {
+            await trx
+              .insertInto('fact_subjects')
+              .values(
+                subjects.map((row) => ({
+                  fact_id: insertedId,
+                  subject_id: row.id,
+                })),
+              )
+              .onConflict((oc) =>
+                oc.columns(['fact_id', 'subject_id']).doNothing()
+              )
+              .execute();
+          }
+        }
+      }
+
+      // Link audiences within transaction
+      if (Array.isArray(input.audiences) && input.audiences.length > 0) {
+        const uniqueAudiences = normalizeValues(input.audiences);
+        if (uniqueAudiences.length > 0) {
+          await trx
+            .insertInto('audiences')
+            .values(uniqueAudiences.map((name) => ({ name })))
+            .onConflict((oc) => oc.column('name').doNothing())
+            .execute();
+          
+          const audiences = await trx
+            .selectFrom('audiences')
+            .select(['id', 'name'])
+            .where('name', 'in', uniqueAudiences)
+            .execute();
+          
+          if (audiences.length > 0) {
+            await trx
+              .insertInto('fact_audiences')
+              .values(
+                audiences.map((row) => ({
+                  fact_id: insertedId,
+                  audience_id: row.id,
+                })),
+              )
+              .onConflict((oc) =>
+                oc.columns(['fact_id', 'audience_id']).doNothing()
+              )
+              .execute();
+          }
+        }
+      }
+
+      return insertedId;
+    });
+
+    const created = await getFactById(result);
     if (!created) throw new Error('Could not retrieve created fact');
     return created;
   } catch (err: unknown) {
@@ -222,18 +311,95 @@ export async function updateFact(id: number, changes: Partial<NewFactInput>): Pr
   if (changes.year !== undefined) up.year = changes.year;
   if (changes.user_id !== undefined) up.user_id = changes.user_id;
   if (changes.suppressed !== undefined) up.suppressed = toDbBoolean(changes.suppressed);
-  if (changes.subjects) {
-    await clearFactLookup(id, 'fact_subjects');
-    await attachFactLookup(id, changes.subjects, 'subjects', 'fact_subjects', 'subject_id');
-  }
-  if (changes.audiences) {
-    await clearFactLookup(id, 'fact_audiences');
-    await attachFactLookup(id, changes.audiences, 'audiences', 'fact_audiences', 'audience_id');
-  }
-
-  if (Object.keys(up).length === 0) return;
+  
   try {
-    await db.updateTable('facts').set(up).where('id', '=', id).execute();
+    // Wrap all operations in a transaction for atomicity
+    await db.transaction().execute(async (trx) => {
+      // Update main fact row
+      if (Object.keys(up).length > 0) {
+        await trx
+          .updateTable('facts')
+          .set(up)
+          .where('id', '=', id)
+          .execute();
+      }
+
+      // Update subjects within transaction
+      if (changes.subjects !== undefined) {
+        await trx
+          .deleteFrom('fact_subjects')
+          .where('fact_id', '=', id)
+          .execute();
+        
+        const uniqueSubjects = normalizeValues(changes.subjects);
+        if (uniqueSubjects.length > 0) {
+          await trx
+            .insertInto('subjects')
+            .values(uniqueSubjects.map((name) => ({ name })))
+            .onConflict((oc) => oc.column('name').doNothing())
+            .execute();
+          
+          const subjects = await trx
+            .selectFrom('subjects')
+            .select(['id', 'name'])
+            .where('name', 'in', uniqueSubjects)
+            .execute();
+          
+          if (subjects.length > 0) {
+            await trx
+              .insertInto('fact_subjects')
+              .values(
+                subjects.map((row) => ({
+                  fact_id: id,
+                  subject_id: row.id,
+                })),
+              )
+              .onConflict((oc) =>
+                oc.columns(['fact_id', 'subject_id']).doNothing()
+              )
+              .execute();
+          }
+        }
+      }
+
+      // Update audiences within transaction
+      if (changes.audiences !== undefined) {
+        await trx
+          .deleteFrom('fact_audiences')
+          .where('fact_id', '=', id)
+          .execute();
+        
+        const uniqueAudiences = normalizeValues(changes.audiences);
+        if (uniqueAudiences.length > 0) {
+          await trx
+            .insertInto('audiences')
+            .values(uniqueAudiences.map((name) => ({ name })))
+            .onConflict((oc) => oc.column('name').doNothing())
+            .execute();
+          
+          const audiences = await trx
+            .selectFrom('audiences')
+            .select(['id', 'name'])
+            .where('name', 'in', uniqueAudiences)
+            .execute();
+          
+          if (audiences.length > 0) {
+            await trx
+              .insertInto('fact_audiences')
+              .values(
+                audiences.map((row) => ({
+                  fact_id: id,
+                  audience_id: row.id,
+                })),
+              )
+              .onConflict((oc) =>
+                oc.columns(['fact_id', 'audience_id']).doNothing()
+              )
+              .execute();
+          }
+        }
+      }
+    });
   } catch (err: unknown) {
     if (isSqliteMissingTable(err)) {
       await ensureSchemaOnce();
@@ -292,4 +458,76 @@ export async function listAudiences(): Promise<string[]> {
     .execute();
 
   return dedupeDisplayValues(rows.map((r) => r.name));
+}
+
+export async function listAllSubjects(): Promise<string[]> {
+  try {
+    const rows = await db
+      .selectFrom('subjects')
+      .select(['name'])
+      .orderBy('name')
+      .execute();
+    return dedupeDisplayValues(rows.map((r) => r.name));
+  } catch (err: unknown) {
+    if (isSqliteMissingTable(err)) {
+      await ensureSchemaOnce();
+      return listAllSubjects();
+    }
+    throw err;
+  }
+}
+
+export async function listAllAudiences(): Promise<string[]> {
+  try {
+    const rows = await db
+      .selectFrom('audiences')
+      .select(['name'])
+      .orderBy('name')
+      .execute();
+    return dedupeDisplayValues(rows.map((r) => r.name));
+  } catch (err: unknown) {
+    if (isSqliteMissingTable(err)) {
+      await ensureSchemaOnce();
+      return listAllAudiences();
+    }
+    throw err;
+  }
+}
+
+export async function upsertSubject(name: string): Promise<string> {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) throw new Error('subject_name_required');
+  try {
+    await db
+      .insertInto('subjects')
+      .values({ name: trimmed })
+      .onConflict((oc) => oc.column('name').doNothing())
+      .execute();
+    return trimmed;
+  } catch (err: unknown) {
+    if (isSqliteMissingTable(err)) {
+      await ensureSchemaOnce();
+      return upsertSubject(name);
+    }
+    throw err;
+  }
+}
+
+export async function upsertAudience(name: string): Promise<string> {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) throw new Error('audience_name_required');
+  try {
+    await db
+      .insertInto('audiences')
+      .values({ name: trimmed })
+      .onConflict((oc) => oc.column('name').doNothing())
+      .execute();
+    return trimmed;
+  } catch (err: unknown) {
+    if (isSqliteMissingTable(err)) {
+      await ensureSchemaOnce();
+      return upsertAudience(name);
+    }
+    throw err;
+  }
 }

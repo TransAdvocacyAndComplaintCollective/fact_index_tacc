@@ -3,14 +3,19 @@ import { http, HttpResponse } from 'msw';
 export const handlers = [
   http.get('*/auth/available', () => {
     return HttpResponse.json({
+      available: true,
       providers: [
         {
-          name: 'federation-test',
-          displayName: 'Federation Test Provider',
-          entityId: 'https://federation.test/entity',
+          name: 'discord',
+          displayName: 'Discord',
           available: true,
-          url: 'https://federation.test/login',
-          type: 'federation',
+          url: '/auth/discord',
+        },
+        {
+          name: 'dev',
+          displayName: 'Dev',
+          available: true,
+          url: '/auth/dev',
         },
       ],
     });

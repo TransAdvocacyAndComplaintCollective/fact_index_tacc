@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { authTokenCookieOptions } from "../../config/securityConfig.ts";
 
 /**
  * Set JWT token as secure HttpOnly cookie and redirect to home
@@ -20,21 +21,11 @@ function isValidRedirectPath(path: string): boolean {
 }
 
 export function redirectWithSecureToken(res: Response, token: string, redirectPath: string = "/"): void {
-  // Set cookie with security flags:
-  // - HttpOnly: prevents JavaScript (XSS) from accessing the token
-  // - Secure: only sent over HTTPS (prevents man-in-the-middle)
-  // - SameSite: prevents CSRF attacks by not sending cookie on cross-site requests
-  // - MaxAge: 7 days (matches JWT expiry)
+  // Set cookie with centralized security configuration
   // Validate redirect path to prevent open redirect attacks
   const safeRedirectPath = isValidRedirectPath(redirectPath) ? redirectPath : "/";
 
-  res.cookie("auth_token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/",
-  });
+  res.cookie("auth_token", token, authTokenCookieOptions);
 
   res.redirect(safeRedirectPath);
 }

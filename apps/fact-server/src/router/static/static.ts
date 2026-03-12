@@ -65,8 +65,11 @@ if (isDev) {
 
     // middlewareMode + appType:"custom" is the standard pattern for “Express owns the server”
     // while Vite provides dev transforms + HMR. :contentReference[oaicite:2]{index=2}
+    const hmrEnabled = String(process.env.VITE_HMR || '').trim().toLowerCase() === 'true';
     const hmrPort = process.env.VITE_HMR_PORT ? Number(process.env.VITE_HMR_PORT) : undefined;
-    if (hmrPort) logger.info(`[serve] Vite HMR port from env: ${hmrPort}`);
+    const hmrHost = String(process.env.VITE_HMR_HOST || '127.0.0.1').trim() || '127.0.0.1';
+    const usePolling = String(process.env.VITE_USE_POLLING || '').trim().toLowerCase() !== 'false';
+    if (hmrEnabled && hmrPort) logger.info(`[serve] Vite HMR port from env: ${hmrPort}`);
     viteServer = await createServer({
       root: reactAppRoot,
         
@@ -74,8 +77,17 @@ if (isDev) {
       server: {
         middlewareMode: true,
         allowedHosts: ['wizard.mylocal'],
-        // allow overriding the HMR websocket port from env (VITE_HMR_PORT)
-        hmr: hmrPort ? { port: hmrPort } : undefined,
+        hmr: hmrEnabled ? { host: hmrHost, ...(hmrPort ? { port: hmrPort } : {}) } : false,
+        watch: {
+          usePolling,
+          interval: usePolling ? 250 : undefined,
+          ignored: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/.git/**',
+            '**/.nx/**',
+          ],
+        },
       },
       build: {
         outDir: path.join(workspaceRoot, 'dist', 'apps', 'fact-index'),

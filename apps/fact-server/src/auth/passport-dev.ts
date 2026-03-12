@@ -6,7 +6,7 @@
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "@oauth-everything/passport-discord";
 import type { AuthUser } from "../../../../libs/types/src/index.ts";
-import { log } from "./jwt.ts";
+import { log } from "../logger.ts";
 
 interface DiscordProfile {
   id: string;
@@ -32,6 +32,11 @@ function envFlag(name: string): boolean {
 const DEV_LOGIN_MODE = envFlag("DEV_LOGIN_MODE");
 const DEV_ADMIN_ID = process.env.DEV_ADMIN_ID || "";
 const DEV_IS_ADMIN = envFlag("DEV_IS_ADMIN");
+const NODE_ENV = String(process.env.NODE_ENV || "").trim().toLowerCase();
+
+function devAllowed(): boolean {
+  return NODE_ENV !== "production";
+}
 
 /**
  * Check if a user ID should be an admin in dev mode
@@ -63,7 +68,7 @@ function buildDevUser(profile: DiscordProfile | null): AuthUser {
  * Initialize dev bypass strategy for development without Discord OAuth credentials
  */
 export function initializeDevStrategy(): void {
-  if (!DEV_LOGIN_MODE) {
+  if (!DEV_LOGIN_MODE || !devAllowed()) {
     return;
   }
 
@@ -94,21 +99,21 @@ export function initializeDevStrategy(): void {
  * Check if dev login mode is active
  */
 export function isDevModeActive(): boolean {
-  return DEV_LOGIN_MODE;
+  return DEV_LOGIN_MODE && devAllowed();
 }
 
 /**
  * Initialize dev mode with missing Discord OAuth credentials warning
  */
 export function initializeDevModeIfNeeded(): void {
-  if (DEV_LOGIN_MODE) {
+  if (DEV_LOGIN_MODE && devAllowed()) {
     log("warn", "Discord env vars missing/incomplete; DEV_LOGIN_MODE active; registering dev bypass strategy");
     initializeDevStrategy();
   }
 }
 
 // Auto-initialize dev mode on module load if DEV_LOGIN_MODE is set
-if (DEV_LOGIN_MODE) {
+if (DEV_LOGIN_MODE && devAllowed()) {
   log("info", "DEV_LOGIN_MODE enabled; initializing dev bypass strategy");
   initializeDevStrategy();
 }

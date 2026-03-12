@@ -4,15 +4,13 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import logger from './logger.ts';
-// wellknownRouter is imported after DB init to avoid importing auth modules early
+import { sessionCookieOptions } from './config/securityConfig.ts';
+import { globalErrorHandler } from './utils/errorHandler.ts';
+import { requestContextMiddleware } from './middleware/requestContext.ts';
 import * as dbSchema from './db/schema.ts';
 import { initializeCasbin, validateLoginRolesMiddleware } from './auth/casbin.ts';
-import { registerFederationRoutes } from './federation/routes.ts';
-import { registerOidcInteractions } from './oidc/interactions.ts';
-import { createOidcProvider } from './oidc/provider.ts';
-import { registerFederationAuthRoutes } from './auth/federation-auth.ts';
-import { createOidcStorageTables } from './oidc/adapter.ts';
 // authRouter and passport strategies are imported after DB init to avoid
 // performing DB queries (token revocation checks) before the schema exists.
 
@@ -27,11 +25,6 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('[serve] Unhandled rejection', { reason: String(reason) });
 });
 
-// Feature flags
-const ENABLE_FEDERATION = process.env.ENABLE_FEDERATION !== 'false';
-const ENABLE_FEDERATION_PROVIDER = process.env.ENABLE_FEDERATION_PROVIDER !== 'false';
-const ENABLE_FEDERATION_LOGIN = process.env.ENABLE_FEDERATION_LOGIN !== 'false';
-
 // Log whether Discord env vars are present
 logger.info('[serve] Discord env:', {
   DISCORD_CLIENT_ID: Boolean(process.env.DISCORD_CLIENT_ID),
@@ -40,12 +33,24 @@ logger.info('[serve] Discord env:', {
   DEV_LOGIN_MODE: process.env.DEV_LOGIN_MODE,
 });
 
-// Log OpenID Federation status
-logger.info('[serve] OpenID Federation:', {
-  enabled: ENABLE_FEDERATION,
-  provider: ENABLE_FEDERATION_PROVIDER,
-  login: ENABLE_FEDERATION_LOGIN,
-});
+function configureOutboundProxy() {
+  const proxyUrl =
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY ||
+    process.env.https_proxy ||
+    process.env.http_proxy ||
+    "";
+  if (!proxyUrl) return;
+  try {
+    setGlobalDispatcher(new ProxyAgent(String(proxyUrl)));
+    logger.info("[serve] Outbound proxy enabled for Node fetch", { proxy: String(proxyUrl).replace(/:\/\/.*@/, "://***@") });
+  } catch (err) {
+    logger.warn("[serve] Failed to configure outbound proxy", { error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+configureOutboundProxy();
+
 // staticRouter and apiRouter are imported lazily after schema creation
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let apiRouter: any = null;
@@ -54,6 +59,25 @@ let staticRouter: any = null;
 const isDev = process.env.NODE_ENV === 'development';
 
 const app = express();
+
+// If running behind a reverse proxy (common in production), this enables correct `req.secure`
+// and supports `cookie.secure = "auto"` for session cookies.
+if (process.env.NODE_ENV === 'production') {
+  const trustProxy = String(process.env.TRUST_PROXY || '1').trim();
+  app.set('trust proxy', trustProxy === 'true' ? 1 : Number.isFinite(Number(trustProxy)) ? Number(trustProxy) : 1);
+}
+
+const SESSION_SECRET_RAW = process.env.SESSION_SECRET || '';
+const DEFAULT_DEV_SESSION_SECRET = 'dev-secret-change-in-production';
+if (process.env.NODE_ENV === 'production') {
+  const usingDefault = !SESSION_SECRET_RAW || SESSION_SECRET_RAW === DEFAULT_DEV_SESSION_SECRET;
+  if (usingDefault || SESSION_SECRET_RAW.length < 32) {
+    throw new Error(
+      'SECURITY: SESSION_SECRET must be set to a strong random value (>= 32 chars) in production.',
+    );
+  }
+}
+const SESSION_SECRET = SESSION_SECRET_RAW || DEFAULT_DEV_SESSION_SECRET;
 
 // Configure CORS for cross-origin requests from the frontend
 // In production, configure FRONTEND_URL environment variable for proper origins
@@ -97,20 +121,48 @@ function createCorsOptions(): cors.CorsOptions {
 
 // Enable CORS with credentials (cookies) support
 const corsOptions = createCorsOptions();
+
+// Add request context middleware FIRST (before all other middleware)
+// Assigns unique ID to each request for correlation across logs
+// Tracks request duration and logs completion
+app.use(requestContextMiddleware);
+
 app.use(cors(corsOptions));
 
-// Add security headers middleware
+// Add comprehensive security headers middleware (OWASP recommendations)
 app.use((req, res, next) => {
   // Prevent clickjacking attacks
   res.setHeader('X-Frame-Options', 'DENY');
+  
   // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  
   // Enable XSS protection in older browsers
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  // Strict Transport Security (only in production)
+  
+  // Content Security Policy - restrict sources to same-origin, prevent inline scripts
+  // Allows: same-origin resources only, no unsafe inline scripts/styles
+  const cspHeader = process.env.NODE_ENV === 'production'
+    ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:"
+    : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http: https:; font-src 'self' data:; connect-src 'self' http: https: ws: wss:";
+  res.setHeader('Content-Security-Policy', cspHeader);
+  
+  // Prevent embedding in cross-domain contexts
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  
+  // Control referrer header to prevent information leakage
+  res.setHeader('Referrer-Policy', 'strict-no-referrer');
+  
+  // Restrict browser features (geolocation, camera, microphone, etc.)
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  
+  // Strict Transport Security - HTTPS only, with preload for production
   if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    // max-age: 1 year, includeSubDomains: apply to subdomains, preload: allow HSTS preload
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
+  // Dev: Skip HSTS in development to allow HTTP-only testing
+  
   next();
 });
 
@@ -122,18 +174,23 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // Parse cookies from the Cookie header
 app.use(cookieParser());
 
-// Add session middleware for OIDC interactions
-// This keeps track of login state during the OAuth flow
+// Add session middleware for OAuth state (e.g., login redirects)
+// Uses centralized security configuration for consistent cookie handling
+const sessionCookieSecureRaw = String(process.env.SESSION_COOKIE_SECURE || '').trim().toLowerCase();
+const sessionCookieSecure: boolean | 'auto' =
+  isDev
+    ? false
+    : sessionCookieSecureRaw === 'true'
+      ? true
+      : sessionCookieSecureRaw === 'false'
+        ? false
+        : 'auto';
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  },
+  cookie: { ...sessionCookieOptions, secure: sessionCookieSecure } as any,
 }));
 
 // Log that the router module was initialized
@@ -146,12 +203,9 @@ app.use(passport.initialize());
 // Validate user maintains required login roles (logs them out if they lose required roles)
 app.use(validateLoginRolesMiddleware);
 
-// well-known endpoints (JWKS, discovery, etc.) mounted after DB init
-
-
-
 // open port from environment or default to 3000
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+import { parseEnvInt } from './utils/parsing.ts';
+const PORT = parseEnvInt('PORT', 3000, 1);
 
 
 // Start the server after DB initialization + schema creation
@@ -165,86 +219,18 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
     await dbSchema.createSchema(dbSchema.getDb());
     console.log('[serve] Schema ready');
 
-    // Create OIDC storage tables  
-    console.log('[serve] Creating OIDC storage tables...');
-    await createOidcStorageTables(dbSchema.getDb());
-    console.log('[serve] OIDC storage tables ready');
-
     // Initialize casbin authorization engine
     console.log('[serve] Initializing casbin authorization...');
     await initializeCasbin();
     console.log('[serve] Casbin authorization ready');
 
-    // Register OpenID Federation routes (/.well-known/openid-federation)
-    // Pass both app and a reference to the OIDC provider (will be null if federation disabled)
-    let oidcProvider = null;
-
-    if (ENABLE_FEDERATION) {
-      console.log('[serve] Registering OpenID Federation routes...');
-      registerFederationRoutes(app);
-      console.log('[serve] OpenID Federation routes registered');
-    }
-
-    if (ENABLE_FEDERATION_PROVIDER) {
-      // Create and mount OIDC Provider
-      const issuer = process.env.FEDERATION_ENTITY_ID || 'https://fact.example.com';
-      const baseUrl = process.env.OIDC_BASE_URL || issuer;
-      console.log('[serve] Creating OIDC Provider...');
-      oidcProvider = await createOidcProvider({
-        issuer,
-        baseUrl,
-      });
-      console.log('[serve] OIDC Provider created');
-
-      // Mount OIDC provider (handles /oidc/* endpoints)
-      console.log('[serve] Mounting OIDC provider...');
-      
-      // Add debug middleware to log requests to /oidc
-      app.use('/oidc', (req, res, next) => {
-        console.log(`[oidc-debug] Incoming request: ${req.method} ${req.path} - URL: ${req.originalUrl}`);
-        next();
-      });
-      
-      const oidcCallback = oidcProvider.callback();
-      console.log('[serve] OIDC callback middleware created');
-      app.use('/oidc', oidcCallback);
-      console.log('[serve] OIDC provider mounted');
-    }
-
-    if (ENABLE_FEDERATION_LOGIN && oidcProvider) {
-      // Register OIDC interaction routes (login, consent, discord callback)
-      console.log('[serve] Registering OIDC interaction routes...');
-      registerOidcInteractions(app, oidcProvider);
-      console.log('[serve] OIDC interaction routes registered');
-
-      // Register federation authentication routes (BFF pattern)
-      try {
-        console.log('[serve] Registering federation auth routes...');
-        registerFederationAuthRoutes(app);
-        console.log('[serve] Federation auth routes registered');
-      } catch (err) {
-        console.error('[serve] Failed to register federation auth routes:', err);
-      }
-    } else if (ENABLE_FEDERATION_LOGIN && !oidcProvider) {
-      console.warn('[serve] OIDC login requested but OIDC Provider not enabled - skipping login routes');
-    }
-
-    if (!ENABLE_FEDERATION && !ENABLE_FEDERATION_PROVIDER && !ENABLE_FEDERATION_LOGIN) {
-      console.log('[serve] OpenID Federation features disabled');
-    }
-
     // Now that DB and schema are ready, register passport strategies and mount auth routes
     console.log('[serve] Registering passport strategies and auth routes...');
     await import('./auth/passport-discord.ts');
     // import auth router and mount it
-    const { default: authRouter } = await import('./router/auth/auth.ts');
+    const { default: authRouter } = await import('./router/auth.ts');
     app.use(authRouter);
     console.log('[serve] Auth routes registered');
-
-    // Mount well-known endpoints (JWKS, discovery, etc.) after JWKS initialization
-    const { default: wellknown } = await import('./router/wellknown.ts');
-    app.use("/.well-known", wellknown);
-    console.log('[serve] Well-known routes registered');
 
     // Dynamically import routers now
     console.log('[serve] Importing API router...');
@@ -259,9 +245,53 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
     app.use('/api', apiRouter);
     app.use(staticRouter);
 
-    app.listen(PORT, () => {
+    // Global error handler middleware (must be last)
+    // Ensures all errors are logged and responded to consistently
+    app.use(globalErrorHandler);
+
+    const server = app.listen(PORT, () => {
       logger.info(`[serve] Fact Index server listening on port ${PORT} - mode: ${isDev ? 'development' : 'production'}`);
     });
+    // Handles SIGTERM and SIGINT to shut down gracefully
+    // Gives the server 10 seconds to close connections before forced exit
+    const gracefulShutdown = (signal: string) => {
+      return async () => {
+        logger.info(`[serve] ${signal} received, starting graceful shutdown...`);
+        
+        // Stop accepting new connections
+        server.close(async () => {
+          logger.info('[serve] HTTP server stopped accepting new connections');
+          
+          try {
+            // Close database connection
+            const db = dbSchema.getDb();
+            if (db) {
+              logger.info('[serve] Closing database connection...');
+              await db.destroy();
+              logger.info('[serve] Database connection closed');
+            }
+            
+            logger.info('[serve] Graceful shutdown complete, exiting');
+            process.exit(0);
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error('[serve] Error during graceful shutdown', { error: errorMessage });
+            process.exit(1);
+          }
+        });
+        
+        // Force shutdown after 10 seconds if graceful shutdown hasn't completed
+        // This prevents hanging processes during deployments
+        setTimeout(() => {
+          logger.error('[serve] Graceful shutdown timeout (10s) exceeded, forcing exit');
+          process.exit(1);
+        }, 10000);
+      };
+    };
+
+    // Register shutdown handlers for common termination signals
+    process.on('SIGTERM', gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', gracefulShutdown('SIGINT'));
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : '';

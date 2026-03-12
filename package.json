@@ -14,8 +14,13 @@
     "storybook": "nx storybook fact-index",
     "build:storybook": "nx run fact-index:storybook-build",
     "test": "nx test",
+    "test:e2e:server": "node --test --test-concurrency=1 tests/e2e/server.e2e.test.mjs",
+    "test:e2e:client": "node --test --test-concurrency=1 tests/e2e/client.e2e.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.e2e.test.mjs",
+    "test:e2e:coverage": "rm -rf .coverage/e2e && mkdir -p .coverage/e2e/v8 && NODE_OPTIONS= NODE_V8_COVERAGE=.coverage/e2e/v8 node --test --test-concurrency=1 tests/e2e/*.e2e.test.mjs && pnpm dlx c8 report --temp-directory .coverage/e2e/v8 --reports-dir .coverage/e2e --reporter=text-summary --reporter=lcov --reporter=json-summary --include \"apps/fact-server/src/**\" --include \"apps/fact-index/src/**\" --exclude \"**/*.test.*\" --exclude \"tests/**\"",
     "test-storybook": "pnpm --filter fact-index run test-storybook",
-    "knip": "knip"
+    "knip": "knip",
+    "generate:ta-jwks": "node scripts/generate-ta-jwks.mjs"
   },
   "repository": {
     "type": "git",
@@ -74,6 +79,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.19.0",
     "vite": "^7.3.1"
+    ,"jose": "^6.1.3"
   },
   "pnpm": {
     "overrides": {

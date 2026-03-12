@@ -6,7 +6,7 @@
 import type { Kysely } from "kysely";
 import type { Adapter } from "casbin";
 import type { Model } from "casbin";
-import type { DatabaseSchema } from "@factdb/db-core";
+import type { DatabaseSchema } from "../../../../../libs/db-core/src/dbClient.ts";
 
 function trimRightNulls(vals: Array<string | null | undefined>): string[] {
   let end = vals.length;

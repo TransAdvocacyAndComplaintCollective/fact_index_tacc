@@ -14,13 +14,11 @@ import {
 import type { AuthReason, AuthStatus, AuthStatusUser } from "@factdb/types";
 
 interface ProviderOption {
-  name?: string;
+  name?: "discord" | "dev" | string;
   displayName?: string;
   url?: string;
   available?: boolean;
   devBypass?: boolean;
-  type?: string;
-  entityId?: string;
 }
 
 interface AuthStatusResponse {
@@ -31,15 +29,9 @@ export type LoginProviderPayload = ProviderOption;
 
 const defaultProviders: LoginProviderPayload[] = [
   {
-    name: "Discord",
+    name: "discord",
+    displayName: "Discord",
     url: "/auth/discord",
-    available: true,
-  },
-  {
-    name: "federation",
-    displayName: "TACC",
-    type: "federation",
-    url: "/login/federation",
     available: true,
   },
 ];
@@ -60,6 +52,7 @@ async function fetchAuthStatus({
   try {
     const res = await fetch("/auth/status", {
       credentials: "include",
+      cache: "no-store",
       signal,
       headers: { Accept: "application/json" },
     });
@@ -93,6 +86,8 @@ export interface AuthContextValue {
   loading: boolean;
   authenticated: boolean;
   isAdmin: boolean;
+  devBypass: boolean;
+  hasSuperuser: boolean;
   user: AuthStatusUser | null;
   reason: AuthReason | string | null;
   login: (fallbackUrl?: string) => Promise<void>;
@@ -123,7 +118,7 @@ export function useAuth(): AuthContextValue {
 
     const checkAuth = async () => {
       try {
-        const res = await fetch("/auth/available", { signal: controller.signal });
+        const res = await fetch("/auth/available", { signal: controller.signal, cache: "no-store" });
         if (!mounted) return;
 
         let payload: { available?: boolean; providers?: LoginProviderPayload[] } | null = null;
@@ -195,6 +190,7 @@ export function useAuth(): AuthContextValue {
     try {
       const res = await fetch("/auth/available", {
         credentials: "include",
+        cache: "no-store",
         headers: { Accept: "application/json" },
       });
 
@@ -218,25 +214,7 @@ export function useAuth(): AuthContextValue {
       if (!ok) throw new Error("Login currently unavailable");
 
       const providerUrl = provider?.url || fallbackUrl;
-      const isOidc = provider?.name?.toLowerCase().includes("federation");
-
-      if (isOidc) {
-        // OIDC authorization code flow
-        const clientId = (import.meta as any).env.VITE_OIDC_CLIENT_ID || "fact-index-frontend";
-        const redirectUri = (import.meta as any).env.VITE_OIDC_REDIRECT_URI || window.location.origin + "/oidc/callback";
-        
-        const params = new URLSearchParams({
-          client_id: clientId,
-          response_type: "code",
-          scope: "openid email profile",
-          redirect_uri: redirectUri,
-        });
-
-        window.location.href = `/oidc/authorization?${params.toString()}`;
-      } else {
-        // Traditional redirects (Discord, etc.)
-        window.location.href = providerUrl;
-      }
+      window.location.href = providerUrl;
     },
     [checkAvailable]
   );
@@ -269,6 +247,8 @@ export function useAuth(): AuthContextValue {
   const user = (discord.user ?? null) as AuthStatusUser | null;
   const reason = discord.reason ?? null;
   const isAdmin = Boolean(discord.user?.isAdmin);
+  const devBypass = Boolean((discord as any)?.devBypass);
+  const hasSuperuser = Array.isArray(user?.permissions) && user!.permissions.includes("superuser");
 
   const refresh = useCallback(
     () => statusQuery.refetch({ cancelRefetch: false }),
@@ -282,6 +262,8 @@ export function useAuth(): AuthContextValue {
       loading: statusQuery.isInitialLoading || statusQuery.isFetching,
       authenticated,
       isAdmin,
+      devBypass,
+      hasSuperuser,
       user,
       reason,
       login: loginWithCheck,
@@ -296,7 +278,7 @@ export function useAuth(): AuthContextValue {
       showHelp,
       helpToggle,
     }),
-    [statusQuery.isFetching, statusQuery.isInitialLoading, authenticated, isAdmin, user, reason, loginWithCheck, refresh, logoutFn, checkAvailable, authAvailable, providerOptions, errorReason, reasonCode, userMessage, showHelp, helpToggle]
+    [statusQuery.isFetching, statusQuery.isInitialLoading, authenticated, isAdmin, devBypass, hasSuperuser, user, reason, loginWithCheck, refresh, logoutFn, checkAvailable, authAvailable, providerOptions, errorReason, reasonCode, userMessage, showHelp, helpToggle]
   );
 
   return useMemo<AuthContextValue>(

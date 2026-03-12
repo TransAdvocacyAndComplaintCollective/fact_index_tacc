@@ -1,6 +1,6 @@
 /**
  * Storybook Stories for LocalIdentityLogin Component
- * Displays the local identity provider login form in various states
+ * Displays the local/dev login form in various states
  */
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn, expect, userEvent } from 'storybook/test';

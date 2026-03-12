@@ -1,35 +1,27 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Group, Anchor, Button, Avatar, Text, Box, useMantineTheme, useMantineColorScheme } from '@mantine/core';
+import { Group, Anchor, Button, Text, Box, useMantineTheme, useMantineColorScheme } from '@mantine/core';
 import ThemeToggle from './ThemeToggle';
 import { useAuthContext } from '../context/AuthContext';
-import { FaChartBar, FaHome, FaFolderOpen, FaDiscord } from 'react-icons/fa';
+import { FaChartBar, FaHome, FaFolderOpen, FaDiscord, FaDatabase } from 'react-icons/fa';
 import { useRBACContext } from '@impelsysinc/react-rbac';
-
-function getDiscordAvatarUrl(
-  id: string | undefined | null,
-  avatar?: string | null,
-  discriminator?: string | null
-) {
-  if (!id) return null;
-
-  if (avatar) {
-    const ext = avatar.startsWith("a_") ? "gif" : "png";
-    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${ext}?size=64`;
-  }
-
-  const parsed = Number.isFinite(Number(discriminator)) ? Number(discriminator) : 0;
-  const fallbackIndex = parsed % 5;
-  return `https://cdn.discordapp.com/embed/avatars/${fallbackIndex}.png`;
-}
+import { safeCanAccess } from '../utils/safeCanAccess';
 
 function NavBar() {
-  const { user, logout, loading, isAdmin } = useAuthContext();
+  const { user, logout, loading, isAdmin, authenticated } = useAuthContext();
   const { canAccess } = useRBACContext();
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
-  const isAuthenticated = Boolean(user);
-  const avatarSrc = user ? getDiscordAvatarUrl(user.id, user.avatar, user.discriminator) : null;
+  const isAuthenticated = Boolean(authenticated);
+  const granted = Array.isArray(user?.permissions) ? user!.permissions : [];
+  const canSeeAdmin =
+    Boolean(isAdmin) ||
+    granted.includes("superuser") ||
+    granted.includes("admin:read") ||
+    granted.includes("admin:write") ||
+    safeCanAccess(canAccess, "admin:read") ||
+    safeCanAccess(canAccess, "admin:write") ||
+    false;
   
   const isDark = colorScheme === 'dark';
   const titleColor = isDark ? theme.white : theme.colors.dark[9];
@@ -68,7 +60,13 @@ function NavBar() {
                 <span>Database</span>
               </Group>
             </Anchor>
-            {isAuthenticated && Boolean(isAdmin) && (
+            <Anchor component={NavLink} to="/data-portal" fw={500} c={linkColor}>
+              <Group gap="xs" align="center">
+                <FaDatabase aria-hidden="true" />
+                <span>Data Portal</span>
+              </Group>
+            </Anchor>
+            {isAuthenticated && canSeeAdmin && (
               <Anchor component={NavLink} to="/admin" fw={500} c={linkColor}>
                 <Group gap="xs" align="center">
                   <FaDiscord aria-hidden="true" />
@@ -85,14 +83,6 @@ function NavBar() {
             <Text size="sm" c="dimmed">Loading…</Text>
           ) : isAuthenticated ? (
             <Group gap="xs" align="center">
-              <Avatar
-                src={avatarSrc}
-                alt={user?.username ? `${user.username} avatar` : "user avatar"}
-                radius="xl"
-                size={32}
-              >
-                {user?.username?.[0]}
-              </Avatar>
               <div>
                 <Text fw={500} size="sm">{user?.username}</Text>
                 <Text size="xs" c="dimmed">Logged in</Text>

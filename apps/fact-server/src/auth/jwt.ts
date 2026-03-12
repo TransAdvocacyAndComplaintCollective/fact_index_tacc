@@ -1,95 +1,30 @@
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { getDb } from "../db/schema.ts";
+import { log } from "../logger.ts";
 import type { AuthUser } from "../../../../libs/types/src/index.ts";
-import {
-  getCurrentPrivateKey,
-  getCurrentKeyId,
-  getKeyById,
-} from "./jwks.ts";
+import { getJwtSecrets } from "../../../../libs/db-core/src/jwtSecretRepository.ts";
 
 // Type definition for Passport callback
 type Done = (err: Error | null, user?: AuthUser | false, info?: unknown) => void;
 
-// ---------------------------------------------------------------------------
-// Logging utility
-// ---------------------------------------------------------------------------
-export function log(level: "info" | "warn" | "error", ...args: unknown[]) {
-  const ts = new Date().toISOString();
-  const fn = console[level] as unknown as (...a: unknown[]) => void;
-  fn(`[${ts}] [jwt]`, ...args);
-}
-
-// ---------------------------------------------------------------------------
-// Token encryption configuration
-// ---------------------------------------------------------------------------
-const TOKEN_ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY;
-
-// Validate encryption key is set in production
-if (!TOKEN_ENCRYPTION_KEY) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "SECURITY: TOKEN_ENCRYPTION_KEY environment variable MUST be set in production. " +
-      "Generate a strong random key (e.g., node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\") " +
-      "and set it before starting the server."
-    );
-  }
-  // Development fallback only
-  log("warn", "TOKEN_ENCRYPTION_KEY not set; using insecure development key. DO NOT USE IN PRODUCTION.");
-}
-
-const ENCRYPTION_KEY = TOKEN_ENCRYPTION_KEY || "dev-only-insecure-key-change-immediately-in-production";
-const ALGORITHM = "aes-256-gcm";
-
-function deriveKey(secret: string): Buffer {
-  return scryptSync(secret, "salt", 32);
-}
-
-export function encryptToken(token: string): string {
-  try {
-    const key = deriveKey(ENCRYPTION_KEY);
-    const iv = randomBytes(16);
-    const cipher = createCipheriv(ALGORITHM, key, iv);
-    
-    let encrypted = cipher.update(token, "utf8", "hex");
-    encrypted += cipher.final("hex");
-    
-    const authTag = cipher.getAuthTag();
-    // Format: iv.authTag.encrypted
-    return `${iv.toString("hex")}.${authTag.toString("hex")}.${encrypted}`;
-  } catch (err) {
-    log("error", "Token encryption failed:", err);
-    throw new Error("Failed to encrypt token");
-  }
-}
-
-export function decryptToken(encryptedData: string): string {
-  try {
-    const key = deriveKey(ENCRYPTION_KEY);
-    const parts = encryptedData.split(".");
-    if (parts.length !== 3) throw new Error("Invalid encrypted token format");
-    
-    const iv = Buffer.from(parts[0], "hex");
-    const authTag = Buffer.from(parts[1], "hex");
-    const encrypted = parts[2];
-    
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-    
-    let decrypted = decipher.update(encrypted, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-    
-    return decrypted;
-  } catch (err) {
-    log("error", "Token decryption failed:", err);
-    throw new Error("Failed to decrypt token");
-  }
-}
-
-// JWT configuration using JWKS (JSON Web Key Set) with key rotation
+// JWT configuration (DB-backed HMAC secret rotation)
 const JWT_EXPIRATION = process.env.JWT_EXPIRY || "7d";
+
+let jwtSecretsCache: { loadedAtMs: number; current: string; verify: string[] } | null = null;
+async function getJwtSecretsCached(): Promise<{ current: string; verify: string[] }> {
+  const now = Date.now();
+  if (jwtSecretsCache && now - jwtSecretsCache.loadedAtMs < 10_000) {
+    return { current: jwtSecretsCache.current, verify: jwtSecretsCache.verify };
+  }
+  const secrets = await getJwtSecrets();
+  const current = secrets.current.secret;
+  const verify = secrets.validForVerify.map((s) => s.secret);
+  jwtSecretsCache = { loadedAtMs: now, current, verify };
+  return { current, verify };
+}
 
 // ---------------------------------------------------------------------------
 // JWT Token Revocation (Blacklist)
@@ -148,8 +83,8 @@ export async function isTokenRevoked(jti: string): Promise<boolean> {
     return false;
   } catch (err) {
     log("error", "Error checking token revocation:", err);
-    // In case of DB error, fail open (don't revoke) to avoid blocking users
-    return false;
+    // Fail closed on revocation store errors to avoid accepting compromised tokens.
+    return true;
   }
 }
 
@@ -213,7 +148,7 @@ export async function cleanupExpiredBlacklistedTokens(): Promise<number> {
 // JWT Token Generation (with encrypted Discord OAuth tokens + metadata)
 // ---------------------------------------------------------------------------
 
-export function generateJWT(user: AuthUser): string {
+export async function generateJWT(user: AuthUser): Promise<string> {
   // Generate a unique JWT ID (jti) for token revocation support
   const jti = randomUUID();
   
@@ -229,6 +164,10 @@ export function generateJWT(user: AuthUser): string {
     isAdmin: user.isAdmin ?? false,
   };
 
+  if (user.type === "dev" && Array.isArray(user.devPermissions)) {
+    payload.devPermissions = user.devPermissions;
+  }
+
   const lastCheckTimestamp =
     user.type === "discord" && typeof user.lastCheck === "number"
       ? user.lastCheck
@@ -240,17 +179,16 @@ export function generateJWT(user: AuthUser): string {
     payload.last_check = lastCheckTimestamp;
   }
 
+  // Encode cached role metadata when present (used for Casbin subject derivation)
+  if (Array.isArray(user.cachedMemberRoles)) {
+    payload.cachedMemberRoles = user.cachedMemberRoles;
+  }
+
   // Only encode these fields for Discord users
   if (user.type === "discord") {
     if (typeof user.cacheUpdatedAt === "number") payload.cacheUpdatedAt = user.cacheUpdatedAt;
     if (Array.isArray(user.cachedGuildIds)) payload.cachedGuildIds = user.cachedGuildIds;
-    if (Array.isArray(user.cachedMemberRoles)) payload.cachedMemberRoles = user.cachedMemberRoles;
     
-    // Include encrypted Discord OAuth tokens in JWT
-    if (user.encryptedTokens) {
-      payload.encryptedTokens = user.encryptedTokens;
-    }
-
     // Include token metadata in JWT (expiresAt and scope)
     if (typeof user.expires === "number") {
       payload.token_expires_at = user.expires;
@@ -260,14 +198,10 @@ export function generateJWT(user: AuthUser): string {
     }
   }
 
-  // Sign with current private key (RSA), include key ID (kid) in header
-  const privateKey = getCurrentPrivateKey();
-  const kid = getCurrentKeyId();
-
-  return jwt.sign(payload, privateKey, {
-    algorithm: "RS256",
+  const { current } = await getJwtSecretsCached();
+  return jwt.sign(payload, current, {
+    algorithm: "HS256",
     expiresIn: JWT_EXPIRATION,
-    keyid: kid,
   });
 }
 
@@ -275,98 +209,78 @@ export function generateJWT(user: AuthUser): string {
 // JWT Token Verification (with decryption of OAuth tokens)
 // ---------------------------------------------------------------------------
 
-export function verifyJWT(token: string): AuthUser | null {
+export async function verifyJWTAsync(token: string): Promise<AuthUser | null> {
   try {
-    // Decode without verification first to get the key ID (kid) from header
-    const decoded = jwt.decode(token, { complete: true }) as any;
-    if (!decoded || !decoded.header) {
-      log("warn", "JWT decode failed: no header");
-      return null;
-    }
-
-    const kid = decoded.header.kid;
-    if (!kid) {
-      log("warn", "JWT missing kid in header");
-      return null;
-    }
-
-    // Get the key by ID from JWKS
-    const publicKey = getKeyById(kid);
-    if (!publicKey) {
-      log("warn", `JWT verification failed: key not found for kid=${kid}`);
-      return null;
-    }
-
-    // Verify JWT with the correct public key
-    const verified = jwt.verify(token, publicKey) as any;
-    const id = verified?.sub ? String(verified.sub) : null;
-    if (!id) return null;
-
-    // Determine if this is a dev bypass user or Discord-authenticated user
-    const isDevBypass = Boolean(verified.devBypass);
-    
-    const user: AuthUser = isDevBypass
-      ? {
-          type: "dev",
-          id,
-          username: verified.username ? String(verified.username) : "",
-          avatar: verified.avatar ?? null,
-          discriminator: verified.discriminator ?? null,
-          guild: verified.guild ?? null,
-          hasRole: Boolean(verified.hasRole),
-          isAdmin: Boolean(verified.isAdmin),
-          devBypass: true,
-        }
-      : {
-          type: "discord",
-          id,
-          username: verified.username ? String(verified.username) : "",
-          avatar: verified.avatar ?? null,
-          discriminator: verified.discriminator ?? null,
-          guild: verified.guild ?? null,
-          hasRole: Boolean(verified.hasRole),
-          isAdmin: Boolean(verified.isAdmin),
-          devBypass: false,
-          jti: verified.jti ? String(verified.jti) : undefined,
-          cacheUpdatedAt:
-            typeof verified.cacheUpdatedAt === "number" ? verified.cacheUpdatedAt : undefined,
-          lastCheck:
-            typeof verified.last_check === "number"
-              ? verified.last_check
-              : typeof verified.cacheUpdatedAt === "number"
-              ? verified.cacheUpdatedAt
-              : undefined,
-          cachedGuildIds: Array.isArray(verified.cachedGuildIds)
-            ? verified.cachedGuildIds.map((g: unknown) => String(g))
-            : undefined,
-          cachedMemberRoles: Array.isArray(verified.cachedMemberRoles)
-            ? verified.cachedMemberRoles.map((r: unknown) => String(r))
-            : undefined,
-        };
-
-    // Decrypt OAuth tokens from JWT if present (Discord users only)
-    if (!isDevBypass && verified.encryptedTokens && typeof verified.encryptedTokens === "string") {
+    const { verify } = await getJwtSecretsCached();
+    for (const secret of verify) {
       try {
-        const decryptedJson = decryptToken(verified.encryptedTokens);
-        const tokens = JSON.parse(decryptedJson);
-        (user as any).accessToken = tokens.accessToken;
-        (user as any).refreshToken = tokens.refreshToken ?? null;
-      } catch (decryptErr) {
-        log("warn", "Failed to decrypt tokens from JWT:", decryptErr);
+        const verified = jwt.verify(token, secret, { algorithms: ["HS256"] }) as any;
+        const id = verified?.sub ? String(verified.sub) : null;
+        if (!id) return null;
+
+        const isDevBypass = Boolean(verified.devBypass);
+
+        const user: AuthUser = isDevBypass
+          ? {
+              type: "dev",
+              id,
+              username: verified.username ? String(verified.username) : "",
+              avatar: verified.avatar ?? null,
+              discriminator: verified.discriminator ?? null,
+              guild: verified.guild ?? null,
+              hasRole: Boolean(verified.hasRole),
+              isAdmin: Boolean(verified.isAdmin),
+              devBypass: true,
+              cachedMemberRoles: Array.isArray(verified.cachedMemberRoles)
+                ? verified.cachedMemberRoles.map((r: unknown) => String(r))
+                : undefined,
+              devPermissions: Array.isArray(verified.devPermissions)
+                ? verified.devPermissions.map((p: unknown) => String(p))
+                : undefined,
+            }
+          : {
+              type: "discord",
+              id,
+              username: verified.username ? String(verified.username) : "",
+              avatar: verified.avatar ?? null,
+              discriminator: verified.discriminator ?? null,
+              guild: verified.guild ?? null,
+              hasRole: Boolean(verified.hasRole),
+              isAdmin: Boolean(verified.isAdmin),
+              devBypass: false,
+              jti: verified.jti ? String(verified.jti) : undefined,
+              cacheUpdatedAt:
+                typeof verified.cacheUpdatedAt === "number" ? verified.cacheUpdatedAt : undefined,
+              lastCheck:
+                typeof verified.last_check === "number"
+                  ? verified.last_check
+                  : typeof verified.cacheUpdatedAt === "number"
+                  ? verified.cacheUpdatedAt
+                  : undefined,
+              cachedGuildIds: Array.isArray(verified.cachedGuildIds)
+                ? verified.cachedGuildIds.map((g: unknown) => String(g))
+                : undefined,
+              cachedMemberRoles: Array.isArray(verified.cachedMemberRoles)
+                ? verified.cachedMemberRoles.map((r: unknown) => String(r))
+                : undefined,
+            };
+
+        // Extract token metadata from JWT (expiresAt and scope) - Discord users only
+        if (!isDevBypass) {
+          if (typeof verified.token_expires_at === "number") {
+            (user as any).expires = verified.token_expires_at;
+          }
+          if (typeof verified.token_scope === "string") {
+            (user as any).scope = verified.token_scope;
+          }
+        }
+
+        return user;
+      } catch {
+        // try next secret
       }
     }
-
-    // Extract token metadata from JWT (expiresAt and scope) - Discord users only
-    if (!isDevBypass) {
-      if (typeof verified.token_expires_at === "number") {
-        (user as any).expires = verified.token_expires_at;
-      }
-      if (typeof verified.token_scope === "string") {
-        (user as any).scope = verified.token_scope;
-      }
-    }
-
-    return user;
+    return null;
   } catch (err) {
     log("warn", "JWT verification failed:", err);
     return null;
@@ -415,7 +329,7 @@ export async function refreshAccessToken(user: AuthUser) {
       // Handle rate limiting with backoff suggestion
       if (res.status === 429) {
         const retryAfterHeader = res.headers?.get?.("retry-after");
-        const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : 60;
+        const retryAfterSec = retryAfterHeader && /^\d+$/.test(retryAfterHeader.trim()) ? parseInt(retryAfterHeader, 10) : 60;
         log("warn", `Discord rate limited on token refresh: wait ${retryAfterSec}s before retry`);
         throw new Error(`Discord rate limit exceeded (wait ${retryAfterSec}s): ${msg}`);
       }
@@ -499,24 +413,38 @@ export function validateState(state: string): boolean {
 }
 
 /**
+ * Register an OAuth state value for one-time use validation.
+ * This is used to enforce replay protection for stateless JWT state tokens.
+ */
+export function registerOAuthStateToken(state: string): void {
+  if (!state) return;
+  STATE_STORE.set(state, { createdAt: Date.now(), used: false });
+}
+
+/**
+ * Consume an OAuth state value (one-time). Returns true if valid and not replayed.
+ */
+export function consumeOAuthStateToken(state: string): boolean {
+  if (!state) return false;
+  return validateState(state);
+}
+
+/**
  * Generate OAuth state as a short-lived JWT (10 minutes)
  * Stateless CSRF protection - no server-side storage needed
  */
-export function generateOAuthStateJWT(): string {
-  const privateKey = getCurrentPrivateKey();
-  const kid = getCurrentKeyId();
-
+export async function generateOAuthStateJWT(): Promise<string> {
+  const { current } = await getJwtSecretsCached();
   return jwt.sign(
     {
       type: "oauth_state",
       nonce: randomUUID(),
       iat: Math.floor(Date.now() / 1000),
     },
-    privateKey,
+    current,
     {
-      algorithm: "RS256",
+      algorithm: "HS256",
       expiresIn: "10m", // 10-minute max for OAuth state
-      keyid: kid,
     }
   );
 }
@@ -525,30 +453,19 @@ export function generateOAuthStateJWT(): string {
  * Verify OAuth state JWT
  * Returns the decoded state object if valid, null if invalid/expired
  */
-export function verifyOAuthStateJWT(stateToken: string): Record<string, unknown> | null {
+export async function verifyOAuthStateJWT(stateToken: string): Promise<Record<string, unknown> | null> {
   try {
-    // Decode to get key ID
-    const decoded = jwt.decode(stateToken, { complete: true }) as any;
-    if (!decoded || !decoded.header) {
-      log("warn", "OAuth state JWT decode failed: no header");
-      return null;
+    const { verify } = await getJwtSecretsCached();
+    let verified: any = null;
+    for (const secret of verify) {
+      try {
+        verified = jwt.verify(stateToken, secret, { algorithms: ["HS256"] }) as any;
+        break;
+      } catch {
+        // try next
+      }
     }
-
-    const kid = decoded.header.kid;
-    if (!kid) {
-      log("warn", "OAuth state JWT missing kid in header");
-      return null;
-    }
-
-    // Get the public key
-    const publicKey = getKeyById(kid);
-    if (!publicKey) {
-      log("warn", `OAuth state JWT verification failed: key not found for kid=${kid}`);
-      return null;
-    }
-
-    // Verify the JWT
-    const verified = jwt.verify(stateToken, publicKey) as any;
+    if (!verified) return null;
     
     // Ensure it's an OAuth state token
     if (verified.type !== "oauth_state") {
@@ -568,7 +485,7 @@ export function verifyOAuthStateJWT(stateToken: string): Record<string, unknown>
 }
 
 // ---------------------------------------------------------------------------
-// Passport JWT Strategy Setup (with JWKS key resolution for key rotation)
+// Passport JWT Strategy Setup
 // ---------------------------------------------------------------------------
 
 export function initializePassportJWTStrategy() {
@@ -578,7 +495,15 @@ export function initializePassportJWTStrategy() {
       new JwtStrategy(
         {
           jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-          secretOrKey: getCurrentPrivateKey().export({ format: "pem", type: "pkcs8" }),
+          secretOrKeyProvider: async (_req, rawJwtToken, done) => {
+            try {
+              const { current } = await getJwtSecretsCached();
+              done(null, current);
+            } catch (err) {
+              done(err as any, null);
+            }
+          },
+          algorithms: ["HS256"],
         },
         async (payload: any, done: Done) => {
           try {

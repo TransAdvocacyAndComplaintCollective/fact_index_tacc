@@ -3,7 +3,6 @@
  * Groups allow organizing users and applying roles collectively
  */
 
-import type { Enforcer } from "casbin";
 import { getCasbinEnforcer } from "./enforcer.ts";
 
 /**
@@ -132,7 +131,7 @@ export async function isUserInGroup(
   const subject = `user:${userId}`;
   const group = `group:${groupName}`;
   
-  return await enforcer.hasGroupingPolicy(subject, group, domain);
+  return enforcer.hasGroupingPolicy(subject, group, domain);
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
- * Local Identity Provider Login
- * Allows users to select an identity provider and enter a username for local/dev authentication
+ * Local Dev Login
+ * Allows users to enter a username for local/dev authentication
  */
 
 import React, { useState } from "react";
@@ -9,68 +9,47 @@ import {
   Paper,
   Title,
   Stack,
-  Select,
   TextInput,
+  MultiSelect,
   Button,
   Group,
   Alert,
   Text,
-  Badge,
   Loader,
-  Center,
+  Divider,
 } from "@mantine/core";
 import {
   IconAlertCircle,
   IconArrowLeft,
-  IconBuilding,
   IconUser,
 } from "@tabler/icons-react";
-
-interface IdentityProvider {
-  value: string;
-  label: string;
-  domain?: string;
-  description?: string;
-}
 
 interface LocalIdentityLoginProps {
   onBack?: () => void;
 }
 
-// Available identity providers
-const IDENTITY_PROVIDERS: IdentityProvider[] = [
-  {
-    value: "tacc",
-    label: "TACC (Texas Advanced Computing Center)",
-    domain: "tacc.utexas.edu",
-    description: "University of Texas at Austin - Advanced Computing",
-  },
-  {
-    value: "local",
-    label: "Local Development",
-    domain: "localhost",
-    description: "Local testing and development",
-  },
-];
-
 export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) {
-  const [selectedProvider, setSelectedProvider] = useState<string | null>("tacc");
   const [username, setUsername] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [allActions, setAllActions] = useState(false);
+  const [actions, setActions] = useState<string[]>([]);
+  const [actionOptions, setActionOptions] = useState<string[]>([
+    "fact:read",
+    "fact:write",
+    "fact:pubwrite",
+    "fact:admin",
+    "fact:superuser",
+    "taxonomy:read",
+    "taxonomy:write",
+    "admin:read",
+    "admin:write",
+    "idc:login",
+    "superuser",
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const currentProvider = IDENTITY_PROVIDERS.find(
-    (p) => p.value === selectedProvider
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedProvider) {
-      setError("Please select an identity provider");
-      return;
-    }
 
     if (!username.trim()) {
       setError("Please enter a username");
@@ -81,11 +60,14 @@ export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) 
     setError(null);
 
     try {
-      // Redirect to the dev login endpoint with provider and username
+      // Redirect to the dev login endpoint with username
       const params = new URLSearchParams({
-        provider: selectedProvider,
         user: username.trim(),
-        ...(isAdmin && { admin: "true" }),
+        ...(allActions
+          ? { actions: "all" }
+          : actions.length
+          ? { actions: actions.join(",") }
+          : {}),
       });
 
       window.location.href = `/auth/dev?${params.toString()}`;
@@ -100,22 +82,27 @@ export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) 
   return (
     <Container size="xs" pt="xl" role="main" aria-labelledby="identity-login-title">
       <Paper withBorder shadow="sm" p="md" radius="md">
-        <Group justify="space-between" mb="md">
-          {onBack && (
-            <Button
-              variant="default"
-              leftSection={<IconArrowLeft size={16} />}
-              onClick={onBack}
-              aria-label="Back to login"
-              p={0}
-            >
-              Back
-            </Button>
-          )}
-          <Title order={3} id="identity-login-title" style={{ flex: 1 }}>
-            Local Identity Login
-          </Title>
-        </Group>
+        <Stack gap="xs" mb="md">
+          <Group justify="space-between" align="center">
+            <Title order={3} id="identity-login-title">
+              Local Dev Login
+            </Title>
+            {onBack && (
+              <Button
+                variant="subtle"
+                size="xs"
+                leftSection={<IconArrowLeft size={16} />}
+                onClick={onBack}
+                aria-label="Back to login"
+              >
+                Back
+              </Button>
+            )}
+          </Group>
+          <Text size="sm" c="dimmed">
+            Development only. Creates a dev-bypass session on this server.
+          </Text>
+        </Stack>
 
         {error && (
           <Alert
@@ -130,43 +117,10 @@ export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) 
 
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
-            {/* Provider Selection */}
-            <div>
-              <Select
-                label="Identity Provider"
-                placeholder="Select an identity provider"
-                data={IDENTITY_PROVIDERS.map((p) => ({
-                  value: p.value,
-                  label: p.label,
-                }))}
-                value={selectedProvider}
-                onChange={setSelectedProvider}
-                leftSection={<IconBuilding size={16} />}
-                aria-label="Identity Provider"
-                searchable
-                clearable={false}
-                required
-              />
-
-              {/* Provider Details */}
-              {currentProvider && (
-                <Paper bg="blue.0" p="sm" radius="sm" mt="sm">
-                  <Group justify="space-between" mb="xs">
-                    <Badge color="blue" autoContrast>
-                      {currentProvider.domain}
-                    </Badge>
-                  </Group>
-                  <Text size="sm" c="dark">
-                    {currentProvider.description}
-                  </Text>
-                </Paper>
-              )}
-            </div>
-
             {/* Username Input */}
             <TextInput
               label="Username"
-              placeholder="Enter your username"
+              placeholder="dev-user"
               value={username}
               onChange={(e) => setUsername(e.currentTarget.value)}
               leftSection={<IconUser size={16} />}
@@ -175,24 +129,53 @@ export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) 
               required
             />
 
-            {/* Admin Toggle (dev/testing only) */}
+            {/* Dev role overrides (dev/testing only) */}
             {process.env.NODE_ENV === "development" && (
-              <div>
-                <Group gap="xs" mb="xs">
+              <Stack gap="xs">
+                <Divider />
+                <Group justify="space-between" align="center">
+                  <Text fw={600} size="sm">
+                    Dev permissions (optional)
+                  </Text>
                   <Button
                     variant="light"
                     size="xs"
-                    onClick={() => setIsAdmin(!isAdmin)}
-                    aria-pressed={isAdmin}
-                    color={isAdmin ? "green" : "gray"}
+                    onClick={() => setAllActions(!allActions)}
+                    aria-pressed={allActions}
+                    color={allActions ? "green" : "gray"}
+                    disabled={loading}
                   >
-                    {isAdmin ? "Admin Mode ON" : "Admin Mode OFF"}
+                    {allActions ? "All permissions" : "Pick permissions"}
                   </Button>
-                  <Text size="xs" c="dark">
-                    Dev testing - admin access
-                  </Text>
                 </Group>
-              </div>
+                <Text size="xs" c="dimmed">
+                  These are added to your dev-bypass session. You can also change them later in Admin Console → My
+                  Permissions.
+                </Text>
+
+                <MultiSelect
+                  label="Permissions"
+                  placeholder="Select permissions…"
+                  disabled={loading || allActions}
+                  data={Array.from(new Set([...actionOptions, ...actions])).map((value) => ({
+                    value,
+                    label: value,
+                  }))}
+                  searchable
+                  clearable
+                  hidePickedOptions
+                  creatable
+                  getCreateLabel={(query) => `+ Add "${query}"`}
+                  onCreate={(query) => {
+                    const value = query.trim();
+                    if (!value) return null;
+                    setActionOptions((prev) => (prev.includes(value) ? prev : [...prev, value]));
+                    return value;
+                  }}
+                  value={actions}
+                  onChange={setActions}
+                />
+              </Stack>
             )}
 
             {/* Submit Button */}
@@ -200,30 +183,11 @@ export default function LocalIdentityLogin({ onBack }: LocalIdentityLoginProps) 
               type="submit"
               fullWidth
               loading={loading}
-              disabled={!selectedProvider || !username.trim() || loading}
-              aria-label={`Login with ${currentProvider?.label || "selected provider"}`}
+              disabled={!username.trim() || loading}
+              aria-label="Login"
             >
               {loading ? <Loader size={20} /> : "Login"}
             </Button>
-
-            {/* Info Section */}
-            <Paper bg="gray.0" p="sm" radius="sm">
-              <Text size="sm" c="dark" mb="xs">
-                <strong>Available Providers:</strong>
-              </Text>
-              <Stack gap="xs">
-                {IDENTITY_PROVIDERS.map((provider) => (
-                  <div key={provider.value}>
-                    <Text size="xs" fw={500} c="dark">
-                      {provider.label}
-                    </Text>
-                    <Text size="xs" c="dark">
-                      Domain: {provider.domain}
-                    </Text>
-                  </div>
-                ))}
-              </Stack>
-            </Paper>
           </Stack>
         </form>
       </Paper>

@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../../context/AuthContext";
 import { useRBACContext } from "@impelsysinc/react-rbac";
 import { Alert, Button, Stack, Text } from "@mantine/core";
+import { safeCanAccess } from "../../utils/safeCanAccess";
 
 interface AdminGuardProps {
   children: ReactNode;
@@ -13,8 +14,13 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   const { loading, authenticated, isAdmin, user } = useAuthContext();
   const { canAccess } = useRBACContext();
 
+  const granted = Array.isArray(user?.permissions) ? user!.permissions : [];
+  const hasAdminPerm =
+    granted.includes("superuser") || granted.includes("admin:read") || granted.includes("admin:write");
+
   // User must have admin role or permission to read admin config
-  const hasAdminAccess = isAdmin || canAccess('admin:config:read');
+  const hasAdminAccess =
+    isAdmin || hasAdminPerm || safeCanAccess(canAccess, "admin:read") || safeCanAccess(canAccess, "admin:write");
 
   if (loading) {
     return <div>Loading admin access…</div>;

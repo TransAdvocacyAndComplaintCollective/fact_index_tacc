@@ -13,6 +13,8 @@
     "dev": "NODE_ENV=development TS_NODE_PROJECT=../../tsconfig.base.json TSCONFIG_PATHS_CONFIG_DIR=../.. node --watch --enable-source-maps -r tsconfig-paths/register -r @swc-node/register -r dotenv/config ./src/main.ts",
     "dev:hot_reload": "NODE_ENV=development node --watch --enable-source-maps -r tsconfig-paths/register -r @swc-node/register -r dotenv/config ./src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "node --test --test-concurrency=1 ../../tests/e2e/server.e2e.test.mjs",
+    "test:e2e:coverage": "rm -rf ../../.coverage/e2e-server && mkdir -p ../../.coverage/e2e-server/v8 && NODE_OPTIONS= NODE_V8_COVERAGE=../../.coverage/e2e-server/v8 node --test --test-concurrency=1 ../../tests/e2e/server.e2e.test.mjs && pnpm dlx c8 report --temp-directory ../../.coverage/e2e-server/v8 --reports-dir ../../.coverage/e2e-server --reporter=text-summary --reporter=lcov --reporter=json-summary --include \"apps/fact-server/src/**\" --exclude \"**/*.test.*\" --exclude \"tests/**\"",
     "lint": "nx lint fact-server",
     "lint:ts": "tsc --noEmit -p tsconfig.app.json"
   },
@@ -23,33 +25,26 @@
   "dependencies": {
     "@factdb/db-core": "workspace:*",
     "@factdb/types": "workspace:*",
-    "@openid-federation/core": "^0.2.1",
-    "@types/cookie-parser": "^1.4.7",
-    "@types/cors": "^2.8.17",
-    "@types/express-session": "^1.18.2",
-    "@types/node": "latest",
-    "@types/passport": "^1.0.17",
     "better-sqlite3": "^12.6.2",
     "casbin": "^5.48.0",
-    "casbin-basic-adapter": "^1.3.0",
-    "casbin-express-authz": "^3.0.1",
-    "casbin-sequelize-adapter": "^2.7.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "i": "^0.3.7",
-    "jose": "^6.1.3",
+    "express-validator": "^7.3.1",
     "jsonwebtoken": "^9.0.3",
-    "npm": "^11.10.0",
-    "oidc-provider": "^9.6.0",
-    "openid-client": "^6.8.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "passport-magic-link": "^3.0.0",
-    "sequelize": "^6.37.7"
+    "undici": "^7.22.0"
   },
   "optionalDependencies": {
     "mysql2": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express-session": "^1.18.2",
+    "@types/node": "latest",
+    "@types/passport": "^1.0.17"
   }
 }

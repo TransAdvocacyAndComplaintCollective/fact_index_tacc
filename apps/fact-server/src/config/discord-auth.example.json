@@ -5,5 +5,13 @@
       "name": "Optional Guild Name"
     }
   },
-  "adminUsers": ["DISCORD_USER_ID_OF_ADMIN"]
+  "roles": {
+    "YOUR_DISCORD_ROLE_ID": {
+      "name": "Optional Role Name",
+      "type": "permission",
+      "description": "Optional description",
+      "permissions": ["superuser"]
+    }
+  },
+  "whitelistUsers": []
 }

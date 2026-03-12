@@ -17,6 +17,9 @@ import {
 } from "@mantine/core";
 import { IconArrowLeft, IconEdit } from "@tabler/icons-react";
 import type { FactRecord } from "./types";
+import { useAuthContext } from "../../context/AuthContext";
+import { useRBACContext } from "@impelsysinc/react-rbac";
+import { safeCanAccess } from "../../utils/safeCanAccess";
 
 export interface FactDetailViewProps {
   fact: FactRecord;
@@ -26,6 +29,12 @@ export interface FactDetailViewProps {
 
 export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
   const theme = useMantineTheme();
+  const { authenticated, hasSuperuser } = useAuthContext();
+  const { canAccess } = useRBACContext();
+  const isPublic = Boolean((fact as any)?.is_public);
+  const canWrite = hasSuperuser || safeCanAccess(canAccess, "fact:write");
+  const canPubWrite = hasSuperuser || safeCanAccess(canAccess, "fact:pubwrite");
+  const canEdit = authenticated && (canWrite || (isPublic && canPubWrite));
   const { colorScheme } = useMantineColorScheme();
   const isDark = colorScheme === "dark";
   const cardBackground =
@@ -58,9 +67,11 @@ export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
             >
               Back to Fact List
             </Button>
-            <Button leftSection={<IconEdit size={16} />} onClick={onEdit}>
-              Edit
-            </Button>
+            {canEdit && (
+              <Button leftSection={<IconEdit size={16} />} onClick={onEdit}>
+                Edit
+              </Button>
+            )}
           </Group>
 
           {/* Fact Card */}
@@ -99,12 +110,14 @@ export function FactDetailView({ fact, onBack, onEdit }: FactDetailViewProps) {
 
               {/* Metadata Grid */}
               <Group grow>
-                <div>
-                  <Text fw={500} size="sm">
-                    Added by
-                  </Text>
-                  <Text c={metadataColor}>{fact.user || "Unknown"}</Text>
-                </div>
+                {authenticated && (
+                  <div>
+                    <Text fw={500} size="sm">
+                      Added by
+                    </Text>
+                    <Text c={metadataColor}>{fact.user || "Unknown"}</Text>
+                  </div>
+                )}
                 <div>
                   <Text fw={500} size="sm">
                     Date

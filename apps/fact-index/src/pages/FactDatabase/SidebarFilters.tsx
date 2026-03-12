@@ -15,11 +15,10 @@ import {
   Card,
   Divider,
   ActionIcon,
-  TextInput,
   useMantineTheme,
   useMantineColorScheme,
 } from "@mantine/core";
-import { IconX, IconFilter, IconSearch } from "@tabler/icons-react";
+import { IconX, IconFilter } from "@tabler/icons-react";
 import { FaTag, FaUsers, FaCalendarAlt, FaCheck, FaTimes } from "react-icons/fa";
 import type {
   FactFilters,
@@ -153,26 +152,6 @@ export default function SidebarFilters({
               <FaTimes aria-hidden="true" size={12} /> Exclude
             </Badge>
           </Group>
-          <TextInput
-            placeholder="Keyword search"
-            value={filters.keyword ?? ""}
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              setFilters((f) => ({ ...f, keyword: event.target.value }))
-            }
-            onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-              if (event.key === "Enter") {
-                setFilters((f) => ({
-                  ...f,
-                  keyword: event.currentTarget.value,
-                }));
-              }
-            }}
-            leftSection={<IconSearch aria-hidden="true" size={18} />}
-            aria-label="Keyword search"
-            size="md"
-            radius="md"
-            my="sm"
-          />
           <Text size="xs" mt="xs" c={helperColor}>
             Click badges to filter. Filters are applied automatically.
           </Text>

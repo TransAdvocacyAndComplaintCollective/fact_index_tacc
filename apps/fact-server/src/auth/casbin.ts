@@ -9,29 +9,77 @@ import { getCasbinEnforcer } from "./casbin/enforcer.ts";
 import { syncDiscordRolesForUser } from "./casbin/syncRoles.ts";
 import { isDevModeActive } from "./passport-dev.ts";
 import type { Enforcer } from "casbin";
+import logger from "../logger.ts";
+import { isTokenRevoked } from "./jwt.ts";
+import type { AuthStatus } from "../../../../libs/types/src/index.ts";
+import {
+  deriveCasbinSubjects,
+  derivePermissionsFromDb,
+  mapRequestToPermission,
+  parsePermission,
+} from "./permissions.ts";
+import { getLoginConstraints } from "../../../../libs/db-core/src/authzRepository.ts";
+
+let loginConstraintsCache:
+  | { loadedAtMs: number; value: { whitelistUsers: string[]; requiredRolesByGuild: Record<string, string[]> } }
+  | null = null;
+
+async function loadLoginConstraintsCached(): Promise<{
+  whitelistUsers: string[];
+  requiredRolesByGuild: Record<string, string[]>;
+}> {
+  const now = Date.now();
+  if (loginConstraintsCache && now - loginConstraintsCache.loadedAtMs < 30_000) {
+    return loginConstraintsCache.value;
+  }
+  const value = await getLoginConstraints().catch(() => ({ whitelistUsers: [], requiredRolesByGuild: {} }));
+  loginConstraintsCache = { loadedAtMs: now, value };
+  return value;
+}
 
 /**
  * Validate if user has required login roles for their guild
  * Returns { valid: boolean, reason?: string }
  * If user loses required login roles, they're logged out
  */
-export function validateLoginRoles(authStatus: any): { valid: boolean; reason?: string } {
+export async function validateLoginRoles(
+  authStatus: AuthStatus | undefined | null
+): Promise<{ valid: boolean; reason?: string }> {
   if (!authStatus?.authenticated) {
     return { valid: false, reason: "Not authenticated" };
   }
 
-  const userId = authStatus.user?.id;
-  const discordRoles = authStatus.user?.cachedMemberRoles || [];
-  const devBypass = authStatus.user?.devBypass;
-  const isAdmin = authStatus.user?.isAdmin;
+  const userId = String(authStatus.user?.id || "").trim();
+  const discordRoles = Array.isArray(authStatus.user?.cachedMemberRoles)
+    ? authStatus.user.cachedMemberRoles.map((r: any) => String(r).trim()).filter(Boolean)
+    : [];
+  const guildId = String(authStatus.user?.guild || "").trim();
+  const devBypass = authStatus.devBypass;
 
-  // Dev bypass and admins always allowed
-  if (devBypass || isAdmin) {
+  // Dev bypass always allowed
+  if (devBypass) {
     return { valid: true };
   }
 
-  // Currently, all authenticated users are allowed
-  // Future: Add configurable required login roles from Casbin policies
+  const { whitelistUsers, requiredRolesByGuild } = await loadLoginConstraintsCached();
+
+  if (!userId) return { valid: false, reason: "Missing user id" };
+
+  // Whitelist bypass for users who are not yet in the required Discord roles.
+  if (whitelistUsers.includes(userId)) {
+    return { valid: true };
+  }
+
+  const requiredRoles = guildId ? requiredRolesByGuild[guildId] || [] : [];
+  if (!requiredRoles.length) {
+    return { valid: true };
+  }
+
+  const hasAnyRequiredRole = requiredRoles.some((roleId) => discordRoles.includes(roleId));
+  if (!hasAnyRequiredRole) {
+    return { valid: false, reason: "Missing required Discord role" };
+  }
+
   return { valid: true };
 }
 
@@ -41,36 +89,40 @@ export function validateLoginRoles(authStatus: any): { valid: boolean; reason?: 
  *
  * Assigns roles based on:
  * - Discord roles synced as `role:discord:{roleId}`
- * - Admin status as `role:app:admin`
  * - Base `user` role for all authenticated users
  * - `nobody` role for unauthenticated users
  */
-export function determineUserRoles(authStatus: any): string[] {
-  const roles: string[] = [];
+export function determineUserRoles(authStatus: AuthStatus | undefined | null): string[] {
+  return deriveCasbinSubjects(authStatus);
+}
 
-  if (!authStatus?.authenticated) {
-    roles.push("nobody");
-    return roles;
+function toPermission(resource: string, action: string): string {
+  return `${resource}:${action}`;
+}
+
+function resolveRequestedPermission(
+  req: Request,
+  resource?: string,
+  action?: string,
+): string | null {
+  if (resource && action) {
+    return toPermission(resource, action);
   }
+  const requestPath = req.baseUrl + req.path;
+  return mapRequestToPermission(requestPath, req.method);
+}
 
-  const userId = authStatus.user?.id;
-  const isAdmin = authStatus.user?.isAdmin;
-  const discordRoles = authStatus.user?.cachedMemberRoles || [];
+function isHighRiskPermission(permission: string): boolean {
+  if (permission === "fact:write") return true;
+  if (permission === "fact:pubwrite") return true;
+  if (permission === "fact:admin") return true;
+  if (permission === "idc:login") return true;
+  return permission.startsWith("admin:");
+}
 
-  // 1. Add Discord role groupings (synced by syncDiscordRolesForUser)
-  // These are stored as grouping policies: g, user:userId, role:discord:roleId
-  // We don't add them directly here; they're handled by grouping rules in Casbin
-  roles.push(`user:${userId}`);
-
-  // 2. Admin role indicator (for non-grouping checks)
-  if (isAdmin) {
-    roles.push("role:app:admin");
-  }
-
-  // 3. Base user role - all authenticated users get this
-  roles.push("user");
-
-  return roles;
+function getRequestDiscordTokenJti(req: Request): string {
+  const jti = (req as any)?.user?.jti;
+  return typeof jti === "string" ? jti.trim() : "";
 }
 
 /**
@@ -81,48 +133,12 @@ export async function initializeCasbin() {
   try {
     const enforcer = await getCasbinEnforcer();
 
-    // Seed default policies if none exist
-    const existingPolicies = enforcer.getPolicy();
-    if (!existingPolicies || existingPolicies.length === 0) {
-      console.log("[casbin] Seeding default policies");
+    await enforcer.loadPolicy();
 
-      // Define policies: (subject, object, action)
-      // Nobody role - unauthenticated users with no permissions
-      // (no policies defined for 'nobody' role)
-
-      // Users can read public data and auth endpoints
-      enforcer.addPolicy("user", "/api/auth/me", "GET");
-      enforcer.addPolicy("user", "/api/auth/status", "GET");
-      
-      // Facts API - Public read access
-      enforcer.addPolicy("user", "/api/facts", "GET");
-      enforcer.addPolicy("user", "/api/facts/:id", "GET");
-      enforcer.addPolicy("user", "/api/facts/audiences", "GET");
-      enforcer.addPolicy("user", "/api/facts/subjects", "GET");
-
-      // Facts API - Authenticated user can create facts
-      enforcer.addPolicy("user", "/api/facts", "POST");
-      
-      // Facts API - Contributors can update facts
-      enforcer.addPolicy("role:facts:contributor", "/api/facts/:id", "PUT");
-      
-      // Facts API - Only admins can delete facts
-      enforcer.addPolicy("role:app:admin", "/api/facts/:id", "DELETE");
-
-      // Admins can do anything (match all paths and methods)
-      enforcer.addPolicy("role:app:admin", "/api/admin/*", "(GET)|(POST)|(PUT)|(PATCH)|(DELETE)");
-      enforcer.addPolicy("role:app:admin", "/api/facts", "(GET)|(POST)|(PUT)|(PATCH)|(DELETE)");
-      enforcer.addPolicy("role:app:admin", "/api/facts/:id", "(GET)|(POST)|(PUT)|(PATCH)|(DELETE)");
-
-      // Save policies to database
-      await enforcer.savePolicy();
-      console.log("[casbin] Default policies saved");
-    }
-
-    console.log("[casbin] Authorization system initialized with DB-backed policies");
+    logger.info("[casbin] Authorization system initialized with DB-backed policies");
     return enforcer;
   } catch (err) {
-    console.error("[casbin] Failed to initialize enforcer:", err);
+    logger.error("[casbin] Failed to initialize enforcer", { error: err });
     throw err;
   }
 }
@@ -138,71 +154,162 @@ export function casbinMiddleware(resource?: string, action?: string) {
 
       const authStatus = (req as any).authStatus;
       const userId = authStatus?.user?.id;
-      const devBypass = Boolean(authStatus?.devBypass || authStatus?.user?.devBypass);
+      const devBypass = Boolean(authStatus?.devBypass);
       const devLoginMode = isDevModeActive();
 
       if (!authStatus?.authenticated || !userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Dev-login sessions should not be blocked by Casbin policy drift while testing.
-      if (devBypass && devLoginMode) {
-        console.info(
-          `[casbin] Dev bypass active: allowing ${userId} ${action || req.method.toUpperCase()} ${resource || req.baseUrl + req.path}`
-        );
+      // Admin users (configured via Discord auth config) bypass Casbin entirely.
+      if (Boolean(authStatus?.user?.isAdmin)) {
+        return next();
+      }
+
+      // Dev-login admin sessions can bypass Casbin policy drift while testing.
+      // Non-admin dev sessions must still respect authorization checks.
+      if (devBypass && devLoginMode && Boolean(authStatus?.user?.isAdmin)) {
+        logger.info("[casbin] Dev bypass active", {
+          userId,
+          action: action || req.method.toUpperCase(),
+          resource: resource || req.baseUrl + req.path,
+        });
         return next();
       }
 
       // First, validate user still has required login roles
-      const loginValidation = validateLoginRoles(authStatus);
+      const loginValidation = await validateLoginRoles(authStatus);
       if (!loginValidation.valid) {
-        console.warn(
-          `[casbin] User ${userId} session revoked: ${loginValidation.reason}`
-        );
+        logger.warn("[casbin] User session revoked", { userId, reason: loginValidation.reason });
         return res
           .status(401)
           .json({ error: "Unauthorized", message: loginValidation.reason });
       }
 
+      // Always honor DB-derived superuser immediately, even if the enforcer policy cache is stale.
+      // This also supports direct user permissions (`user:{id}`) without needing a grouping policy.
+      const sessionPermissions = Array.isArray(authStatus?.user?.permissions)
+        ? authStatus.user.permissions.map((p: any) => String(p).trim()).filter(Boolean)
+        : [];
+      if (sessionPermissions.includes("superuser")) {
+        return next();
+      }
+      try {
+        const dbPermissions = await derivePermissionsFromDb(authStatus);
+        if (dbPermissions.includes("superuser")) {
+          return next();
+        }
+      } catch (err) {
+        logger.warn("[casbin] Failed to derive permissions from DB", {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // Use provided resource/action or derive from request
-      const obj = resource || req.baseUrl + req.path;
-      const act = action || req.method.toUpperCase();
+      const requestedPermission = resolveRequestedPermission(req, resource, action);
+      if (!requestedPermission) {
+        logger.warn("[casbin] No permission mapping for request", {
+          userId,
+          method: req.method,
+          path: req.baseUrl + req.path,
+        });
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Permission mapping not configured for this endpoint",
+        });
+      }
+
+      if (isHighRiskPermission(requestedPermission)) {
+        if (devBypass) {
+          // Dev-bypass sessions are not revocable via JTI (no Discord-issued tokens).
+          // Skip revocation checks so dev mode can exercise admin endpoints.
+        } else {
+        const tokenJti = getRequestDiscordTokenJti(req);
+        if (!tokenJti) {
+          logger.warn("[casbin] High-risk route rejected due to missing token jti", {
+            userId,
+            permission: requestedPermission,
+          });
+          return res.status(401).json({
+            error: "Unauthorized",
+            message: "Revocation check unavailable for high-risk route",
+          });
+        }
+        const revoked = await isTokenRevoked(tokenJti);
+        if (revoked) {
+          logger.warn("[casbin] High-risk route rejected due to revoked token", {
+            userId,
+            permission: requestedPermission,
+            jti: tokenJti.slice(0, 8),
+          });
+          return res.status(401).json({
+            error: "Unauthorized",
+            message: "Token revoked",
+          });
+        }
+        }
+      }
 
       // Determine all applicable subjects for this user
       const userSubjects = determineUserRoles(authStatus);
-      console.info(
-        `[casbin] User ${userId} authorization check for ${act} ${obj} with subjects: [${userSubjects.join(
-          ", "
-        )}]`
-      );
+      const [permResource, permAction] = (() => {
+        const parsed = parsePermission(requestedPermission);
+        return parsed ? [parsed.resource, parsed.action] : [requestedPermission, "read"];
+      })();
+
+      // Superuser can do everything.
+      for (const sub of userSubjects) {
+        try {
+          if (await enforcer.enforce(sub, "global", "superuser", "allow")) {
+            return next();
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      logger.info("[casbin] Authorization check", {
+        userId,
+        permission: requestedPermission,
+        subjects: userSubjects,
+      });
+
+      // Any authenticated user can create/update non-public facts.
+      if (requestedPermission === "fact:write") {
+        return next();
+      }
 
       // Check if ANY of the user's roles has permission for this resource/action
       let allowed = false;
       for (const sub of userSubjects) {
         try {
-          if (await enforcer.enforce(sub, obj, act)) {
+          if (await enforcer.enforce(sub, "global", permResource, permAction)) {
             allowed = true;
-            console.debug(
-              `[casbin] ✓ Access allowed: ${userId} (${sub}) can ${act} ${obj}`
-            );
+            logger.debug("[casbin] Access allowed", {
+              userId,
+              subject: sub,
+              permission: requestedPermission,
+            });
             break;
           }
         } catch (enforceErr) {
-          console.error("[casbin] Error calling enforce:", enforceErr, {
+          logger.error("[casbin] Error calling enforce", {
+            error: enforceErr,
             sub,
-            obj,
-            act,
+            resource: permResource,
+            action: permAction,
           });
           return res.status(500).json({ error: "Authorization check failed" });
         }
       }
 
       if (!allowed) {
-        console.warn(
-          `[casbin] ✗ Access denied: ${userId} (subjects=[${userSubjects.join(
-            ", "
-          )}]) cannot ${act} ${obj}`
-        );
+        logger.warn("[casbin] Access denied", {
+          userId,
+          subjects: userSubjects,
+          permission: requestedPermission,
+        });
         return res
           .status(403)
           .json({ error: "Forbidden", message: "Insufficient permissions" });
@@ -210,7 +317,7 @@ export function casbinMiddleware(resource?: string, action?: string) {
 
       next();
     } catch (err) {
-      console.error("[casbin] Middleware error:", err);
+      logger.error("[casbin] Middleware error", { error: err });
       return res.status(500).json({ error: "Authorization check failed" });
     }
   };
@@ -231,19 +338,16 @@ export function validateLoginRolesMiddleware(
     return next(); // Not authenticated, let other middleware handle it
   }
 
-  const validation = validateLoginRoles(authStatus);
-  if (!validation.valid) {
-    const userId = authStatus.user?.id;
-    console.warn(
-      `[casbin] User ${userId} session revoked: ${validation.reason}`
-    );
-    (req as any).authStatus.authenticated = false;
-    return res
-      .status(401)
-      .json({ error: "Unauthorized", message: validation.reason });
-  }
-
-  next();
+  void (async () => {
+    const validation = await validateLoginRoles(authStatus);
+    if (!validation.valid) {
+      const userId = authStatus.user?.id;
+      logger.warn("[casbin] User session revoked", { userId, reason: validation.reason });
+      (req as any).authStatus.authenticated = false;
+      return res.status(401).json({ error: "Unauthorized", message: validation.reason });
+    }
+    next();
+  })();
 }
 
 /**
@@ -264,9 +368,9 @@ export async function checkPermission(
   try {
     const enforcer = await getCasbinEnforcer();
     const sub = `user:${userId}`;
-    return await enforcer.enforce(sub, resource, action);
+    return await enforcer.enforce(sub, "global", resource, action);
   } catch (err) {
-    console.error("[casbin] Error in checkPermission:", err);
+    logger.error("[casbin] Error in checkPermission", { error: err, userId, resource, action });
     return false;
   }
 }

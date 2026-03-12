@@ -10,6 +10,9 @@ import logger from "../../logger.ts";
 import { generateJWT } from "../../auth/jwt.ts";
 import { isDevModeActive } from "../../auth/passport-dev.ts";
 import { redirectWithSecureToken } from "./tokenResponse.ts";
+import { getLoginConstraints } from "../../../../../libs/db-core/src/authzRepository.ts";
+import { ADMIN_ACTIONS } from "../../auth/permissions.ts";
+import { setUserPermissions } from "../../../../../libs/db-core/src/authzRepository.ts";
 
 const router = express.Router();
 
@@ -39,23 +42,33 @@ function ctx(req: Request, res: Response): string {
   return `id=${id} ${req.method} ${req.originalUrl}`;
 }
 
+function getQueryParam(req: Request, name: string): string {
+  try {
+    const url = new URL(req.originalUrl || "", "http://localhost");
+    return url.searchParams.get(name) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Dev login endpoint - creates a fake JWT token for local development
  * Only available when DEV_LOGIN_MODE=true
  *
  * Query Parameters:
  *   ?user=username     - Custom username (default: "dev-user")
- *   ?provider=provider - Identity provider (e.g., "tacc", "local"; default: "dev")
  *   ?admin=true|false  - Override admin status (default: uses DEV_IS_ADMIN env var)
+ *   ?roles=all         - Set cachedMemberRoles to all configured required Discord roles (DB + env)
+ *   ?roles=1,2,3       - Set cachedMemberRoles to a comma-separated list of role IDs
+ *   ?actions=all       - Set devPermissions to a default action set (dev-only UI override)
+ *   ?actions=a,b,c     - Set devPermissions to a comma-separated list of permission strings
  *
  * Examples:
  *   GET /auth/dev                    - Login as dev-user with DEV_IS_ADMIN status
  *   GET /auth/dev?user=alice         - Login as alice with DEV_IS_ADMIN status
- *   GET /auth/dev?provider=tacc&user=alice - Login as alice via TACC provider
- *   GET /auth/dev?provider=tacc&user=bob&admin=true - Login as bob via TACC with admin=true
  *   GET /auth/dev?admin=false        - Login as dev-user with admin=false (for testing casbin restrictions)
  */
-router.get("/dev", (req: Request, res: Response) => {
+router.get("/dev", async (req: Request, res: Response) => {
   if (!isDevModeActive()) {
     logger.warn(`[auth] ${ctx(req, res)} Dev login attempted but DEV_LOGIN_MODE is not active`);
     return res.status(404).json({ error: "not_found" });
@@ -68,12 +81,7 @@ router.get("/dev", (req: Request, res: Response) => {
       ? req.query.user.trim()
       : "dev-user";
 
-  const providerParam =
-    typeof req.query.provider === "string" && req.query.provider.trim()
-      ? req.query.provider.trim().toLowerCase()
-      : "dev";
-
-  const userId = `${providerParam}-${userParam}`;
+  const userId = `dev-${userParam}`;
 
   // Allow query parameter to override admin status for testing casbin
   // This lets you test both admin access and restrictions on the same dev endpoint
@@ -88,8 +96,72 @@ router.get("/dev", (req: Request, res: Response) => {
   }
 
   const now = Date.now();
+
+  const rolesParam = getQueryParam(req, "roles").trim();
+  const resolveDevRoles = async (): Promise<string[] | undefined> => {
+    if (!rolesParam) return undefined;
+    if (rolesParam.toLowerCase() === "all") {
+      const envRoleIds = String(process.env.DISCORD_ROLE_ID || "")
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean);
+
+      const { requiredRolesByGuild } = await getLoginConstraints().catch(() => ({
+        requiredRolesByGuild: {} as Record<string, string[]>,
+      }));
+      const dbRoleIds = Object.values(requiredRolesByGuild || {}).flat();
+
+      return Array.from(new Set([...envRoleIds, ...dbRoleIds].map((r) => String(r).trim()).filter(Boolean)));
+    }
+
+    return rolesParam
+      .split(",")
+      .map((r) => r.trim())
+      .filter(Boolean);
+  };
+
+  let cachedMemberRoles: string[] | undefined;
+  try {
+    cachedMemberRoles = await resolveDevRoles();
+  } catch (err) {
+    logger.warn(`[auth] ${ctx(req, res)} Failed to resolve dev roles`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    cachedMemberRoles = undefined;
+  }
+
+  const actionsParam = getQueryParam(req, "actions").trim();
+  const resolveDevPermissions = (): string[] | undefined => {
+    if (!actionsParam) return undefined;
+    if (actionsParam.toLowerCase() === "all") {
+      return Array.from(new Set([...ADMIN_ACTIONS, "superuser"]));
+    }
+    return actionsParam
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+  };
+
+  const devPermissions = resolveDevPermissions();
+  logger.info(`[auth] ${ctx(req, res)} Dev login permissions resolved`, {
+    actionsParam: actionsParam || null,
+    devPermissionsCount: Array.isArray(devPermissions) ? devPermissions.length : 0,
+  });
+
+  // In dev mode, optionally persist requested permissions for this dev user into the DB.
+  // This makes /auth/status consistent even if UI permissions are derived from DB.
+  if (Array.isArray(devPermissions) && devPermissions.length) {
+    try {
+      await setUserPermissions(userId, devPermissions);
+    } catch (err) {
+      logger.warn(`[auth] ${ctx(req, res)} Failed to persist dev permissions`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   const fakeUser: any = {
-    type: providerParam,
+    type: "dev",
     id: userId,
     username: userParam,
     avatar: null,
@@ -97,13 +169,14 @@ router.get("/dev", (req: Request, res: Response) => {
     hasRole: true,
     isAdmin,
     devBypass: true,
-    identityProvider: providerParam,
     cacheUpdatedAt: now,
     lastCheck: now,
+    ...(cachedMemberRoles ? { cachedMemberRoles } : {}),
+    ...(devPermissions ? { devPermissions } : {}),
   };
 
-  const token = generateJWT(fakeUser);
-  logger.info(`[auth] ${ctx(req, res)} Dev login JWT generated for user=${fakeUser.username} provider=${providerParam} isAdmin=${isAdmin}`);
+  const token = await generateJWT(fakeUser);
+  logger.info(`[auth] ${ctx(req, res)} Dev login JWT generated for user=${fakeUser.username} isAdmin=${isAdmin}`);
   return redirectWithSecureToken(res, token, "/");
 });
 

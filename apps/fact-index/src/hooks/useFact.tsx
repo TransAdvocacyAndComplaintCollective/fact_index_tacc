@@ -94,7 +94,7 @@ export function useFact(options?: UseFactOptions) {
     },
     getNextPageParam: (lastPage) =>
       lastPage.items.length === pageSize ? lastPage.offset + pageSize : undefined,
-    enabled: authenticated && !authLoading,
+    enabled: !authLoading,
     initialPageParam: 0,
   });
 

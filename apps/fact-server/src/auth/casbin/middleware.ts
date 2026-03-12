@@ -4,6 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
+import type { AuthStatus } from "../../../../../libs/types/src/index.ts";
 import { getCasbinEnforcer } from "./enforcer.ts";
 import { syncDiscordRolesForUser } from "./syncRoles.ts";
 
@@ -27,7 +28,7 @@ function extractGuildIdFromPath(path: string): string | null {
  */
 export function requireGuildPermission() {
   return async (
-    req: Request & { authStatus?: any },
+    req: Request & { authStatus?: AuthStatus },
     res: Response,
     next: NextFunction,
   ) => {
@@ -95,7 +96,7 @@ export function requireGuildPermission() {
  */
 export function requireCasbin() {
   return async (
-    req: Request & { authStatus?: any },
+    req: Request & { authStatus?: AuthStatus },
     res: Response,
     next: NextFunction,
   ) => {

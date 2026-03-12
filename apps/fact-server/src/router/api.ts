@@ -33,9 +33,19 @@ router.use((req: Request, res: Response, next: NextFunction) => {
   );
 
   const isAuthed = Boolean(authStatus?.authenticated);
-  if (isAuthed) {
-    return next();
-  }
+  if (isAuthed) return next();
+
+  // Allow public GET access to facts data.
+  const routePath = req.baseUrl + req.path;
+  const isPublicFactsRead =
+    req.method === "GET" &&
+    (routePath === "/api/facts/facts" ||
+      routePath.startsWith("/api/facts/facts/") ||
+      routePath === "/api/facts/subjects" ||
+      routePath === "/api/facts/subjects/all" ||
+      routePath === "/api/facts/audiences/all" ||
+      routePath === "/api/facts/audiences");
+  if (isPublicFactsRead) return next();
 
   logger.warn(
     `[auth] /api/facts rejecting ${req.method} ${req.originalUrl} reason=${authStatus?.reason ?? "unauthenticated"}`,
