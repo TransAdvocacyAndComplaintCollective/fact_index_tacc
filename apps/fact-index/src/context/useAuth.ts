@@ -1,0 +1,299 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+} from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryObserverResult,
+} from "@tanstack/react-query";
+import type { AuthReason, AuthStatus, AuthStatusUser } from "@factdb/types";
+
+interface ProviderOption {
+  name?: "discord" | "dev" | string;
+  displayName?: string;
+  url?: string;
+  available?: boolean;
+  devBypass?: boolean;
+}
+
+interface AuthStatusResponse {
+  discord: AuthStatus;
+}
+
+export type LoginProviderPayload = ProviderOption;
+
+const defaultProviders: LoginProviderPayload[] = [
+  {
+    name: "discord",
+    displayName: "Discord",
+    url: "/auth/discord",
+    available: true,
+  },
+];
+
+function filterProviders(providers?: LoginProviderPayload[]): LoginProviderPayload[] {
+  if (!providers?.length) return defaultProviders;
+  const available = providers.filter((provider) => provider?.url && provider.available !== false);
+  return available.length > 0 ? available : defaultProviders;
+}
+
+const AUTH_STATUS_KEY = ["auth", "status"];
+
+async function fetchAuthStatus({
+  signal,
+}: {
+  signal?: AbortSignal;
+}): Promise<AuthStatusResponse> {
+  try {
+    const res = await fetch("/auth/status", {
+      credentials: "include",
+      cache: "no-store",
+      signal,
+      headers: { Accept: "application/json" },
+    });
+
+    let json: unknown = null;
+    try {
+      json = await res.json();
+    } catch {
+      json = null;
+    }
+
+    if (!json || typeof json !== "object") {
+      return { discord: { authenticated: false, user: null, reason: "bad_json" } };
+    }
+    const normalized = json as AuthStatusResponse;
+    if (!normalized.discord) {
+      return { discord: { authenticated: false, user: null, reason: "bad_payload" } };
+    }
+    return normalized;
+  } catch {
+    return { discord: { authenticated: false, user: null, reason: "network_error" } };
+  }
+}
+
+export function getAuthToken(): string | null {
+  // Token is now in HttpOnly cookie, not accessible via JavaScript
+  return null;
+}
+
+export interface AuthContextValue {
+  loading: boolean;
+  authenticated: boolean;
+  isAdmin: boolean;
+  devBypass: boolean;
+  hasSuperuser: boolean;
+  user: AuthStatusUser | null;
+  reason: AuthReason | string | null;
+  login: (fallbackUrl?: string) => Promise<void>;
+  refresh: () => Promise<QueryObserverResult<AuthStatusResponse>>;
+  logout: () => Promise<void>;
+  checkAvailable: () => Promise<{ available: boolean; providers?: ProviderOption[] }>;
+  authAvailable: boolean;
+  providerOptions: LoginProviderPayload[];
+  errorReason: string | null;
+  reasonCode: string | null;
+  userMessage: string | null;
+  showHelp: boolean;
+  helpToggle: (event?: MouseEvent<HTMLButtonElement>) => void;
+}
+
+export function useAuth(): AuthContextValue {
+  const queryClient = useQueryClient();
+  const [authAvailable, setAuthAvailable] = useState(true);
+  const [providerOptions, setProviderOptions] = useState<LoginProviderPayload[]>(defaultProviders);
+  const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [reasonCode, setReasonCode] = useState<string | null>(null);
+  const [userMessage, setUserMessage] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/auth/available", { signal: controller.signal, cache: "no-store" });
+        if (!mounted) return;
+
+        let payload: { available?: boolean; providers?: LoginProviderPayload[] } | null = null;
+        try {
+          payload = await res.json();
+        } catch {
+          payload = null;
+        }
+
+        if (!mounted) return;
+        setAuthAvailable(Boolean(payload?.available) || res.ok);
+        if (!mounted) return;
+
+        setProviderOptions(filterProviders(payload?.providers));
+      } catch {
+        if (!mounted) return;
+        setAuthAvailable(false);
+      }
+    };
+
+    checkAuth();
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const qp = new URLSearchParams(window.location.search);
+    const reason = qp.get("reason");
+    const rcode = qp.get("reasonCode");
+    const um = qp.get("userMessage");
+
+    if (!reason && !rcode && !um) return;
+
+    Promise.resolve().then(() => {
+      if (reason) setErrorReason(reason);
+      if (rcode) setReasonCode(rcode);
+      if (um) setUserMessage(um);
+    });
+  }, []);
+
+  const helpToggle = useCallback((event?: MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault();
+    setShowHelp((current) => !current);
+  }, []);
+
+  const statusQuery = useQuery<AuthStatusResponse>({
+    queryKey: AUTH_STATUS_KEY,
+    queryFn: fetchAuthStatus,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
+    retry: 0,
+  });
+
+  useEffect(() => {
+    const reason = statusQuery.data?.discord?.reason;
+    if (reason === "invalid_token" || reason === "jwt_invalid" || reason === "jwt_expired") {
+      queryClient.setQueryData(AUTH_STATUS_KEY, {
+        discord: { authenticated: false, user: null, reason: "invalid_token" },
+      });
+    }
+  }, [statusQuery.data, queryClient]);
+
+  const checkAvailable = useCallback(async () => {
+    try {
+      const res = await fetch("/auth/available", {
+        credentials: "include",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) return { available: false };
+      return (await res.json()) as { available: boolean; providers?: ProviderOption[] };
+    } catch {
+      return { available: false };
+    }
+  }, []);
+
+  const loginWithCheck = useCallback(
+    async (fallbackUrl = "/auth/discord", providerName?: string) => {
+      const avail = await checkAvailable();
+
+      const provider =
+        (providerName && avail?.providers?.find((p) => p?.name === providerName && p?.available)) ||
+        avail?.providers?.find((p) => p?.name === "discord" && p?.available) ||
+        avail?.providers?.find((p) => p?.available);
+
+      const ok = Boolean(avail?.available) && Boolean(provider?.url || fallbackUrl);
+      if (!ok) throw new Error("Login currently unavailable");
+
+      const providerUrl = provider?.url || fallbackUrl;
+      window.location.href = providerUrl;
+    },
+    [checkAvailable]
+  );
+
+  const logoutMutation = useMutation<void, Error>({
+    mutationFn: async () => {
+      const res = await fetch("/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error("Logout failed");
+    },
+    onSettled: () => {
+      const desired = { discord: { authenticated: false, user: null, reason: null } };
+      const current = queryClient.getQueryData(AUTH_STATUS_KEY);
+      try {
+        if (JSON.stringify(current) !== JSON.stringify(desired)) {
+          queryClient.setQueryData(AUTH_STATUS_KEY, desired);
+        }
+      } catch {
+        queryClient.setQueryData(AUTH_STATUS_KEY, desired);
+      }
+    },
+  });
+
+  const discord: AuthStatus =
+    statusQuery.data?.discord ?? { authenticated: false, user: null, reason: null };
+  const authenticated = Boolean(discord.authenticated);
+  const user = (discord.user ?? null) as AuthStatusUser | null;
+  const reason = discord.reason ?? null;
+  const isAdmin = Boolean(discord.user?.isAdmin);
+  const devBypass = Boolean((discord as any)?.devBypass);
+  const hasSuperuser = Array.isArray(user?.permissions) && user!.permissions.includes("superuser");
+
+  const refresh = useCallback(
+    () => statusQuery.refetch({ cancelRefetch: false }),
+    [statusQuery]
+  );
+
+  const logoutFn = useCallback(() => logoutMutation.mutateAsync(), [logoutMutation]);
+
+  const baseValue = useMemo<AuthContextValue>(
+    () => ({
+      loading: statusQuery.isInitialLoading || statusQuery.isFetching,
+      authenticated,
+      isAdmin,
+      devBypass,
+      hasSuperuser,
+      user,
+      reason,
+      login: loginWithCheck,
+      refresh,
+      logout: logoutFn,
+      checkAvailable,
+      authAvailable,
+      providerOptions,
+      errorReason,
+      reasonCode,
+      userMessage,
+      showHelp,
+      helpToggle,
+    }),
+    [statusQuery.isFetching, statusQuery.isInitialLoading, authenticated, isAdmin, devBypass, hasSuperuser, user, reason, loginWithCheck, refresh, logoutFn, checkAvailable, authAvailable, providerOptions, errorReason, reasonCode, userMessage, showHelp, helpToggle]
+  );
+
+  return useMemo<AuthContextValue>(
+    () => ({
+      ...baseValue,
+      authAvailable,
+      providerOptions,
+      errorReason,
+      reasonCode,
+      userMessage,
+      showHelp,
+      helpToggle,
+    }),
+    [baseValue, authAvailable, providerOptions, errorReason, reasonCode, userMessage, showHelp, helpToggle]
+  );
+}
+
+export type { AuthStatusResponse, ProviderOption };

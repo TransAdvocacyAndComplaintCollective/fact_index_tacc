@@ -1,0 +1,17 @@
+{
+  "guilds": {
+    "1271213624714723339": {
+      "requiredRole": ["1274380260321792153"],
+      "name": "tacc"
+    }
+  },
+  "roles": {
+    "1274380260321792153": {
+      "name": "Facilitator (Superuser)",
+      "type": "permission",
+      "description": "Discord role granted full access (superuser).",
+      "permissions": ["superuser"]
+    }
+  },
+  "whitelistUsers": []
+}

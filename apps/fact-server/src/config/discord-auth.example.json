@@ -1,0 +1,17 @@
+{
+  "guilds": {
+    "YOUR_GUILD_ID": {
+      "requiredRole": "ROLE_ID_OR_COMMA_SEPARATED_ROLE_IDS",
+      "name": "Optional Guild Name"
+    }
+  },
+  "roles": {
+    "YOUR_DISCORD_ROLE_ID": {
+      "name": "Optional Role Name",
+      "type": "permission",
+      "description": "Optional description",
+      "permissions": ["superuser"]
+    }
+  },
+  "whitelistUsers": []
+}

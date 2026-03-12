@@ -1,0 +1,65 @@
+name: Local Ollama (Yi / Llama / Qwen)
+version: 0.0.1
+schema: v1
+
+models:
+  # Main “coding brain” for chat/edit
+  - name: Yi-Coder 9B
+    provider: ollama
+    model: yi-coder:9b
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      temperature: 0.2
+      maxTokens: 2048
+
+  # General assistant (and a good candidate for Agent mode if tool calling works in your build)
+  - name: Llama 3.1 8B
+    provider: ollama
+    model: llama3.1:8b
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      temperature: 0.3
+      maxTokens: 2048
+
+  # Fast tab completion model
+  - name: Qwen2.5-Coder 1.5B (Autocomplete)
+    provider: ollama
+    model: qwen2.5-coder:1.5b-base
+    roles:
+      - autocomplete
+    autocompleteOptions:
+      debounceDelay: 250
+      maxPromptTokens: 1024
+      onlyMyCode: true
+    defaultCompletionOptions:
+      temperature: 0.2
+      maxTokens: 128
+      stop:
+        - "\n"
+
+  # Local embeddings for codebase awareness / indexing
+  - name: Nomic Embed Text
+    provider: ollama
+    model: nomic-embed-text:latest
+    roles:
+      - embed
+    embedOptions:
+      maxChunkSize: 256
+      maxBatchSize: 64
+
+context:
+  - provider: currentFile
+  - provider: file
+  - provider: code
+  - provider: repo-map
+  - provider: diff
+  - provider: terminal
+  - provider: open

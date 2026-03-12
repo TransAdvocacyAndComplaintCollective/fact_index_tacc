@@ -1,11 +1,26 @@
 {
-  "name": "fack_index",
+  "name": "fact-index-workspace",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node main.js"
+    "nx": "nx",
+    "start": "nx serve fact-server",
+    "dev": "pnpm --filter fact-server run dev",
+    "build": "nx build fact-server",
+    "build:frontend": "nx build fact-index",
+    "serve:dev": "nx serve fact-index",
+    "preview": "nx preview fact-index",
+    "storybook": "nx storybook fact-index",
+    "build:storybook": "nx run fact-index:storybook-build",
+    "test": "nx test",
+    "test:e2e:server": "node --test --test-concurrency=1 tests/e2e/server.e2e.test.mjs",
+    "test:e2e:client": "node --test --test-concurrency=1 tests/e2e/client.e2e.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.e2e.test.mjs",
+    "test:e2e:coverage": "rm -rf .coverage/e2e && mkdir -p .coverage/e2e/v8 && NODE_OPTIONS= NODE_V8_COVERAGE=.coverage/e2e/v8 node --test --test-concurrency=1 tests/e2e/*.e2e.test.mjs && pnpm dlx c8 report --temp-directory .coverage/e2e/v8 --reports-dir .coverage/e2e --reporter=text-summary --reporter=lcov --reporter=json-summary --include \"apps/fact-server/src/**\" --include \"apps/fact-index/src/**\" --exclude \"**/*.test.*\" --exclude \"tests/**\"",
+    "test-storybook": "pnpm --filter fact-index run test-storybook",
+    "knip": "knip",
+    "generate:ta-jwks": "node scripts/generate-ta-jwks.mjs"
   },
   "repository": {
     "type": "git",
@@ -15,27 +30,67 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
-    "csv-parse": "^5.6.0",
+    "@oauth-everything/passport-discord": "^1.0.0",
+    "axios": "^1.10.0",
+    "better-sqlite3": "^12.6.2",
     "dotenv": "^17.0.1",
-    "es6-crawler-detect": "^4.0.2",
-    "express": "^5.1.0",
-    "express-session": "^1.18.1",
-    "helmet": "^8.1.0",
-    "http-proxy-middleware": "^3.0.5",
-    "knex": "^3.1.0",
-    "limits": "^1.0.0",
-    "local": "^0.3.3",
-    "passport": "^0.7.0",
-    "passport-custom": "^1.1.1",
-    "passport-discord": "^0.1.4",
-    "passport-local": "^1.0.0",
-    "rate-limiter-flexible": "^7.1.1",
-    "sqlite3": "^5.1.7"
+    "express": "^5.2.1",
+    "kysely": "^0.28.10",
+    "prop-types": "^15.8.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^6.22.0",
+    "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@parcel/config-default": "^2.15.4",
-    "@parcel/core": "^2.15.4"
+    "@nx/eslint": "22.4.2",
+    "@nx/eslint-plugin": "22.4.2",
+    "@nx/jest": "22.4.2",
+    "@nx/js": "22.4.2",
+    "@nx/react": "22.4.2",
+    "@nx/vite": "22.4.2",
+    "@nx/workspace": "22.4.2",
+    "@nx/webpack": "22.4.2",
+    "@storybook/addon-mcp": "^0.2.2",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.19.9",
+    "@types/passport": "^1.0.17",
+    "@types/react": "^19.2.9",
+    "@vitejs/plugin-react": "^4.0.0",
+    "casbin": "^5.48.0",
+    "eslint": "^9.8.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jsdom": "^27.4.0",
+    "knip": "^5.82.1",
+    "nodemon": "^3.1.11",
+    "nx": "22.4.2",
+    "postcss-scss": "^4.0.9",
+    "sass": "^1.89.2",
+    "stylelint": "^15.11.0",
+    "stylelint-config-recommended-scss": "^10.0.0",
+    "stylelint-config-standard": "^29.0.0",
+    "stylelint-scss": "^4.7.0",
+    "tsconfig-paths": "^4.2.0",
+    "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.19.0",
+    "vite": "^7.3.1"
+    ,"jose": "^6.1.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "nx": "22.4.2",
+      "@nx/*": "22.4.2"
+    }
+  },
+  "nx": {
+    "defaultProject": "fact-server"
+  },
+  "peerDependencies": {
+    "casbin": "^5.48.0"
   }
 }

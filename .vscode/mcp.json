@@ -1,0 +1,185 @@
+{
+	"servers": {
+		"gitmcpDynamic": {
+			"type": "http",
+			"url": "https://gitmcp.io/docs"
+		},
+		"tanstackQueryDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/TanStack/query"
+		},
+		"zustandDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/pmndrs/zustand"
+		},
+		"reactDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/reactjs/react.dev"
+		},
+		"reactRouterDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/remix-run/react-router"
+		},
+
+
+		"emblaCarouselDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/davidjerleke/embla-carousel"
+		},
+
+		"expressDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/expressjs/express"
+		},
+
+		"bodyParserDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/expressjs/body-parser"
+		},
+
+
+		"httpProxyMiddlewareDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/chimurai/http-proxy-middleware"
+		},
+		"axiosDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/axios/axios-docs"
+		},
+		"betterSqlite3Docs": {
+			"type": "http",
+			"url": "https://gitmcp.io/WiseLibs/better-sqlite3"
+		},
+
+		"kyselyDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/kysely-org/kysely"
+		},
+		"joseDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/panva/jose"
+		},
+		"passportDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/jaredhanson/passport"
+		},
+		"passportLocalDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/jaredhanson/passport-local"
+		},
+		"passportCustomDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/mbell8903/passport-custom"
+		},
+		"passportDiscordDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/oauth-everything/passport-discord"
+		},
+		"rateLimiterFlexibleDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/animir/node-rate-limiter-flexible"
+		},
+		"csvParseDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/adaltas/node-csv"
+		},
+		"dotenvDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/motdotla/dotenv"
+		},
+		"crawlerDetectDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/JefferyHus/es6-crawler-detect"
+		},
+        "mantine": {
+      "command": "npx",
+      "args": ["@hakxel/mantine-ui-server"],
+      "env": {
+      }
+    },
+		"nodemonDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/remy/nodemon"
+		},
+		"tsNodeDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/TypeStrong/ts-node"
+		},
+		"webVitalsDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/GoogleChrome/web-vitals"
+		},
+		"eslintPluginImportDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/import-js/eslint-plugin-import"
+		},
+		"eslintPluginReactDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/jsx-eslint/eslint-plugin-react"
+		},
+		"eslintPluginReactHooksDocs": {
+			"type": "http",
+			"url": "https://gitmcp.io/facebook/react"
+		},
+
+		"context7": {
+			"type": "http",
+			"url": "https://mcp.context7.com/mcp",
+			"headers": {
+				"CONTEXT7_API_KEY": "${input:context7ApiKey}"
+			}
+		},
+		"npmSearch": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"npm-search-mcp-server"
+			]
+		},
+		"microsoft/playwright-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@playwright/mcp@latest"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.0.1-seed"
+		},
+    "oraios/serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide",
+        "--project",
+        "${workspaceFolder}"
+      ]
+    },
+
+
+        "storybook-mcp": {
+      "command": "npx",
+      "args": [ "storybook-mcp@latest"],
+      "env": {
+        "STORYBOOK_URL": "http://localhost:6007/index.json"
+      }
+    },
+   "storybook": {
+      "type": "http",
+      "url": "http://localhost:6006/mcp"
+    }
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "context7ApiKey",
+			"description": "Context7 API key (recommended; leave blank if you don’t have one)",
+			"password": true
+		}
+	]
+}

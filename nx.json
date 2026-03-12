@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "npmScope": "factdb",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "@nx/workspace/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "lint", "test"],
+        "parallel": 3
+      }
+    }
+  },
+  "workspaceLayout": {
+    "appsDir": "apps",
+    "libsDir": "libs"
+  },
+  "projects": {
+    "fact-server": "apps/fact-server",
+    "fact-index": "apps/fact-index",
+    "@factdb/types": "libs/types",
+    "@factdb/db-core": "libs/db-core",
+    "fact-data-import": "apps/script"
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/eslint"
+    },
+    {
+      "plugin": "@nx/vite",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "testTargetName": "test"
+      }
+    },
+    {
+      "plugin": "@nx/webpack",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps",
+        "serveStaticTargetName": "serve-static"
+      }
+    },
+    {
+      "plugin": "@nx/jest",
+      "options": {
+        "targetName": "test"
+      }
+    }
+  ],
+  "generators": {
+    "@nx/react": {
+      "application": {
+        "babel": true,
+        "style": "scss",
+        "linter": "none",
+        "bundler": "webpack"
+      },
+      "component": {
+        "style": "scss"
+      },
+      "library": {
+        "style": "scss",
+        "linter": "none"
+      }
+    }
+  },
+  "environments": {
+    "dev": {
+      "name": "Development",
+      "description": "Local development with Vite proxy to backend",
+      "variables": {
+        "API_ENDPOINT": "http://localhost:5332"
+      }
+    },
+    "production": {
+      "name": "Production",
+      "description": "Production build without proxy, direct API calls",
+      "variables": {
+        "API_ENDPOINT": "https://api.example.com"
+      }
+    }
+  }
+}

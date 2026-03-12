@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/libs/db-core",
+    "composite": true,
+    "declaration": true,
+    "tsBuildInfoFile": "../../dist/libs/db-core/tsconfig.tsbuildinfo",
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "references": [{ "path": "../types" }],
+  "include": ["src"]
+}

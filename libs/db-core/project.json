@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@factdb/db-core",
+  "projectType": "library",
+  "root": "libs/db-core",
+  "sourceRoot": "libs/db-core/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "dependsOn": ["^build"],
+      "options": {
+        "buildLibsFromSource": false,
+        "tsConfig": "libs/db-core/tsconfig.json",
+        "outputPath": "libs/db-core/dist",
+        "main": "libs/db-core/src/index.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/db-core/**/*.ts"],
+        "tsConfig": ["libs/db-core/tsconfig.json"]
+      }
+    }
+  },
+  "tags": ["scope:shared-db"]
+  
+}

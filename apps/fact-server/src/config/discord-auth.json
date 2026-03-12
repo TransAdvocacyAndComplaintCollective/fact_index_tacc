@@ -1,0 +1,309 @@
+{
+  "guilds": {
+    "1271213624714723339": {
+      "requiredRole": [
+        "1274380260321792153"
+      ],
+      "name": "tacc"
+    }
+  },
+  "roles": {
+    "1274380260321792153": {
+      "name": "Superuser",
+      "type": "permission",
+      "description": "Discord role granted full access (superuser).",
+      "permissions": [
+        "superuser"
+      ]
+    },
+    "playwright-role": {
+      "name": "Playwright Role",
+      "type": "permission",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:4234443232": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:playwright-user-1001": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:1274380260321792153": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:12743802603217921533": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:hfgh": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:dggdfdg": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:432423423432": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:2423423": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:map-list-user-01": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:dropdown-user-2001": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:edit-del-discord-1": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "facts-read:edit-del-discord-1-upd": {
+      "name": "facts:read",
+      "type": "permission",
+      "description": "Managed via Discord access mapping (action:facts:read)",
+      "permissions": [
+        "facts:read"
+      ]
+    },
+    "role:facts:editor:e2e": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:facts:editor:e2e:1771143884581-a17e83": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:facts:editor:e2e:1771143900522-cab9cb": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:facts:editor:e2e:1771143947411-0708d6": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:idc:login:e2e:1771144202203-f293ce": {
+      "name": "IdC Login Delegate",
+      "type": "custom",
+      "description": "Can initiate IdC login",
+      "permissions": [
+        "idc:login"
+      ]
+    },
+    "role:facts:editor:e2e:1771144217895-fa9482": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:idc:login:e2e:1771144232400-1ddcf4": {
+      "name": "IdC Login Delegate",
+      "type": "custom",
+      "description": "Can initiate IdC login",
+      "permissions": [
+        "idc:login"
+      ]
+    },
+    "role:facts:editor:e2e:1771144262320-3e28ce": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:idc:login:e2e:1771144279653-4a2295": {
+      "name": "IdC Login Delegate",
+      "type": "custom",
+      "description": "Can initiate IdC login",
+      "permissions": [
+        "idc:login"
+      ]
+    },
+    "role:facts:editor:e2e:1771144612916-f8c3ec": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:idc:login:e2e:1771144627156-0f8b37": {
+      "name": "IdC Login Delegate",
+      "type": "custom",
+      "description": "Can initiate IdC login",
+      "permissions": [
+        "idc:login"
+      ]
+    },
+    "role:facts:editor:e2e:1771144666483-4cc92a": {
+      "name": "Delegated Fact Editor",
+      "type": "custom",
+      "description": "Can edit fact database records",
+      "permissions": [
+        "facts:write"
+      ]
+    },
+    "role:idc:login:e2e:1771144681302-03c80f": {
+      "name": "IdC Login Delegate",
+      "type": "custom",
+      "description": "Can initiate IdC login",
+      "permissions": [
+        "idc:login"
+      ]
+    }
+  },
+  "userRoles": {
+    "701037283582672936": [
+      "French"
+    ],
+    "repo-e2e-factdb-delegated-editor": [
+      "role:facts:editor:e2e"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771143884581-a17e83": [
+      "role:facts:editor:e2e:1771143884581-a17e83"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771143900522-cab9cb": [
+      "role:facts:editor:e2e:1771143900522-cab9cb"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771143947411-0708d6": [
+      "role:facts:editor:e2e:1771143947411-0708d6"
+    ],
+    "repo-e2e-idc-delegated-1771144202203-f293ce": [
+      "role:idc:login:e2e:1771144202203-f293ce"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771144217895-fa9482": [
+      "role:facts:editor:e2e:1771144217895-fa9482"
+    ],
+    "repo-e2e-idc-delegated-1771144232400-1ddcf4": [
+      "role:idc:login:e2e:1771144232400-1ddcf4"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771144262320-3e28ce": [
+      "role:facts:editor:e2e:1771144262320-3e28ce"
+    ],
+    "repo-e2e-idc-delegated-1771144279653-4a2295": [
+      "role:idc:login:e2e:1771144279653-4a2295"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771144612916-f8c3ec": [
+      "role:facts:editor:e2e:1771144612916-f8c3ec"
+    ],
+    "repo-e2e-idc-delegated-1771144627156-0f8b37": [
+      "role:idc:login:e2e:1771144627156-0f8b37"
+    ],
+    "repo-e2e-factdb-delegated-editor-1771144666483-4cc92a": [
+      "role:facts:editor:e2e:1771144666483-4cc92a"
+    ],
+    "repo-e2e-idc-delegated-1771144681302-03c80f": [
+      "role:idc:login:e2e:1771144681302-03c80f"
+    ]
+  },
+  "whitelistUsers": [],
+  "discordMappings": [
+    {
+      "id": "19012bb6-fb2c-4164-b6e9-2ade3e978a16",
+      "discordRoleId": "432423423432",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:04.779Z"
+    },
+    {
+      "id": "345b614d-6a65-427a-be03-3dc5b48de417",
+      "discordRoleId": "2423423",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:07.449Z"
+    },
+    {
+      "id": "8fb22798-781c-4c6d-959a-fe488fa20d44",
+      "discordUserId": "map-list-user-01",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:19:18.439Z"
+    },
+    {
+      "id": "fd73b21a-cbf5-4008-adb3-f9d90d35951a",
+      "discordUserId": "dropdown-user-2001",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-14T15:20:28.833Z"
+    },
+    {
+      "id": "02352aa6-4796-4102-bca5-4421b5aac02b",
+      "discordUserId": "matrix-user-1",
+      "targetType": "action",
+      "targetValue": "facts:read",
+      "createdAt": "2026-02-15T08:00:28.038Z"
+    }
+  ]
+}

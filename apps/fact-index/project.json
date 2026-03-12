@@ -1,0 +1,91 @@
+{
+  "name": "fact-index",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "apps/fact-index",
+  "sourceRoot": "apps/fact-index/src",
+  "projectType": "application",
+  "tags": ["scope:client"],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "development",
+      "options": {
+        "outputPath": "dist/apps/fact-index",
+        "configFile": "apps/fact-index/vite.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "configFile": "apps/fact-index/vite.config.js"
+        },
+        "watch": {
+          "watch": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/fact-index/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "build:static": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite build --config vite.config.js"
+      }
+    },
+    "build:watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite build --watch --config vite.config.js",
+        "cwd": "."
+      }
+    },
+    "build-reload": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite build --config vite.config.js && echo 'Build complete - serving updated assets'"
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "configFile": "apps/fact-index/vite.config.js",
+        "hmr": true,
+        "port": 4200,
+        "buildTarget": "fact-index:build"
+      },
+      "configurations": {
+        "production": {
+          "configFile": "apps/fact-index/vite.config.js"
+        }
+      }
+    },
+    "storybook": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter fact-index run storybook",
+        "env": {
+          "STORYBOOK_PROJECT_ROOT": "apps/fact-index"
+        }
+      }
+    },
+    "storybook-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter fact-index run build:storybook"
+      }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{workspaceRoot}/coverage/apps/fact-index"],
+      "options": {
+        "vitest": true,
+        "passWithNoTests": true
+      }
+    }
+  }
+}
